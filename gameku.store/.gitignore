@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Backend Gameku.store
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/config/config.php
+
+# Berkas sementara / laporan lokal
+daftar-*.txt
+audit-out.txt
+build-out.txt
+filelist.txt
+mods.txt
+uji-out.txt
+.uji-tmp/
+.uji-visual-tmp.cjs
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

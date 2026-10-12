@@ -1,0 +1,13 @@
+/* Lapisan final GameKU — hanya pengaman mobile-only + safe-area.
+   Aturan visual utama sudah selaras di file masing-masing (global,
+   navigasi, filter, detail, beranda, kaki, kartu-produk, kategori,
+   gameku-home, gameku-komponen). Jangan tambah override di sini
+   bila bisa diperbaiki di file sumbernya. */
+.kaki-utama,.tata-detail{grid-template-columns:1fr!important}
+.navigasi-atas,.cari-kepala{display:none!important}
+.baris-cari-mobile{display:block!important}
+.keadaan-kosong-ikon{font-size:0!important;margin-bottom:10px}
+.kaki-isi{padding-bottom:calc(90px + env(safe-area-inset-bottom))!important}
+.isi-halaman{padding-bottom:calc(var(--tinggi-bawah) + 26px + env(safe-area-inset-bottom))!important}
+
+

@@ -1,0 +1,14 @@
+/* Footer GameKU — navy + aksen kuning, 1 kolom mobile. */
+.kaki{border-top:3px solid #FACC15;background:#0F172A;color:#CBD5E1;margin-top:20px}
+.kaki-isi{padding:26px 16px calc(90px + env(safe-area-inset-bottom))}
+.kaki-utama{display:grid;grid-template-columns:1fr;gap:20px}
+.kaki-merek p{margin-top:10px;color:#94A3B8;font-size:13px;max-width:340px}
+.logo-mini{display:inline-flex;align-items:center;gap:8px;font-weight:900;color:#fff}
+.kubus-mini{width:20px;height:20px;border-radius:6px;background:#2563EB}
+.kaki-sosial{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.kaki-sosial a{font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:999px;border:1px solid #1E293B;color:#CBD5E1}
+.kaki-kolom h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#FACC15;margin-bottom:12px}
+.kaki-kolom li{margin-bottom:8px}
+.kaki-kolom a{font-size:14px;color:#CBD5E1}
+.kaki-bawah{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:22px;padding-top:16px;border-top:1px solid #1E293B;font-size:12px;color:#64748B}
+
