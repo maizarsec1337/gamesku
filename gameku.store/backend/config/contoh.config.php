@@ -2,11 +2,11 @@
 // Konfigurasi backend gamesku.store.
 // Salin ke config.php lalu isi nilai asli (jangan commit kredensial).
 return [
-  'db_host' => '127.0.0.1',
+  'db_host' => 'sql302.infinityfree.com',
   'db_port' => 3306,
-  'db_nama' => 'gamesku_store',
-  'db_user' => 'root',
-  'db_pass' => '',
+  'db_nama' => 'if0_41354263_gameku_db',
+  'db_user' => 'if0_41354263',
+  'db_pass' => '9qoXWF4CI8XyB',
 
   // Origin frontend yang diizinkan memanggil backend langsung (untuk CORS).
   'cors_origins' => [
