@@ -111,7 +111,7 @@ export default function AdminPromo() {
           <p>
             {promo.length === 0
               ? 'Belum ada promo'
-              : 'Kode diskon & kampanye RAK VIN'}
+              : 'Kode diskon & kampanye Gamesku'}
           </p>
         </div>
         <div className="panel-aksi">

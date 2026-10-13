@@ -1,10 +1,10 @@
 <?php
-// Konfigurasi backend gameku.store.
+// Konfigurasi backend gamesku.store.
 // Salin ke config.php lalu isi nilai asli (jangan commit kredensial).
 return [
   'db_host' => '127.0.0.1',
   'db_port' => 3306,
-  'db_nama' => 'gameku_store',
+  'db_nama' => 'gamesku_store',
   'db_user' => 'root',
   'db_pass' => '',
 

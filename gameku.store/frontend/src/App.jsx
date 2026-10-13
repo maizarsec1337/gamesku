@@ -13,7 +13,7 @@ import HalamanProfil from './halaman/Profil.jsx'
 import HalamanMasuk from './halaman/Masuk.jsx'
 import HalamanBantuan from './halaman/Bantuan.jsx'
 import TidakDitemukan from './halaman/TidakDitemukan.jsx'
-// — rute admin RAK VIN (dashboard CMS) —
+// Rute admin Gamesku (dashboard CMS) —
 import TataLetakAdmin from './komponen/admin/TataLetakAdmin.jsx'
 import AdminLogin from './halaman-admin/AdminLogin.jsx'
 import AdminDasbor from './halaman-admin/AdminDasbor.jsx'

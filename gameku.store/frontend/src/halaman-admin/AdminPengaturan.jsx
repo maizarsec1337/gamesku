@@ -15,7 +15,7 @@ const seksiPengaturan = [
 
 const judulSeksi = {
   profil: ['Profil Admin', 'Informasi akun yang tampil di panel ini'],
-  toko: ['Profil Toko', 'Identitas publik RAK VIN'],
+  toko: ['Profil Toko', 'Identitas publik Gamesku'],
   pembayaran: ['Pembayaran', 'Aktifkan metode pembayaran yang didukung'],
   notifikasi: ['Notifikasi', 'Atur pemberitahuan masuk untuk admin'],
   keamanan: ['Keamanan', 'Kata sandi & perlindungan akun'],
@@ -47,10 +47,10 @@ export default function AdminPengaturan() {
   // server, form dibiarkan kosong — tidak ada nama/email contoh.
   const [profil, setProfil] = useState({ nama: '', pengguna: '', email: '', bio: '' })
   const [toko, setToko] = useState({
-    nama: 'RAK VIN',
+    nama: 'Gamesku',
     tagline: 'Minecraft Digital Store',
-    url: 'https://rakvin.store',
-    email: 'halo@rakvin.store',
+    url: 'https://gamesku.store',
+    email: 'halo@gamesku.store',
     telepon: '',
     deskripsi:
       'Marketplace konten Minecraft: skin, map, texture pack, add-on, build, mod, dan bundle.',
@@ -88,7 +88,7 @@ export default function AdminPengaturan() {
       <div className="judul-halaman">
         <div>
           <h2>Pengaturan</h2>
-          <p>Konfigurasi panel &amp; toko RAK VIN</p>
+          <p>Konfigurasi panel &amp; toko Gamesku</p>
         </div>
       </div>
 

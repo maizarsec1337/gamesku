@@ -1,0 +1,1 @@
+            'Kategori harus dibuat lebih dulu'

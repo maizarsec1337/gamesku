@@ -80,7 +80,7 @@ export default function AdminKategori() {
           <p>
             {kategori.length === 0
               ? 'Belum ada kategori'
-              : `${kategori.length} kategori di katalog RAK VIN`}
+              : `${kategori.length} kategori di katalog Gamesku`}
           </p>
         </div>
         <div className="panel-aksi">

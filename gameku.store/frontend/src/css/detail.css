@@ -1,4 +1,4 @@
-/* Detail produk RAK VIN — 1 kolom mobile, galeri proporsional. */
+/* Detail produk Gamesku — 1 kolom mobile, galeri proporsional. */
 .tata-detail{display:grid;grid-template-columns:1fr;gap:14px}
 .galeri-utama{aspect-ratio:16/10;border-radius:16px;display:grid;place-items:center;position:relative;overflow:hidden;border:1px solid #E2E8F0}
 .galeri-utama .pola-kotak{position:absolute;inset:0;background-image:linear-gradient(rgba(37,99,235,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,.12) 1px,transparent 1px);background-size:20px 20px}

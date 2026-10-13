@@ -1,9 +1,9 @@
-# RAK VIN
+# Gamesku
 
-Monorepo marketplace RAK VIN — frontend React + backend PHP.
+Monorepo marketplace Gamesku — frontend React + backend PHP.
 
 ```text
-gameku.store/
+gamesku.store/
   frontend/   React 19 + Vite (lihat frontend/README.md)
   backend/    API PHP (lihat backend/README.md)
 ```

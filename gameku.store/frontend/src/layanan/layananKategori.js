@@ -1,6 +1,6 @@
 // =====================================================================
-// LAYANAN KATEGORI — daftar kategori produk RAK VIN.
-//
+// LAYANAN KATEGORI — daftar kategori produk Gamesku.
+////
 // MULAI KOSONG. Tidak ada kategori bawaan. Kategori dibuat sendiri oleh
 // admin lewat halaman /admin/kategori, lalu langsung tersedia sebagai
 // pilihan pada form Tambah Produk.

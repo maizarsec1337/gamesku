@@ -131,7 +131,7 @@ export default function AdminProduk() {
           <p>
             {semua.length === 0
               ? 'Belum ada produk di katalog'
-              : `${semua.length} produk terdaftar di katalog RAK VIN`}
+              : `${semua.length} produk terdaftar di katalog Gamesku`}
           </p>
         </div>
         <div className="panel-aksi">
@@ -155,7 +155,7 @@ export default function AdminProduk() {
           <KosongAdmin
             ikon="kotak"
             judul="Belum ada produk"
-            deskripsi="Tambahkan produk pertama untuk mulai mengisi RAK VIN."
+            deskripsi="Tambahkan produk pertama untuk mulai mengisi Gamesku."
             aksi={{ label: '+ Tambah Produk', ke: '/admin/produk/tambah' }}
           />
         </section>

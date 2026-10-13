@@ -1,6 +1,6 @@
-# Backend gameku.store (PHP + MySQL)
+# Backend gamesku.store (PHP + MySQL)
 
-API PHP untuk **gameku.store**. Frontend (React + Vite di `../frontend`)
+API PHP untuk **gamesku.store**. Frontend (React + Vite di `../frontend`)
 meneruskan semua request `/api` ke backend ini (lihat `frontend/vite.config.js`,
 proxy target default `http://localhost:8000`).
 

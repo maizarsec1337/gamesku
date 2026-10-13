@@ -54,9 +54,9 @@ export default function BilahSamping({ terbuka = false, padaTutup = () => {} }) 
   return (
     <aside className={`bilah-samping ${terbuka ? 'terbuka' : ''}`}>
       <div className="bilah-logo">
-        <span className="bilah-logo-kubus">R</span>
+        <span className="bilah-logo-kubus">G</span>
         <span className="bilah-logo-teks">
-          <strong>RAK VIN</strong>
+          <strong>Gamesku</strong>
           <span>Panel Admin</span>
         </span>
         <button

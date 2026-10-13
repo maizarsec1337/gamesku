@@ -48,9 +48,9 @@ export default function AdminLogin() {
     <div className="halaman-login">
       <main className="login-kartu">
         <div className="login-logo">
-          <span className="bilah-logo-kubus">R</span>
+          <span className="bilah-logo-kubus">g</span>
           <span className="login-logo-teks">
-            <strong>RAK VIN</strong>
+            <strong>gamesku</strong>
             <span>Admin Panel</span>
           </span>
         </div>

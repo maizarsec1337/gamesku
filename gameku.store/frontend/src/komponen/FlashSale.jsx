@@ -1,4 +1,4 @@
-// Flash Sale GameKU — timer mundur + kartu horizontal dari data asli.
+// Flash Sale Gamesku — timer mundur + kartu horizontal dari data asli.
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import KartuProduk from './KartuProduk.jsx'

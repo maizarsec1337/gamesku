@@ -25,7 +25,7 @@ export default function HalamanPromo() {
         <section className="bagian"><div className="wadah">
           <KeadaanKosong
             judul="Belum ada promo"
-            deskripsi="Promo RAK VIN akan tampil di sini setelah admin membuat diskon."
+            deskripsi="Promo Gamesku akan tampil di sini setelah admin membuat diskon."
             teksTombol="Lihat Store"
             tautanTombol="/store"
           />

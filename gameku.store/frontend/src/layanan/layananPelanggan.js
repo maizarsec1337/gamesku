@@ -1,6 +1,6 @@
 // =====================================================================
-// LAYANAN PELANGGAN — akun pembeli RAK VIN.
-//
+// LAYANAN PELANGGAN — akun pembeli Gamesku.
+////
 // MULAI KOSONG. Tidak ada pelanggan contoh dan tidak ada email/username
 // karangan. Pelanggan pertama muncul setelah pendaftaran nyata lewat
 // frontend toko atau API PHP.

@@ -75,7 +75,7 @@ export default function AdminPelanggan() {
           <p>
             {pelanggan.length === 0
               ? 'Belum ada pelanggan'
-              : `${pelanggan.length} akun terdaftar di RAK VIN`}
+              : `${pelanggan.length} akun terdaftar di gamesku`}
           </p>
         </div>
       </div>

@@ -67,7 +67,7 @@ export default function AdminCreator() {
           <p>
             {creator.length === 0
               ? 'Belum ada creator'
-              : 'Kreator konten Minecraft yang berjualan di RAK VIN'}
+              : 'Kreator konten Minecraft yang berjualan di gamesku'}
           </p>
         </div>
       </div>

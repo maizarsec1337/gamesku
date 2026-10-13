@@ -1,6 +1,6 @@
-# Frontend RAK VIN (React + Vite)
+# Frontend Gamesku (React + Vite)
 
-Marketplace RAK VIN — mobile-first (shell 430px), React 19 + React Router 7 + Vite.
+Marketplace Gamesku — mobile-first (shell 430px), React 19 + React Router 7 + Vite.
 
 ## Struktur
 

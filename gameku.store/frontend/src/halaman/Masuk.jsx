@@ -30,16 +30,16 @@ export default function HalamanMasuk() {
   return (
     <div className="halaman-masuk">
       <header className="kepala"><div className="wadah kepala-isi">
-        <Link className="logo" to="/" aria-label="RAK VIN">
-          <span className="logo-gameku" aria-hidden="true">R</span>
-          <span className="logo-teks">RAK VIN<small>gaming store</small></span>
+        <Link className="logo" to="/" aria-label="Gamesku">
+          <span className="logo-gameku" aria-hidden="true">G</span>
+          <span className="logo-teks">Gamesku<small>gaming store</small></span>
         </Link>
       </div></header>
 
       <main className="wadah masuk-utama">
         <section className="kartu masuk-kartu">
           <div className="kartu-isi">
-            <span className="lencana lencana-biru"><Ikon nama="perisai" ukuran={13} /> Akun RAK VIN</span>
+            <span className="lencana lencana-biru"><Ikon nama="perisai" ukuran={13} /> Akun Gamesku</span>
             <h1 className="judul-halaman" style={{ marginTop: 10 }}>{mode === 'masuk' ? 'Masuk' : 'Daftar Akun'}</h1>
             <p className="subjudul-halaman" style={{ marginBottom: 16 }}>
               {mode === 'masuk' ? 'Belum punya akun? Daftar gratis.' : 'Sudah punya akun? Langsung masuk.'}

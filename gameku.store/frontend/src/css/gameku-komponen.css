@@ -1,4 +1,4 @@
-/* GameKU — kartu produk ringkas, gambar proporsional, badge kuning. */
+/* Gamesku — kartu produk ringkas, gambar proporsional, badge kuning. */
 .kartu-produk{background:#fff!important;border:1px solid #E2E8F0!important;border-radius:14px!important;box-shadow:0 4px 14px -10px rgba(15,23,42,.18)!important;position:relative}
 .kartu-produk:active{transform:scale(.97)}
 .kartu-produk:hover{transform:translateY(-2px)!important;box-shadow:0 12px 22px -14px rgba(37,99,235,.4)!important}

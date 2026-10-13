@@ -1,4 +1,4 @@
-// Halaman /store — Marketplace RAK VIN + search + filter + sort.
+// Halaman /store — Marketplace Gamesku + search + filter + sort.
 // Katalog dibaca dari layananProduk, kategori dari layananKategori.
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -57,7 +57,7 @@ export default function Store() {
     <>
       <section className="kepala-bagian"><div className="wadah">
         <span className="lencana lencana-biru">Marketplace</span>
-        <h1 className="judul-halaman">Marketplace RAK VIN</h1>
+        <h1 className="judul-halaman">Marketplace Gamesku</h1>
         <p className="subjudul-halaman">Top-up, voucher, skin, item, dan bundle dari kreator kurasi.</p>
         <FilterProduk
           kataKunci={kataKunci}

@@ -1,11 +1,11 @@
-// Beranda RAK VIN — hero slider + shortcut + 9 kategori + flash sale + populer + StreamKU.
+// Beranda Gamesku — hero slider + shortcut + 9 kategori + flash sale + populer + Streamku.
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useSyncExternalStore } from 'react'
 import BannerUtama from '../komponen/BannerUtama.jsx'
 import Kategori from '../komponen/Kategori.jsx'
 import BagianProduk from '../komponen/BagianProduk.jsx'
 import FlashSale from '../komponen/FlashSale.jsx'
-import StreamKU from '../komponen/StreamKU.jsx'
+import Streamku from '../komponen/Streamku.jsx'
 import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
 import Ikon from '../komponen/Ikon.jsx'
 import useReveal from '../layanan/gunakanReveal.js'
@@ -52,10 +52,10 @@ export default function Beranda() {
       <div className="wadah" style={{ paddingTop: 12 }}>
         <form className="cari-mobile" onSubmit={kirimCari} role="search" style={{ border: '1.5px solid #E2E8F0' }}>
           <Ikon nama="cari" ukuran={16} />
-          <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari diamond, Robux, voucher..." aria-label="Cari produk RAK VIN" />
+          <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari diamond, Robux, voucher..." aria-label="Cari produk Gamesku" />
         </form>
       </div>
-      <nav className="gk-short reveal" aria-label="Layanan RAK VIN">
+      <nav className="gk-short reveal" aria-label="Layanan Gamesku">
         {SHORTCUT.map((s) => (
           <Link key={s.nama} to={s.ke}><span className="ic"><Ikon nama={s.ikon} ukuran={19} /></span>{s.nama}</Link>
         ))}
@@ -66,7 +66,7 @@ export default function Beranda() {
           <KeadaanKosong
             ikon="toko"
             judul="Katalog belum terisi"
-            deskripsi="Produk RAK VIN akan muncul di sini begitu admin menerbitkannya. Sementara itu, jelajahi kategori di atas."
+            deskripsi="Produk Gamesku akan muncul di sini begitu admin menerbitkannya. Sementara itu, jelajahi kategori di atas."
             teksTombol="Lihat Kategori"
             tautanTombol="/kategori"
           />
@@ -76,12 +76,12 @@ export default function Beranda() {
       <div className="reveal">
         <BagianProduk judul="Produk Populer" subjudul="Paling diburu pemain minggu ini." daftar={populer} tautan="/store" />
       </div>
-      <StreamKU />
+      <Streamku />
       <div className="reveal">
         <BagianProduk judul="Rekomendasi Untukmu" subjudul="Rilisan terbaru dari kreator." daftar={terbaru} tautan="/store?urut=terbaru" />
       </div>
       <section className="bagian reveal"><div className="wadah">
-        <div className="judul-bagian"><div><h2>Kenapa GameKU?</h2><p>Cepat, aman, dan mobile-first.</p></div></div>
+        <div className="judul-bagian"><div><h2>Kenapa Gamesku?</h2><p>Cepat, aman, dan mobile-first.</p></div></div>
         <div className="kisi-unggul">
           {keunggulan.map((k) => (
             <article key={k.judul} className="kartu"><div className="kartu-isi kartu-unggul">

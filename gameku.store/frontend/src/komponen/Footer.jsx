@@ -14,12 +14,12 @@ export default function Footer() {
       <div className="wadah kaki-isi">
         <div className="kaki-utama">
           <div className="kaki-merek">
-            <span className="logo-mini"><span className="logo-gameku" style={{width:26,height:26,fontSize:15}} aria-hidden="true">R</span>RAK VIN</span>
+            <span className="logo-mini"><span className="logo-gamesku" style={{width:26,height:26,fontSize:15}} aria-hidden="true">G</span>Gamesku</span>
             <p>Gaming store — top-up, voucher, dan konten digital dari kreator kurasi. Cepat, aman, instan.</p>
             <div className="kaki-sosial">
-              <a href="https://discord.gg/rakvin" target="_blank" rel="noreferrer" aria-label="Discord">Discord</a>
-              <a href="https://youtube.com/@rakvin" target="_blank" rel="noreferrer" aria-label="YouTube">YouTube</a>
-              <a href="https://tiktok.com/@rakvin" target="_blank" rel="noreferrer" aria-label="TikTok">TikTok</a>
+              <a href="https://discord.gg/gamesku" target="_blank" rel="noreferrer" aria-label="Discord">Discord</a>
+              <a href="https://youtube.com/@gamesku" target="_blank" rel="noreferrer" aria-label="YouTube">YouTube</a>
+              <a href="https://tiktok.com/@gamesku" target="_blank" rel="noreferrer" aria-label="TikTok">TikTok</a>
             </div>
           </div>
           {kolomTautan.map((kolom) => (
@@ -30,7 +30,7 @@ export default function Footer() {
           ))}
         </div>
         <div className="kaki-bawah">
-          <span>© 2026 RAK VIN — gaming store.</span>
+          <span>© 2026 Gamesku — gaming store.</span>
           <span className="kaki-legal"><Link to="/syarat">Terms</Link> · <Link to="/privasi">Privacy</Link></span>
         </div>
       </div>

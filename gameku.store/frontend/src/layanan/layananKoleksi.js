@@ -1,6 +1,6 @@
 // =====================================================================
-// LAYANAN KOLEKSI — ponds terakhir yang dipakai semua service RAK VIN.
-//
+// LAYANAN KOLEKSI — ponds terakhir yang dipakai semua service Gamesku.
+////
 // Menyediakan operasi standar (daftar/tambah/perbarui/hapus) di atas
 // localStorage. Tidak ada satu pun data contoh di dalam berkas ini:
 // daftar selalu kosong sampai admin mengisinya sendiri.

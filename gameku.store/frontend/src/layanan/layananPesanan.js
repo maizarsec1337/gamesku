@@ -1,6 +1,6 @@
 // =====================================================================
-// LAYANAN PESANAN — transaksi masuk RAK VIN.
-//
+// LAYANAN PESANAN — transaksi masuk Gamesku.
+////
 // MULAI KOSONG. Tidak ada pesanan contoh, tidak ada pelanggan contoh.
 // Pesanan pertama akan muncul setelah toko menerima transaksi nyata
 // (nanti lewat checkout + API PHP), bukan karena data dikarang di sini.

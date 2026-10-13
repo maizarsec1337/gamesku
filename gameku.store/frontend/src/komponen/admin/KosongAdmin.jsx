@@ -11,7 +11,7 @@ import '../../css/admin-tabel.css'
 //   <KosongAdmin
 //     ikon="kotak"
 //     judul="Belum ada produk"
-//     deskripsi="Tambahkan produk pertama untuk mulai mengisi RAK VIN."
+//     deskripsi="Tambahkan produk pertama untuk mulai mengisi Gamesku."
 //     aksi={{ label: '+ Tambah Produk', ke: '/admin/produk/tambah' }}
 //   />
 // =====================================================================

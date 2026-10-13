@@ -1,4 +1,4 @@
-// Uji visual browser RAK VIN — Playwright + Chrome sistem (tanpa unduh browser).
+// Uji visual browser Gamesku — Playwright + Chrome sistem (tanpa unduh browser).
 // Jalankan dari folder frontend: npm run uji-visual -- [url]
 // Memeriksa 320/375/390/430/desktop: shell 430px, overflow-x, bottom-nav,
 // hero slider, console error, reduced-motion.

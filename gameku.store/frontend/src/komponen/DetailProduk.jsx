@@ -106,7 +106,7 @@ export default function DetailProduk({ produk }) {
           {pesan && <p className="lencana lencana-biru" style={{ marginTop: 10 }}>{pesan}</p>}
           <div className="kartu-creator" style={{ marginTop: 14 }}>
             <span className="avatar-creator">{produk.creator.slice(0, 2).toUpperCase()}</span>
-            <div><strong style={{ fontSize: 14 }}>{produk.creator}</strong><p className="subjudul-halaman" style={{ margin: 0 }}>Kreator RAK VIN</p></div>
+            <div><strong style={{ fontSize: 14 }}>{produk.creator}</strong><p className="subjudul-halaman" style={{ margin: 0 }}>Kreator Gamesku</p></div>
           </div>
           <Link className="tautan-lihat" style={{ marginTop: 10 }} to="/kategori">Lihat semua kategori →</Link>
         </div></aside>

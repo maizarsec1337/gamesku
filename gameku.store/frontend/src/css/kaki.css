@@ -1,4 +1,4 @@
-/* Footer GameKU — navy + aksen kuning, 1 kolom mobile. */
+/* Footer Gamesku — navy + aksen kuning, 1 kolom mobile. */
 .kaki{border-top:3px solid #FACC15;background:#0F172A;color:#CBD5E1;margin-top:20px}
 .kaki-isi{padding:26px 16px calc(90px + env(safe-area-inset-bottom))}
 .kaki-utama{display:grid;grid-template-columns:1fr;gap:20px}

@@ -1,4 +1,4 @@
-// Halaman 404 RAK VIN.
+// Halaman 404 Gamesku.
 import { Link } from 'react-router-dom'
 import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
 
@@ -9,8 +9,8 @@ export default function TidakDitemukan() {
         <KeadaanKosong
           ikon="cari"
           judul="Halaman tidak ditemukan"
-          deskripsi="Alamat ini tidak ada di RAK VIN. Kembali dan lanjutkan main."
-          teksTombol="Kembali ke RAK VIN"
+          deskripsi="Alamat ini tidak ada di Gamesku. Kembali dan lanjutkan main."
+          teksTombol="Kembali ke Gamesku"
           tautanTombol="/"
           aksi={
             <Link className="tombol tombol-garis tombol-kecil" to="/store">

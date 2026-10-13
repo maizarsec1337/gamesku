@@ -23,14 +23,14 @@ export default function HalamanWishlist() {
         <span className="lencana lencana-biru">Wishlist</span>
         <h1 className="judul-halaman">Wishlist Saya</h1>
         <p className="subjudul-halaman">
-          {jumlahSuka} produk tersimpan di RAK VIN.
+          {jumlahSuka} produk tersimpan di Gamesku.
         </p>
       </div></section>
       <section className="bagian"><div className="wadah">
         {produk.length === 0 ? (
           <KeadaanKosong
             judul="Wishlist masih kosong"
-            deskripsi="Ketuk ikon hati pada kartu produk untuk menyimpan top-up favoritmu di RAK VIN."
+            deskripsi="Ketuk ikon hati pada kartu produk untuk menyimpan top-up favoritmu di Gamesku."
             teksTombol="Jelajahi Store"
             tautanTombol="/store"
           />

@@ -1,4 +1,4 @@
-// Kartu produk GameKU — thumbnail proporsional + badge kuning + CTA cepat.
+// Kartu produk Gamesku — thumbnail proporsional + badge kuning + CTA cepat.
 import { Link } from 'react-router-dom'
 import { useSyncExternalStore } from 'react'
 import { formatRupiah } from '../utilitas/format.js'

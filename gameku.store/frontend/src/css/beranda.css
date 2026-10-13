@@ -1,4 +1,4 @@
-/* Beranda RAK VIN — spanduk promo + kartu keunggulan, mobile-only. */
+/* Beranda Gamesku — spanduk promo + kartu keunggulan, mobile-only. */
 .spanduk-promo{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px;overflow:hidden;padding:20px 16px;border:1px solid #BFDBFE;border-radius:20px;background:linear-gradient(120deg,#EFF6FF,#DBEAFE)}
 .spanduk-promo>div{position:relative;z-index:1;max-width:560px}
 .spanduk-promo h2{margin-top:8px;font-size:19px;font-weight:800;letter-spacing:-.02em;color:#0F172A;line-height:1.3}

@@ -1,6 +1,6 @@
 // =====================================================================
-// LAYANAN PROMO — kode diskon & kampanye RAK VIN.
-//
+// LAYANAN PROMO — kode diskon & kampanye Gamesku.
+////
 // MULAI KOSONG. Tidak ada promo contoh. Admin membuat promo sendiri lewat
 // /admin/promo.
 //

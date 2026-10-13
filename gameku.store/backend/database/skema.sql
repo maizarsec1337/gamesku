@@ -1,5 +1,5 @@
 -- =====================================================================
--- Skema database gameku (gameku.store) untuk MySQL 5.7+ / MariaDB 10+.
+-- Skema database gamesku (gamesku.store) untuk MySQL 5.7+ / MariaDB 10+.
 -- Kolom menyerupai bentuk data tiap layanan frontend agar integrasi
 -- fetch() -> tabel langsung tanpa transformasi besar.
 --
@@ -11,7 +11,7 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-CREATE DATABASE IF NOT EXISTS `gameku_store`
+CREATE DATABASE IF NOT EXISTS `gamesku_store`
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `gameku_store`;
 

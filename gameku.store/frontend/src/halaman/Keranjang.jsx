@@ -11,7 +11,7 @@ export default function HalamanKeranjang() {
   if (!daftarItem.length) {
     return (
       <section className="bagian"><div className="wadah">
-        <KeadaanKosong ikon="keranjang" judul="Keranjang masih kosong" deskripsi="Jelajahi RAK VIN dan tambahkan top-up atau item favoritmu." teksTombol="Jelajahi RAK VIN" tautanTombol="/store" />
+        <KeadaanKosong ikon="keranjang" judul="Keranjang masih kosong" deskripsi="Jelajahi Gamesku dan tambahkan top-up atau item favoritmu." teksTombol="Jelajahi Gamesku" tautanTombol="/store" />
       </div></section>
     )
   }
@@ -20,7 +20,7 @@ export default function HalamanKeranjang() {
     <>
       <section className="kepala-bagian"><div className="wadah">
         <h1 className="judul-halaman">Keranjang ({jumlahItem})</h1>
-        <p className="subjudul-halaman">Periksa item RAK VIN sebelum lanjut.</p>
+        <p className="subjudul-halaman">Periksa item Gamesku sebelum lanjut.</p>
       </div></section>
       <section className="bagian"><div className="wadah tata-detail">
         <div style={{ display: 'grid', gap: 10 }}>

@@ -1,6 +1,6 @@
 // =====================================================================
-// LAYANAN PRODUK — katalog produk RAK VIN.
-//
+// LAYANAN PRODUK — katalog produk Gamesku.
+////
 // MULAI KOSONG. Tidak ada produk contoh. Admin yang mengisinya sendiri
 // lewat /admin/produk dan /admin/produk/tambah.
 //

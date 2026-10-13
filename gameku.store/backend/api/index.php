@@ -1,6 +1,6 @@
 <?php
 // =====================================================================
-// api/index.php — FRONT CONTROLLER / ROUTER backend gameku.
+// api/index.php — FRONT CONTROLLER / ROUTER backend gamesku.
 //
 // Semua request /api/* masuk ke sini lalu diteruskan ke pengendali.
 // Bentuk respons seragam: { ok, data?, pesan }.
@@ -34,7 +34,7 @@ $jalur = '/' . trim($jalur, '/');
 if ($jalur === '/' || $jalur === '/sehat' || $jalur === '') {
     $db = Database::ujiKoneksi();
     Bantu::sukses([
-        'layanan' => 'gameku-store',
+        'layanan' => 'gamesku-store',
         'waktu'   => Bantu::sekarang(),
         'database' => $db['ok'] ? 'tersambung' : 'gagal',
     ]);

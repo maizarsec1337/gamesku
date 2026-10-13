@@ -37,7 +37,7 @@ export default function AdminDasbor() {
     <>
       <div className="sambutan-admin">
         <div>
-          <h2>Selamat datang di Dasbor RAK VIN</h2>
+          <h2>Selamat datang di Dasbor gamesku</h2>
           <p>Pantau katalog, kategori, dan transaksi toko.</p>
         </div>
         <span className="sambutan-periode">

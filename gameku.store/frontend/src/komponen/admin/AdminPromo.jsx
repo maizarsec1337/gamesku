@@ -1,0 +1,1 @@
+  'https://gamesku.store',

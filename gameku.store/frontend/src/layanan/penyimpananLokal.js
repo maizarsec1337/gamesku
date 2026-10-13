@@ -1,6 +1,6 @@
 // =====================================================================
-// PENYIMPANAN LOKAL — lapisan paling dasar untuk seluruh data RAK VIN.
-//
+// PENYIMPANAN LOKAL — lapisan paling dasar untuk seluruh data Gamesku.
+////
 // TAHAP INI  : browser localStorage (sementara, hanya untuk pratinjau UI).
 // TAHAP AKHIR: ganti isi baca/tulis menjadi fetch() ke API PHP.
 //               Semua komponen hanya memakai service (src/layanan),
@@ -91,7 +91,7 @@ export function berlangganan(nama, dengar) {
   return () => pendengar.get(nama)?.delete(dengar)
 }
 
-// Mengosongkan seluruh data RAK VIN (dipakai tombol "Reset Data"
+// Mengosongkan seluruh data Gamesku (dipakai tombol "Reset Data"
 // di halaman Pengaturan).
 export function kosongkanSemua() {
   try {

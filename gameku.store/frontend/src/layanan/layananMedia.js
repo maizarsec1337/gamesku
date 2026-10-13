@@ -1,6 +1,6 @@
 // =====================================================================
-// LAYANAN MEDIA — pustaka gambar & berkas RAK VIN.
-//
+// LAYANAN MEDIA — pustaka gambar & berkas Gamesku.
+////
 // MULAI KOSONG. Tidak ada gambar contoh. Media pertama muncul setelah
 // admin mengunggah berkas nyata.
 //

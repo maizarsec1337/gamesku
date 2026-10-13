@@ -1,4 +1,4 @@
-// Kategori GameKU — grid 3x3 seragam. Data asli dari layanan;
+// Kategori Gamesku — grid 3x3 seragam. Data asli dari layanan;
 // bila kosong, tampilkan 9 shortcut kurasi menuju rute yang memang ada.
 import { Link } from 'react-router-dom'
 import { useSyncExternalStore } from 'react'
@@ -15,7 +15,7 @@ const KURASI = [
   { nama: 'Bantuan', ikon: 'perisai', ke: '/bantuan' },
   { nama: 'Kreator', ikon: 'kreator', ke: '/kreator' },
   { nama: 'Komunitas', ikon: 'pengguna', ke: '/komunitas' },
-  { nama: 'StreamKU', ikon: 'unduhCepat', ke: '/berita' },
+  { nama: 'Streamku', ikon: 'unduhCepat', ke: '/berita' },
 ]
 
 export default function Kategori({ ringkas = false }) {
@@ -30,7 +30,7 @@ export default function Kategori({ ringkas = false }) {
       <div className="wadah">
         {!ringkas && (
           <div className="judul-bagian">
-            <div><h2>Jelajahi Kategori</h2><p>9 layanan terpopuler RAK VIN.</p></div>
+            <div><h2>Jelajahi Kategori</h2><p>9 layanan terpopuler Gamesku.</p></div>
             <Link className="tautan-lihat" to="/kategori">Semua →</Link>
           </div>
         )}
@@ -50,7 +50,7 @@ export default function Kategori({ ringkas = false }) {
               <Link key={k.nama} className="kartu-kategori" to={k.ke}>
                 <span className="kategori-ikon" aria-hidden="true"><Ikon nama={k.ikon} ukuran={20} /></span>
                 <strong>{k.nama}</strong>
-                <small>RAK VIN</small>
+                <small>Gamesku</small>
               </Link>
             ))}
           </div>

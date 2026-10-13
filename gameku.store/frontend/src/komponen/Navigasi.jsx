@@ -1,4 +1,4 @@
-// Header RAK VIN — biru, sapaan, notifikasi, profil, search mobile.
+// Header Gamesku — biru, sapaan, notifikasi, profil, search mobile.
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useWishlist } from '../konteks/konteksWishlist.js'
@@ -20,10 +20,10 @@ export default function Navigasi() {
   return (
     <header className="kepala">
       <div className="wadah kepala-isi">
-        <Link className="logo" to="/" aria-label="RAK VIN">
-          <span className="logo-gameku" aria-hidden="true">R</span>
+        <Link className="logo" to="/" aria-label="Gamesku">
+          <span className="logo-gameku" aria-hidden="true">G</span>
           <span className="logo-teks">
-            RAK VIN
+            Gamesku
             <small>Halo, Gamer!</small>
           </span>
         </Link>
@@ -53,7 +53,7 @@ export default function Navigasi() {
             value={kataKunci}
             onChange={(e) => setKataKunci(e.target.value)}
             placeholder="Cari diamond, Robux, voucher..."
-            aria-label="Cari produk RAK VIN"
+            aria-label="Cari produk Gamesku"
           />
         </form>
       </div>

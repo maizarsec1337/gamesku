@@ -22,7 +22,7 @@ export default function HalamanProfil() {
       <section className="kepala-bagian"><div className="wadah">
         <span className="lencana lencana-biru">Akun</span>
         <h1 className="judul-halaman">Profil Saya</h1>
-        <p className="subjudul-halaman">Kelola akun RAK VIN, wishlist, dan pesananmu di sini.</p>
+        <p className="subjudul-halaman">Kelola akun Gamesku, wishlist, dan pesananmu di sini.</p>
       </div></section>
 
       <section className="bagian"><div className="wadah" style={{ display: 'grid', gap: 14 }}>
@@ -56,7 +56,7 @@ export default function HalamanProfil() {
           ))}
         </div>
 
-        <p className="subjudul-halaman">Pesanan RAK VIN akan muncul di sini setelah kamu checkout.</p>
+        <p className="subjudul-halaman">Pesanan Gamesku akan muncul di sini setelah kamu checkout.</p>
       </div></section>
     </>
   )

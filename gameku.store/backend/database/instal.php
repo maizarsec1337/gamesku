@@ -1,6 +1,6 @@
 <?php
 // =====================================================================
-// instal.php — menyiapkan database gameku_store.
+// instal.php — menyiapkan database gamesku_store.
 //
 // Jalankan dari folder backend:
 //   php database/instal.php
@@ -35,7 +35,7 @@ $nama = $cfg['db_nama'] ?? 'gameku_store';
 $user = $cfg['db_user'] ?? 'root';
 $pass = $cfg['db_pass'] ?? '';
 
-echo "== Instalasi database gameku ==\n";
+echo "== Instalasi database gamesku ==\n";
 echo "Host: {$host}:{$port}  Database: {$nama}\n\n";
 
 // --- 1) Koneksi tanpa memilih database, untuk membuat database ---
@@ -91,7 +91,7 @@ if ((int) $ada > 0 && !in_array('--paksa', $argv ?? [], true)) {
     $stmt = $pdo->prepare(
         "INSERT INTO `admin` (pengguna, nama, email, sandi_hash, status) VALUES (?, ?, ?, ?, 'Aktif')"
     );
-    $stmt->execute([$opsi['pengguna'], $opsi['nama'], $opsi['pengguna'] . '@gameku.store', $hash]);
+    $stmt->execute([$opsi['pengguna'], $opsi['nama'], $opsi['pengguna'] . '@gamesku.store', $hash]);
     echo "[3/3] Admin dibuat: pengguna='{$opsi['pengguna']}' sandi='{$opsi['sandi']}'.\n";
 }
 

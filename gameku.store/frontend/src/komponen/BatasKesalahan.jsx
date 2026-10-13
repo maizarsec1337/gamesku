@@ -20,7 +20,7 @@ export class BatasKesalahan extends Component {
 
   componentDidCatch(galat, info) {
     // Tetap dicetak ke console agar mudah ditelusuri di DevTools.
-    console.error('Kesalahan render RAK VIN:', galat, info?.componentStack)
+    console.error('Kesalahan render Gamesku:', galat, info?.componentStack)
   }
 
   render() {

@@ -1,6 +1,6 @@
 // =====================================================================
-// LAYANAN CREATOR — kreator konten Minecraft di RAK VIN.
-//
+// LAYANAN CREATOR — kreator konten Minecraft di Gamesku.
+////
 // MULAI KOSONG. Tidak ada creator contoh. Creator pertama muncul setelah
 // ada pendaftaran kreator lewat form undangan atau API PHP.
 //

@@ -19,7 +19,7 @@ export default function HalamanGratis() {
         <section className="bagian"><div className="wadah">
           <KeadaanKosong
             judul="Belum ada konten gratis"
-            deskripsi="Produk gratis RAK VIN akan tampil di sini setelah admin menerbitkannya."
+            deskripsi="Produk gratis Gamesku akan tampil di sini setelah admin menerbitkannya."
             teksTombol="Lihat Store"
             tautanTombol="/store"
           />

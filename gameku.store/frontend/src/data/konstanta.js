@@ -1,5 +1,5 @@
 // =====================================================================
-// KONSTANTA RAK VIN
+// KONSTANTA Gamesku
 //
 // Hanya berisi pilihan nilainya (dropdown, warna, label) — TIDAK ADA
 // data produk, kategori, pesanan, atau pengguna di dalam berkas ini.
