@@ -43,3 +43,37 @@
 .flash-card .hg{font-size:13px;font-weight:800;color:#1D4ED8}
 .flash-card .cr{font-size:11px;color:#94A3B8;text-decoration:line-through}
 .flash-card .cta-mini{margin-top:6px;width:100%;background:#EFF6FF;color:#1D4ED8;font-weight:800;font-size:11.5px;border-radius:9px;padding:8px;min-height:34px}
+
+/* =====================================================================
+   RESPONSIF HOME
+   Tablet (>=768px): kategori 4 kolom, shortcut dibatasi lebarnya.
+   Desktop (>=1024px): hero menampilkan 3 slide berjajar, kategori 6 kolom,
+   flash sale jadi grid, kontainer konten lebih lega.
+   ===================================================================== */
+@media (min-width:768px){
+  .hero-isi{padding-inline:24px!important}
+  .rel-kategori{grid-template-columns:repeat(4,1fr)!important;gap:12px!important}
+  .gk-short{max-width:760px;margin-inline:auto;padding-inline:0}
+}
+@media (min-width:1024px){
+  .hero-isi{padding:30px 28px 6px!important}
+  .hero-judul{font-size:32px!important}
+  .hero-deskripsi{font-size:14px!important}
+  .hero-slider{overflow:visible;gap:14px;max-width:1200px;margin-inline:auto;padding:18px 28px 16px;scroll-snap-type:none}
+  .hero-slide{flex:1 1 0;min-width:0;scroll-snap-align:none;min-height:150px}
+  .hero-slide h3{font-size:18px}
+  .hero-slide .cta{font-size:13px}
+  .hero-titik{display:none}
+  .gk-short{max-width:720px;grid-template-columns:repeat(4,1fr)}
+  .rel-kategori{grid-template-columns:repeat(6,1fr)!important;gap:14px!important}
+  .kartu-kategori{min-height:118px}
+  .kategori-ikon{width:48px!important;height:48px!important}
+  .flash{max-width:1200px;margin:10px auto 0;padding:20px}
+  .flash-head h2{font-size:17px}
+  .flash-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;overflow:visible;padding:14px 0 4px}
+  .flash-card{flex:none;width:auto}
+}
+@media (min-width:1440px){
+  .rel-kategori{grid-template-columns:repeat(9,1fr)!important}
+  .flash-row{grid-template-columns:repeat(6,1fr)}
+}

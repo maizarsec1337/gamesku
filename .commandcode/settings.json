@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(npm:*)",
+      "Shell(Select-String:*)",
+      "powershell",
+      "Shell(findstr:*)",
+      "Shell(if:*)",
+      "Shell(else:*)",
+      "Shell(dir:*)",
+      "Shell(dir /b \"%LOCALAPPDATA%\\ms-playwright\" 2>nul || echo NO_PW)",
+      "Shell(where chrome 2>nul & where msedge 2>nul & echo ---done)",
+      "Shell(curl -s -o nul -w HTTP %{http_code}\\n http://localhost:4173/)",
+      "Shell(curl -s -o nul -w STORE %{http_code}\\n http://localhost:4173/store)",
+      "Shell(npx --no-install playwright --version 2>nul & echo ---)",
+      "Shell(npx playwright install chromium)",
+      "Shell(node \"%TEMP%\\commandcode\\C--gamesku\\8a33306d-6818-4088-9dde-5a754b64714d\\scratchpad\\probe.cjs\")",
+      "Shell(node \"%TEMP%\\commandcode\\C--gamesku\\8a33306d-6818-4088-9dde-5a754b64714d\\scratchpad\\probe2.cjs\")",
+      "Shell(node \"%TEMP%\\commandcode\\C--gamesku\\8a33306d-6818-4088-9dde-5a754b64714d\\scratchpad\\probe3.cjs\")"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  },
+  "tasteLearning": false
+}

@@ -85,4 +85,32 @@ img{max-width:100%;display:block}
 .reveal.tampil{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}.reveal{opacity:1;transform:none}}
 
+/* =====================================================================
+   RESPONSIF TABLET & DESKTOP
+   Mobile (<768px) tetap memakai shell 430px seperti semula.
+   Tablet (>=768px)  : shell jadi lebar penuh, kontainer 960px, 3 kolom.
+   Desktop (>=1024px): navigasi atas, kontainer 1200px, 4 kolom.
+   ===================================================================== */
+@media (min-width:768px){
+  body{display:block;background:var(--latar)}
+  #root{max-width:none;box-shadow:none;border-radius:0}
+  .wadah{max-width:960px;padding-inline:24px}
+  #root>.kepala,.navigasi-bawah{max-width:none}
+  .judul-halaman{font-size:24px}
+  .subjudul-halaman{font-size:14px}
+  .kisi-produk{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+}
+@media (min-width:1024px){
+  .wadah{max-width:1200px;padding-inline:28px}
+  .bagian{padding-block:24px}
+  .kepala-bagian{padding:26px 0 6px}
+  .isi-halaman{padding-bottom:40px}
+  .judul-halaman{font-size:26px}
+  .kisi-produk{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+}
+@media (min-width:1440px){
+  .wadah{max-width:1320px}
+  .kisi-produk{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+
 

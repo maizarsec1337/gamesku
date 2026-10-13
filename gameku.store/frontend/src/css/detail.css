@@ -17,3 +17,14 @@
 .tab-sederhana .aktif{background:#2563EB;color:#fff;border-color:#2563EB}
 .kartu-creator{display:flex;align-items:center;gap:12px}
 .kartu-creator strong{color:#0F172A}
+
+/* Responsif: detail (dan ringkasan keranjang) jadi 2 kolom di desktop */
+@media (min-width:1024px){
+  .tata-detail{grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr);gap:24px;align-items:start}
+  .galeri-utama{aspect-ratio:16/9}
+  .judul-produk{font-size:26px}
+  .harga-detail strong{font-size:28px}
+  .aksi-detail{grid-template-columns:1fr 1fr}
+  .aksi-detail .tombol-lebar-dua{grid-column:1 / -1}
+  .daftar-cek li{font-size:14.5px}
+}

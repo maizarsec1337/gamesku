@@ -5,7 +5,9 @@ import { useCallback, useMemo, useState } from 'react'
 import { KonteksWishlist } from './konteksWishlist.js'
 
 export function PenyediaWishlist({ children }) {
-  const [daftarSuka, setDaftarSuka] = useState(['p01', 'p07'])
+  // MULAI KOSONG. Tidak ada produk contoh: wishlist hanya berisi produk
+  // yang benar-benar disimpan pembeli lewat tombol hati.
+  const [daftarSuka, setDaftarSuka] = useState([])
 
   // Menambah/menghapus produk dari wishlist.
   const alihkanSuka = useCallback((idProduk) => {

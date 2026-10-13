@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { daftarMenu } from '../data/menuNavigasi.js'
 import '../css/navigasi.css'
 
 const ikon = {
@@ -8,14 +9,6 @@ const ikon = {
   store: (<><path d="M5.2 8h13.6l-1.1 11.1a2 2 0 0 1-2 1.8H8.3a2 2 0 0 1-2-1.8Z" /><path d="M9 8V6.6a3 3 0 0 1 6 0V8" /></>),
   profil: (<><circle cx="12" cy="8.4" r="3.6" /><path d="M5 20.2a7 7 0 0 1 14 0" /></>),
 }
-
-const daftarMenu = [
-  { ke: '/', label: 'Home', ikon: 'beranda', tepat: true },
-  { ke: '/store', label: 'Store', ikon: 'store' },
-  { ke: '/kategori', label: 'Kategori', ikon: 'kategori' },
-  { ke: '/gratis', label: 'Gratis', ikon: 'gratis' },
-  { ke: '/profil', label: 'Profil', ikon: 'profil' },
-]
 
 // Navigasi bawah mobile: Home, Store, Kategori, Gratis, Profil.
 export default function NavigasiBawah() {

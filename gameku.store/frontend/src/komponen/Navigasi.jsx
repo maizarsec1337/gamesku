@@ -1,9 +1,11 @@
-// Header Gamesku — biru, sapaan, notifikasi, profil, search mobile.
+// Header Gamesku — biru, sapaan, notifikasi, profil.
+// Mobile: search di baris bawah + bottom-nav. Desktop: navigasi atas + search inline.
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useWishlist } from '../konteks/konteksWishlist.js'
 import { useKeranjang } from '../konteks/konteksKeranjang.js'
 import Ikon from './Ikon.jsx'
+import { daftarMenu } from '../data/menuNavigasi.js'
 
 export default function Navigasi() {
   const navigasi = useNavigate()
@@ -28,6 +30,31 @@ export default function Navigasi() {
           </span>
         </Link>
 
+        {/* Navigasi atas — hanya tampil di desktop (>=1024px) */}
+        <nav className="navigasi-atas" aria-label="Navigasi utama">
+          {daftarMenu.map((menu) => (
+            <NavLink
+              key={menu.ke}
+              to={menu.ke}
+              end={menu.tepat}
+              className={({ isActive }) => (isActive ? 'tautan-atas aktif' : 'tautan-atas')}
+            >
+              {menu.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Search inline — hanya tampil di desktop (>=1024px) */}
+        <form className="cari-kepala" onSubmit={kirimCari} role="search">
+          <Ikon nama="cari" ukuran={16} />
+          <input
+            value={kataKunci}
+            onChange={(e) => setKataKunci(e.target.value)}
+            placeholder="Cari diamond, Robux, voucher..."
+            aria-label="Cari produk Gamesku"
+          />
+        </form>
+
         <div className="aksi-kepala">
           <Link className="tombol-ikon" to="/berita" aria-label="Notifikasi">
             <Ikon nama="lonceng" ukuran={18} />
@@ -46,6 +73,7 @@ export default function Navigasi() {
         </div>
       </div>
 
+      {/* Search mobile — disembunyikan di desktop */}
       <div className="wadah baris-cari-mobile">
         <form className="cari-mobile" onSubmit={kirimCari} role="search">
           <Ikon nama="cari" ukuran={16} />

@@ -1,13 +1,15 @@
-/* Lapisan final Gamesku — hanya pengaman mobile-only + safe-area.
-   Aturan visual utama sudah selaras di file masing-masing (global,
-   navigasi, filter, detail, beranda, kaki, kartu-produk, kategori,
-   gameku-home, gameku-komponen). Jangan tambah override di sini
-   bila bisa diperbaiki di file sumbernya. */
-.kaki-utama,.tata-detail{grid-template-columns:1fr!important}
-.navigasi-atas,.cari-kepala{display:none!important}
-.baris-cari-mobile{display:block!important}
-.keadaan-kosong-ikon{font-size:0!important;margin-bottom:10px}
-.kaki-isi{padding-bottom:calc(90px + env(safe-area-inset-bottom))!important}
-.isi-halaman{padding-bottom:calc(var(--tinggi-bawah) + 26px + env(safe-area-inset-bottom))!important}
-
-
+/* Lapisan final Gamesku — pengaman mobile-only (shell 430px) + safe-area.
+   Aturan visual utama hidup di file masing-masing (global, navigasi,
+   filter, detail, beranda, kaki, gameku-home, gameku-komponen).
+   Layout tablet/desktop ditambahkan lewat media query di file sumbernya,
+   jadi override di sini hanya berlaku untuk layar < 768px. */
+@media (max-width: 767px) {
+  .kaki-utama,
+  .tata-detail { grid-template-columns: 1fr; }
+  .navigasi-atas,
+  .cari-kepala { display: none; }
+  .baris-cari-mobile { display: block; }
+  .kaki-isi { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+  .isi-halaman { padding-bottom: calc(var(--tinggi-bawah) + 26px + env(safe-area-inset-bottom)); }
+}
+.keadaan-kosong-ikon { font-size: 0 !important; margin-bottom: 10px; }

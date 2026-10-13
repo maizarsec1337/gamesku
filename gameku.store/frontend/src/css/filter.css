@@ -8,3 +8,12 @@
 .pil-aktif{background:#2563EB!important;color:#fff!important;border-color:#2563EB!important}
 .baris-urut{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .pilih-urut{flex:1;min-width:160px}
+
+/* Responsif: bilah filter jadi satu baris rapi di desktop */
+@media (min-width:1024px){
+  .bilah-saring{display:grid;grid-template-columns:minmax(260px,1.1fr) minmax(0,1.4fr) auto;gap:14px;align-items:center;margin:18px 0}
+  .cari-besar{grid-column:1}
+  .pil-kategori{grid-column:2;flex-wrap:wrap;overflow:visible;padding-bottom:0}
+  .baris-urut{grid-column:3;flex-wrap:nowrap;gap:10px}
+  .pilih-urut{min-width:170px}
+}
