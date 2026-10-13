@@ -32,15 +32,18 @@ class PengendaliProduk extends PengendaliDasar
                 break;
             case 'POST':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->simpan();
                 break;
             case 'PUT':
             case 'PATCH':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->simpan($id);
                 break;
             case 'DELETE':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->hapus($id);
                 break;
             default:

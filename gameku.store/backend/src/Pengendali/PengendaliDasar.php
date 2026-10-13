@@ -60,4 +60,25 @@ abstract class PengendaliDasar
     {
         Bantu::gagal('Metode HTTP tidak diizinkan untuk endpoint ini.', 405);
     }
+
+    /**
+     * Validasi token CSRF untuk request state-changing (POST/PUT/PATCH/DELETE).
+     * Mengembalikan true bila valid, false bila gagal (respon 403 dikirim).
+     * Memberikan prioritas dari header HTTP X-CSRF-Token, lalu body.
+     */
+    protected function validateCsrf(?string $token = null): bool
+    {
+        $metode = strtoupper(Bantu::metode());
+        if (!in_array($metode, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+            return true; // GET/HEAD/DELETE-ONLY endpoints dibiarkan saja.
+        }
+        $token = $token ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $this->teks('X-CSRF-Token'));
+        if (!$token) {
+            Bantu::gagal('Token keamanan tidak disediakan.', 403);
+        }
+        if (!Auth::cekCsrf($token)) {
+            Bantu::gagal('Token keamanan tidak valid.', 403);
+        }
+        return true;
+    }
 }

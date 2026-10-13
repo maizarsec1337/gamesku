@@ -20,15 +20,18 @@ class PengendaliPelanggan extends PengendaliDasar
                 $id === null ? $this->daftar() : $this->satu($id);
                 break;
             case 'POST':
+                $this->validateCsrf();
                 $this->daftarBaru(); // publik
                 break;
             case 'PUT':
             case 'PATCH':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->ubah($id);
                 break;
             case 'DELETE':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->hapus($id);
                 break;
             default:

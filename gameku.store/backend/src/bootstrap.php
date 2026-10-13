@@ -4,10 +4,17 @@
 // Mengatur autoload kelas, header CORS, sesi, dan pelaporan error.
 // =====================================================================
 
-// Pelaporan error: jangan bocorkan ke output saat produksi, tapi catat.
-error_reporting(E_ALL);
+// --- Konfigurasi keamanan global ---
+ini_set('session.cookie_httponly', '1');
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.cache_limiter', 'nocache');
+// Tidak boleh mengekspos detail exception di respons (hanya saat debug eksplisit).
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
+
+// Pelaporan error: jangan bocorkan ke output saat produksi, tapi catat.
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 // --- Autoload kelas di src/ dan src/Pengendali/ ---
 spl_autoload_register(function ($kelas) {
@@ -26,6 +33,10 @@ spl_autoload_register(function ($kelas) {
 // --- Header dasar ---
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: no-referrer');
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
 
 // --- CORS (dibutuhkan bila frontend memanggil backend lintas origin) ---
 $cfg = require __DIR__ . '/../config/config.php';
@@ -36,7 +47,15 @@ if ($asal !== '' && in_array($asal, $izinkan, true)) {
     header('Vary: Origin');
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-HTTP-Method-Override, X-Requested-With');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-HTTP-Method-Override, X-Requested-With, X-CSRF-Token');
+    // Batas maksimum ukuran request (256 KB untuk API API JSON, 8 MB multipart).
+    $sizeLimit = 262144;
+    if (array_key_exists('CONTENT_LENGTH', $_SERVER)) {
+        $size = (int) $_SERVER['CONTENT_LENGTH'];
+        if ($size > $sizeLimit) {
+            Bantu::gagal('Ukuran request melebihi batas '.$sizeLimit.' bytes.', 413);
+        }
+    }
 }
 
 // Balas preflight CORS dan berhenti.
@@ -60,3 +79,8 @@ set_exception_handler(function (Throwable $e) {
 
 // Sesi selalu disiapkan agar status login admin terbaca di semua endpoint.
 Auth::mulai();
+
+// --- Akses ke token CSRF dari session ---
+if (session_status() === PHP_SESSION_ACTIVE && !isset($_SESSION['_csrf_token'])) {
+    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+}

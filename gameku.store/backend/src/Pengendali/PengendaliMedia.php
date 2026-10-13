@@ -29,10 +29,12 @@ class PengendaliMedia extends PengendaliDasar
                 break;
             case 'POST':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->unggah();
                 break;
             case 'DELETE':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->hapus($id);
                 break;
             default:

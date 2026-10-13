@@ -18,11 +18,13 @@ class PengendaliAuth extends PengendaliDasar
         switch ($aksi) {
             case 'masuk':
                 if ($metode !== 'POST') $this->metodeTakDiizinkan();
+                $this->validateCsrf();
                 $this->masuk();
                 break;
 
             case 'keluar':
                 if ($metode !== 'POST') $this->metodeTakDiizinkan();
+                $this->validateCsrf();
                 Auth::keluar();
                 Bantu::sukses(null, 'Berhasil keluar.');
                 break;
@@ -36,6 +38,7 @@ class PengendaliAuth extends PengendaliDasar
             case 'daftar':
                 // Hanya admin yang boleh menambah admin.
                 Auth::wajib();
+                $this->validateCsrf();
                 if ($metode !== 'POST') $this->metodeTakDiizinkan();
                 $this->daftar();
                 break;
@@ -49,6 +52,21 @@ class PengendaliAuth extends PengendaliDasar
     {
         $pengguna = $this->teks('pengguna');
         $sandi    = (string) ($this->badan()['sandi'] ?? '');
+
+        // Batas coba login per 60 detik untuk mencegah brute force.
+        $limiter = AuthRateLimiter::check($pengguna);
+        if ($limiter['limited']) {
+            // Detail tampilkan samar, hanya IP yang terdeteksi.
+            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            $store = &$_SESSION['_auth_rate'] ?? null;
+            if (is_array($store) && isset($store['ips'][$ip])) {
+                $entry = &$store['ips'][$ip];
+                if (time() - $entry['window_start'] > 60) {
+                    $entry['count'] = 0;
+                }
+            }
+            Bantu::gagal('Layanan sibuk. Coba lagi nanti.', 429);
+        }
 
         if ($pengguna === '' || $sandi === '') {
             Bantu::gagal('Pengguna dan sandi wajib diisi.');
@@ -81,10 +99,14 @@ class PengendaliAuth extends PengendaliDasar
         if (strlen($sandi) < 6) {
             Bantu::gagal('Sandi minimal 6 karakter.');
         }
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Bantu::gagal('Format email tidak valid.');
+        }
 
         $ada = Database::satu('SELECT id FROM admin WHERE pengguna = ?', [$pengguna]);
         if ($ada) {
-            Bantu::gagal("Pengguna '{$pengguna}' sudah dipakai.");
+            // Pesan umum — jangan buka informasi siapa yang ada di database.
+            Bantu::gagal('Nama pengguna tidak dapat digunakan.', 409);
         }
 
         $hash = Auth::hash($sandi);

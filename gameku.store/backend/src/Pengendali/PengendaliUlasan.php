@@ -33,15 +33,18 @@ class PengendaliUlasan extends PengendaliDasar
                 }
                 break;
             case 'POST':
+                $this->validateCsrf();
                 $this->kirim(); // publik
                 break;
             case 'PUT':
             case 'PATCH':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->ubahStatus($id);
                 break;
             case 'DELETE':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->hapus($id);
                 break;
             default:

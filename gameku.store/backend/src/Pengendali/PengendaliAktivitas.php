@@ -18,6 +18,7 @@ class PengendaliAktivitas extends PengendaliDasar
                 Bantu::sukses(Aktivitas::terbaru($jumlah));
                 break;
             case 'DELETE':
+                $this->validateCsrf();
                 Aktivitas::kosongkan();
                 Bantu::sukses(null, 'Aktivitas dikosongkan.');
                 break;

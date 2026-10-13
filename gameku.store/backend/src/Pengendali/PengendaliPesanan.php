@@ -23,6 +23,7 @@ class PengendaliPesanan extends PengendaliDasar
     {
         switch ($metode) {
             case 'POST':
+                $this->validateCsrf();
                 $this->checkout(); // publik
                 break;
             case 'GET':
@@ -32,10 +33,12 @@ class PengendaliPesanan extends PengendaliDasar
             case 'PUT':
             case 'PATCH':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->ubahStatus($id);
                 break;
             case 'DELETE':
                 Auth::wajib();
+                $this->validateCsrf();
                 $this->hapus($id);
                 break;
             default:

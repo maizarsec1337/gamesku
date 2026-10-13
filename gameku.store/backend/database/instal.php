@@ -81,7 +81,7 @@ foreach ($pernyataan as $sql) {
 }
 echo "[2/3] Skema dijalankan ({$jumlah} pernyataan).\n";
 
-// --- 3) Buat admin default ---
+// --- 3) Buat admin default (jika belum ada) ---
 $ada = $pdo->query("SELECT COUNT(*) FROM `admin`")->fetchColumn();
 if ((int) $ada > 0 && !in_array('--paksa', $argv ?? [], true)) {
     echo "[3/3] Admin sudah ada ({$ada}). Lewati pembuatan admin default.\n";
@@ -92,7 +92,10 @@ if ((int) $ada > 0 && !in_array('--paksa', $argv ?? [], true)) {
         "INSERT INTO `admin` (pengguna, nama, email, sandi_hash, status) VALUES (?, ?, ?, ?, 'Aktif')"
     );
     $stmt->execute([$opsi['pengguna'], $opsi['nama'], $opsi['pengguna'] . '@gamesku.store', $hash]);
-    echo "[3/3] Admin dibuat: pengguna='{$opsi['pengguna']}' sandi='{$opsi['sandi']}'.\n";
+    // Peringatan: password default lemah, HARUS diganti segera setelah login pertama.
+    fwrite(STDERR, "\n[WARNING] Password default admin '*********' TERPATENGAN lemah.\n");
+    fwrite(STDERR, "         Ganti password melalui endpoint /api/auth/daftar atau\n");
+    fwrite(STDERR, "         database/instal.php --paksa sesegera mungkin setelah login pertama.\n\n");
 }
 
 echo "\nSelesai. Jalankan server dari folder backend:\n";
