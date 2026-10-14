@@ -77,6 +77,12 @@ export default function Beranda() {
         <BagianProduk judul="Produk Populer" subjudul="Paling diburu pemain minggu ini." daftar={populer} tautan="/store" />
       </div>
       <Streamku />
+      <div className="wadah">
+        <a className="gk-chat-nyata" href="https://discord.gg/gamesku" target="_blank" rel="noreferrer" aria-label="Buka Discord komunitas Gameku.store">
+          <Ikon nama="chat" ukuran={22} />
+          <span>Chat Komunitas</span>
+        </a>
+      </div>
       <div className="reveal">
         <BagianProduk judul="Rekomendasi Untukmu" subjudul="Rilisan terbaru dari kreator." daftar={terbaru} tautan="/store?urut=terbaru" />
       </div>

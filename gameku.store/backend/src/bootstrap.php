@@ -12,6 +12,7 @@ ini_set('session.cache_limiter', 'nocache');
 // Tidak boleh mengekspos detail exception di respons (hanya saat debug eksplisit).
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
+ini_set('error_log', __DIR__ . '/../logs/error.log');
 
 // Pelaporan error: jangan bocorkan ke output saat produksi, tapi catat.
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
@@ -37,8 +38,12 @@ header('X-Frame-Options: DENY');
 header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
+// Defense-in-depth headers.
+header('X-XSS-Protection: 1; mode=block');
+header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
 
-// --- CORS (dibutuhkan bila frontend memanggil backend lintas origin) ---
+// --- CORS ---
 $cfg = require __DIR__ . '/../config/config.php';
 $asal = $_SERVER['HTTP_ORIGIN'] ?? '';
 $izinkan = $cfg['cors_origins'] ?? [];
@@ -48,7 +53,8 @@ if ($asal !== '' && in_array($asal, $izinkan, true)) {
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-HTTP-Method-Override, X-Requested-With, X-CSRF-Token');
-    // Batas maksimum ukuran request (256 KB untuk API API JSON, 8 MB multipart).
+    header('Access-Control-Max-Age: 86400');
+    // Batas maksimum ukuran request (256 KB untuk JSON API, 8 MB multipart).
     $sizeLimit = 262144;
     if (array_key_exists('CONTENT_LENGTH', $_SERVER)) {
         $size = (int) $_SERVER['CONTENT_LENGTH'];
@@ -64,6 +70,58 @@ if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     exit;
 }
 
+// --- Rate limiting middleware ---
+$rateLimiterCfg = $cfg['rate_limiting'] ?? [];
+$rateLimitEnabled = $rateLimiterCfg['enabled'] ?? false;
+$rateLimitPaths = $rateLimiterCfg['paths'] ?? [];
+$rateLimitKeys = $rateLimiterCfg['keys'] ?? ['ip']; // ip, ip+path, session
+$rateLimits = $rateLimiterCfg['limits'] ?? [
+    'default'  => 60,
+    'sensitive' => 30,
+    'login'    => 10,
+    'write'    => 20,
+];
+$rateWindow = $rateLimiterCfg['window_seconds'] ?? 60;
+
+if ($rateLimitEnabled && !in_array($jalur, ['/', '/sehat'], true)) {
+    $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $key = $remoteAddr;
+    foreach ($rateLimitKeys as $k) {
+        if ($k === 'ip+path' && $jalur !== '/') {
+            $key .= ':' . $jalur;
+        } elseif ($k === 'session' && session_status() === PHP_SESSION_ACTIVE) {
+            $key = session_id() . ':' . $remoteAddr;
+        }
+    }
+    $store = &$_SESSION['_rate_limit'] ?? null;
+    if (!is_array($store)) {
+        $store = [];
+    }
+    $hits = $store[$key] ?? null;
+    $now = time();
+    if (!is_array($hits) || !isset($hits['window_start']) || $now - $hits['window_start'] > $rateWindow) {
+        $hits = ['count' => 0, 'window_start' => $now];
+    }
+    $hits['count']++;
+    $store[$key] = $hits;
+    $_SESSION['_rate_limit'] = $store;
+
+    // Tentukan prioritas endpoint.
+    $isSensitive = in_array($jalur, $rateLimitPaths['sensitive'] ?? [], true);
+    $isWrite     = in_array($jalur, $rateLimitPaths['write'] ?? [], true);
+    $limit = $rateLimits['default'];
+    if (strpos($jalur, '/auth/masuk') !== false) {
+        $limit = $rateLimits['login'];
+    } elseif ($isWrite) {
+        $limit = $rateLimits['write'];
+    } elseif ($isSensitive) {
+        $limit = $rateLimits['sensitive'];
+    }
+    if ($hits['count'] > $limit) {
+        Bantu::gagal('Terlalu banyak permintaan. Coba lagi nanti.', 429);
+    }
+}
+
 // --- Handler error global -> respons JSON rapi ---
 set_exception_handler(function (Throwable $e) {
     http_response_code(500);
@@ -71,13 +129,12 @@ set_exception_handler(function (Throwable $e) {
     echo json_encode([
         'ok'    => false,
         'pesan' => 'Terjadi kesalahan pada server.',
-        // Detail hanya saat mode debug eksplisit.
-        'debug' => getenv('GAMEKU_DEBUG') ? $e->getMessage() : null,
+        'debug' => getenv('GAMEKU_DEBUG') ? ['message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()] : null,
     ], JSON_UNESCAPED_UNICODE);
     exit;
 });
 
-// Sesi selalu disiapkan agar status login admin terbaca di semua endpoint.
+// --- Sesi selalu disiapkan agar status login admin terbaca di semua endpoint ---
 Auth::mulai();
 
 // --- Akses ke token CSRF dari session ---

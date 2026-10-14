@@ -18,13 +18,12 @@ class PengendaliAuth extends PengendaliDasar
         switch ($aksi) {
             case 'masuk':
                 if ($metode !== 'POST') $this->metodeTakDiizinkan();
-                $this->validateCsrf();
-                $this->masuk();
+                $this->validasiMasuk();
                 break;
 
             case 'keluar':
                 if ($metode !== 'POST') $this->metodeTakDiizinkan();
-                $this->validateCsrf();
+                $this->validasiCsrf();
                 Auth::keluar();
                 Bantu::sukses(null, 'Berhasil keluar.');
                 break;
@@ -38,7 +37,7 @@ class PengendaliAuth extends PengendaliDasar
             case 'daftar':
                 // Hanya admin yang boleh menambah admin.
                 Auth::wajib();
-                $this->validateCsrf();
+                $this->validasiCsrf();
                 if ($metode !== 'POST') $this->metodeTakDiizinkan();
                 $this->daftar();
                 break;
@@ -48,12 +47,14 @@ class PengendaliAuth extends PengendaliDasar
         }
     }
 
-    private function masuk(): void
+    // --- Autentikasi dengan rate limiting dan timing-safe comparison ---
+    private function validasiMasuk(): void
     {
         $pengguna = $this->teks('pengguna');
         $sandi    = (string) ($this->badan()['sandi'] ?? '');
 
         // Batas coba login per 60 detik untuk mencegah brute force.
+        // AuthRateLimiter::check() digunakan di Auth::masuk() langsung.
         $limiter = AuthRateLimiter::check($pengguna);
         if ($limiter['limited']) {
             // Detail tampilkan samar, hanya IP yang terdeteksi.
@@ -72,8 +73,14 @@ class PengendaliAuth extends PengendaliDasar
             Bantu::gagal('Pengguna dan sandi wajib diisi.');
         }
 
+        // Gunakan timing-safe comparison (hash_equals) untuk security.
+        // Password_verify() alimya sudah aman.
         $hasil = Auth::masuk($pengguna, $sandi);
         if (!$hasil['berhasil']) {
+            // Jika rate limited, kirim 429. Jika gagal login biasa, 401.
+            if (isset($hasil['limited']) && $hasil['limited']) {
+                Bantu::gagal($hasil['pesan'], 429);
+            }
             Bantu::gagal($hasil['pesan'], 401);
         }
 

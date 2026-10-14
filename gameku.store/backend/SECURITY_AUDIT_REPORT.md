@@ -164,7 +164,7 @@ Audit ini mengurangi risiko signifikan tapi tidak menghapus risiko. Evaluasi kea
 
 - **Backend README:** `backend/README.md` — endpoint list, setup instructions
 - **Example Config:** `backend/config/contoh.config.php` — template
-- **Database Schema:** `backend/database/skema.sql` — 10 tables
+- **Database Schema:** `backend/database/skema.sql` — 12 tables
 - **Installer:** `backend/database/instal.php` — setup script
 
 ---

@@ -5,7 +5,7 @@ import '../css/kaki.css'
 const kolomTautan = [
   { judul: 'Store', tautan: [{ ke: '/store', label: 'Semua Produk' }, { ke: '/kategori', label: 'Kategori' }, { ke: '/gratis', label: 'Konten Gratis' }, { ke: '/promo', label: 'Promo' }] },
   { judul: 'Support', tautan: [{ ke: '/bantuan', label: 'Bantuan' }, { ke: '/keranjang', label: 'Keranjang' }, { ke: '/wishlist', label: 'Wishlist' }, { ke: '/profil', label: 'Akun Saya' }] },
-  { judul: 'Community', tautan: [{ ke: '/kreator', label: 'Kreator' }, { ke: '/komunitas', label: 'Komunitas' }, { ke: '/event', label: 'Event' }, { ke: '/berita', label: 'Berita' }] },
+  { judul: 'Community', tautan: [{ ke: '/kreator', label: 'Kreator' }, { ke: '/streamku', label: 'Streamku' }, { ke: '/komunitas', label: 'Komunitas' }, { ke: '/event', label: 'Event' }, { ke: '/berita', label: 'Berita' }] },
 ]
 
 export default function Footer() {

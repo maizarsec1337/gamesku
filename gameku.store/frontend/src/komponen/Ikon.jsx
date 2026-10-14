@@ -5,6 +5,7 @@ import {
   Home, Store, LayoutGrid, Gift, BadgePercent, Search, ShoppingCart,
   User, Heart, Star, Download, Zap, ShieldCheck, PenTool, Box,
   ArrowRight, ArrowLeft, X, Check, Menu, Bell, Eye, EyeOff, Info, Map,
+  Mail, Lock, MessageCircle, Tv,
 } from 'lucide-react'
 // Ikon admin (dipakai di rute /admin saja — diimpor malas via IkonAdmin):
 import { Suspense, lazy } from 'react'
@@ -18,7 +19,7 @@ const PETA_TOKO = {
   unduhCepat: Zap, perisai: ShieldCheck, kreator: PenTool, cubus: Box,
   panahKanan: ArrowRight, panahKiri: ArrowLeft, tutup: X, cek: Check,
   menu: Menu, lonceng: Bell, lihat: Eye, mataTutup: EyeOff, info: Info,
-  peta: Map,
+  peta: Map, surel: Mail, sandi: Lock, chat: MessageCircle, siaran: Tv,
 }
 
 const IKON_ADMIN = new Set([
@@ -36,6 +37,7 @@ const petaFallback = {
   unduh: '↓', unduhCepat: '⚡', perisai: '⛨', kreator: '✎', cubus: '▦',
   panahKanan: '→', panahKiri: '←', tutup: '✕', cek: '✓', menu: '☰',
   lonceng: '○', lihat: '○', mataTutup: '○', info: 'ⓘ', peta: '⌖',
+  surel: '@', sandi: '••', chat: '◌', siaran: '▣',
 }
 
 function IkonFallback({ nama, ukuran }) {

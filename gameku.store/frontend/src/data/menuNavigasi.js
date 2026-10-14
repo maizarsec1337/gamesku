@@ -5,6 +5,7 @@ export const daftarMenu = [
   { ke: '/', label: 'Home', ikon: 'beranda', tepat: true },
   { ke: '/store', label: 'Store', ikon: 'store' },
   { ke: '/kategori', label: 'Kategori', ikon: 'kategori' },
+  { ke: '/streamku', label: 'Streamku', ikon: 'siaran' },
   { ke: '/gratis', label: 'Gratis', ikon: 'gratis' },
   { ke: '/profil', label: 'Profil', ikon: 'profil' },
 ]

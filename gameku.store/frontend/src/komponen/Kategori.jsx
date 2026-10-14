@@ -15,7 +15,7 @@ const KURASI = [
   { nama: 'Bantuan', ikon: 'perisai', ke: '/bantuan' },
   { nama: 'Kreator', ikon: 'kreator', ke: '/kreator' },
   { nama: 'Komunitas', ikon: 'pengguna', ke: '/komunitas' },
-  { nama: 'Streamku', ikon: 'unduhCepat', ke: '/berita' },
+  { nama: 'Streamku', ikon: 'siaran', ke: '/streamku' },
 ]
 
 export default function Kategori({ ringkas = false }) {

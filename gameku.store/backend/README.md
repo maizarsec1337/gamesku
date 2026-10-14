@@ -18,7 +18,7 @@ backend/
     config.php         Konfigurasi lokal (DB, CORS, uploads) — jangan di-commit
     contoh.config.php  Contoh konfigurasi
   database/
-    skema.sql          Skema lengkap (10 tabel)
+    skema.sql          Skema lengkap (12 tabel)
     instal.php         Installer: buat DB + tabel + admin default
   src/
     Bantu.php          Helper: JSON, input, slug, format, id/nomor pesanan

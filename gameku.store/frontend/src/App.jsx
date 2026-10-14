@@ -7,6 +7,7 @@ import HalamanDetailProduk from './halaman/DetailProduk.jsx'
 import HalamanKategori from './halaman/Kategori.jsx'
 import HalamanGratis from './halaman/Gratis.jsx'
 import HalamanPromo from './halaman/Promo.jsx'
+import HalamanStreamku from './halaman/Streamku.jsx'
 import HalamanKeranjang from './halaman/Keranjang.jsx'
 import HalamanWishlist from './halaman/Wishlist.jsx'
 import HalamanProfil from './halaman/Profil.jsx'
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/kategori/:slug" element={<HalamanKategori />} />
           <Route path="/gratis" element={<HalamanGratis />} />
           <Route path="/promo" element={<HalamanPromo />} />
+          <Route path="/streamku" element={<HalamanStreamku />} />
           <Route path="/keranjang" element={<HalamanKeranjang />} />
           <Route path="/wishlist" element={<HalamanWishlist />} />
           <Route path="/profil" element={<HalamanProfil />} />

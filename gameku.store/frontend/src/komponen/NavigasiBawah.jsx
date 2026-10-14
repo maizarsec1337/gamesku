@@ -8,6 +8,7 @@ const ikon = {
   gratis: (<><rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" /><path d="M6 7.5h.01M6 16.5h.01" /></>),
   store: (<><path d="M5.2 8h13.6l-1.1 11.1a2 2 0 0 1-2 1.8H8.3a2 2 0 0 1-2-1.8Z" /><path d="M9 8V6.6a3 3 0 0 1 6 0V8" /></>),
   profil: (<><circle cx="12" cy="8.4" r="3.6" /><path d="M5 20.2a7 7 0 0 1 14 0" /></>),
+  siaran: (<><rect x="3" y="5.5" width="18" height="11.5" rx="2.5" /><path d="M9.5 20.5h5" /></>),
 }
 
 // Navigasi bawah mobile: Home, Store, Kategori, Gratis, Profil.

@@ -25,6 +25,11 @@ export default defineConfig({
     },
   },
   build: {
+    // Hasil frontend dibangun LANGSUNG ke folder deployment terpadu
+    // gameku.store/dist (satu paket dengan backend PHP). Jangan ubah
+    // outDir ini tanpa menyesuaikan scripts/kemas-backend.mjs.
+    outDir: '../dist',
+    emptyOutDir: true,
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {

@@ -12,6 +12,7 @@ import './css/gameku-tema.css'
 import './css/gameku-home.css'
 import './css/gameku-komponen.css'
 import './css/gameku-kunci.css'
+import './css/gameku-redesign.css'
 import App from './App.jsx'
 
 // Elemen #root harus ada di index.html.
