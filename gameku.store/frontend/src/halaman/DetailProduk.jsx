@@ -1,5 +1,4 @@
 // Halaman /produk/:slug — layout 2 kolom desktop, 1 kolom mobile.
-// Produk diambil dari layananProduk (dimulai kosong).
 import { useCallback, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useSyncExternalStore } from 'react'
@@ -15,9 +14,7 @@ import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
 export default function HalamanDetailProduk() {
   const { slug } = useParams()
 
-  // CATATAN: useSyncExternalStore hanya menerima 3 argumen. Argumen slug
-  // harus dilewatkan lewat useCallback agar snapshot benar-benar memakai
-  // slug yang sedang dibuka (bukan undefined).
+  // useSyncExternalStore hanya menerima 3 argumen; slug dilewatkan lewat useCallback.
   const cari = useCallback(() => ambilProdukSlug(slug), [slug])
   useSyncExternalStore(subscribeProduk, cari, cari)
 

@@ -1,6 +1,4 @@
-/* ================================================================
-   ADMIN Gamesku — tema, tombol umum, bilah samping (sidebar)
-   ================================================================ */
+/* Gaya utama admin: tema, tombol umum, bilah samping. */
 :root {
   --adm-bg: #111827;
   --adm-sidebar: #151D27;

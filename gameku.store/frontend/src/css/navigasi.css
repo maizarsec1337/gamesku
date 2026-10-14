@@ -24,12 +24,7 @@
 .menu-bawah-aktif .menu-bawah-ikon{background:var(--kuning);color:#422006}
 .gelembung-bawah{position:absolute;top:4px;margin-left:28px;min-width:17px;height:17px;padding:0 4px;display:grid;place-items:center;border-radius:999px;background:var(--biru);color:#fff;font-size:10px;font-weight:800}
 
-/* =====================================================================
-   RESPONSIF HEADER
-   Tablet (>=768px): shell lebar penuh, bottom-nav tetap dipakai.
-   Desktop (>=1024px): navigasi atas + search menggantikan baris search
-   mobile, dan bottom-nav disembunyikan.
-   ===================================================================== */
+/* Responsif header: shell lebar penuh; desktop pakai navigasi atas. */
 @media (min-width:768px){
   #root>.kepala{margin-inline:0}
   .navigasi-bawah{width:100%;border-radius:0}

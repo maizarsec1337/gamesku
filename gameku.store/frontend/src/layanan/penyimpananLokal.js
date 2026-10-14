@@ -1,32 +1,15 @@
-// =====================================================================
-// PENYIMPANAN LOKAL — lapisan paling dasar untuk seluruh data Gamesku.
-////
-// TAHAP INI  : browser localStorage (sementara, hanya untuk pratinjau UI).
-// TAHAP AKHIR: ganti isi baca/tulis menjadi fetch() ke API PHP.
-//               Semua komponen hanya memakai service (src/layanan),
-//               sehingga tidak ada satu pun yang perlu diubah tampilan.
-//
-// Catatan: TIDAK ada data awal. Nilai kosong = database masih kosong.
-// =====================================================================
+// Penyimpanan lapisan dasar (localStorage) dengan berlangganan perubahan.
 
 const RUANG = 'gameku.'
 const pendengar = new Map()
 
-// Nomor versi data. Setiap kali ada tulisan, versi naik sehingga semua
-// hasil hitungan lama dianggap kedaluwarsa.
+// Nomor versi data; naik setiap tulis agar hasil hitungan lama kedaluwarsa.
 let versi = 0
 
 const kunciLokal = (nama) => `${RUANG}${nama}`
 
-// =====================================================================
-// memo — pembungkus hasil hitungan agar referensinya TETAP SAMA.
-//
-// INI WAJIB untuk useSyncExternalStore. React membandingkan hasil
-// snapshot dengan Object.is; bila tiap panggilan menghasilkan array
-// baru, React menganggap data selalu berubah dan masuk render tak
-// berujung (layar jadi kosong). Dengan memo, array yang sama dikembalikan
-// sampai ada data yang benar-benar ditulis.
-// =====================================================================
+// memo() menjaga referensi hasil hitungan tetap sama — syarat wajib
+// useSyncExternalStore; tanpa ini React render tak berujung (layar kosong).
 export function memo(hitung) {
   const wynik = new Map()
   return (...args) => {
@@ -43,7 +26,6 @@ function invalidasi() {
   versi += 1
 }
 
-// Membaca satu koleksi dari localStorage. Kunci kosong = array kosong.
 export function baca(nama, nilaiAwal) {
   try {
     const mentah = window.localStorage.getItem(kunciLokal(nama))
@@ -55,12 +37,11 @@ export function baca(nama, nilaiAwal) {
   }
 }
 
-// Menyimpan satu koleksi lalu memberi tahu seluruh layar yang-storage-nya.
 export function tulis(nama, nilai) {
   try {
     window.localStorage.setItem(kunciLokal(nama), JSON.stringify(nilai))
   } catch {
-    // localStorage penuh / diblokir — data tetap hidup di memori React.
+    // localStorage penuh/diblokir — data tetap hidup di memori React.
   }
   invalidasi()
   siarkan(nama)
@@ -77,8 +58,7 @@ export function hapus(nama) {
   siarkan(nama)
 }
 
-// Meneruskan perubahan ke semua pendengar satu koleksi (agar tabel admin
-// ikut berubah saat produk disimpan dari halaman form).
+// Meneruskan perubahan ke semua pendengar satu koleksi.
 export function siarkan(nama) {
   const daftar = pendengar.get(nama)
   if (!daftar) return
@@ -91,8 +71,7 @@ export function berlangganan(nama, dengar) {
   return () => pendengar.get(nama)?.delete(dengar)
 }
 
-// Mengosongkan seluruh data Gamesku (dipakai tombol "Reset Data"
-// di halaman Pengaturan).
+// Mengosongkan seluruh data Gamesku (tombol "Reset Data" di Pengaturan).
 export function kosongkanSemua() {
   try {
     const milik = Object.keys(window.localStorage).filter((k) => k.startsWith(RUANG))

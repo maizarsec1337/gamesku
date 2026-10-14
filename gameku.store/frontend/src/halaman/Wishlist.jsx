@@ -8,8 +8,7 @@ import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
 export default function HalamanWishlist() {
   const { daftarSuka, jumlahSuka } = useWishlist()
 
-  // Berlangganan seluruh katalog. CATATAN: jangan menamai variabel lokal
-  // ini "daftarProduk" — akan menutupi import dan memicu TDZ error.
+  // Berlangganan katalog; jangan menamai variabel "daftarProduk" (menutupi import/TDZ).
   const katalog = useSyncExternalStore(subscribeProduk, daftarProduk, daftarProduk)
 
   const produk = useMemo(

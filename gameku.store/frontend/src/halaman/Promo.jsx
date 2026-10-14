@@ -1,5 +1,4 @@
 // Halaman /promo — produk yang sedang diskon (dari layananProduk).
-// Tidak ada spanduk promo statis: promo berasal dari data produk nyata.
 import { useSyncExternalStore } from 'react'
 import BagianProduk from '../komponen/BagianProduk.jsx'
 import KeadaanKosong from '../komponen/KeadaanKosong.jsx'

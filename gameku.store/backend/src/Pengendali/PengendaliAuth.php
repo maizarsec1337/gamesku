@@ -1,18 +1,10 @@
 <?php
-// =====================================================================
-// PengendaliAuth.php — autentikasi admin.
-//   POST /api/auth/masuk   { pengguna, sandi }  -> buat sesi
-//   POST /api/auth/keluar                      -> hancurkan sesi
-//   GET  /api/auth/saya                        -> sesi admin saat ini
-//   POST /api/auth/daftar    { ... } (admin)   -> tambah admin baru
-// =====================================================================
+// Autentikasi admin: masuk, keluar, sesi, dan tambah admin baru.
 
 class PengendaliAuth extends PengendaliDasar
 {
     public function tangani(string $metode, ?string $id, ?string $sub): void
     {
-        // Aksi auth ada di segmen pertama setelah 'auth' (posisi $id):
-        // /api/auth/masuk -> $id = 'masuk'.
         $aksi = $id ?? 'saya';
 
         switch ($aksi) {
@@ -35,7 +27,6 @@ class PengendaliAuth extends PengendaliDasar
                 break;
 
             case 'daftar':
-                // Hanya admin yang boleh menambah admin.
                 Auth::wajib();
                 $this->validasiCsrf();
                 if ($metode !== 'POST') $this->metodeTakDiizinkan();
@@ -47,17 +38,14 @@ class PengendaliAuth extends PengendaliDasar
         }
     }
 
-    // --- Autentikasi dengan rate limiting dan timing-safe comparison ---
+    // Login dengan rate limiting per IP.
     private function validasiMasuk(): void
     {
         $pengguna = $this->teks('pengguna');
         $sandi    = (string) ($this->badan()['sandi'] ?? '');
 
-        // Batas coba login per 60 detik untuk mencegah brute force.
-        // AuthRateLimiter::check() digunakan di Auth::masuk() langsung.
         $limiter = AuthRateLimiter::check($pengguna);
         if ($limiter['limited']) {
-            // Detail tampilkan samar, hanya IP yang terdeteksi.
             $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
             $store = &$_SESSION['_auth_rate'] ?? null;
             if (is_array($store) && isset($store['ips'][$ip])) {
@@ -73,18 +61,15 @@ class PengendaliAuth extends PengendaliDasar
             Bantu::gagal('Pengguna dan sandi wajib diisi.');
         }
 
-        // Gunakan timing-safe comparison (hash_equals) untuk security.
-        // Password_verify() alimya sudah aman.
+        // password_verify() sudah aman terhadap timing attack.
         $hasil = Auth::masuk($pengguna, $sandi);
         if (!$hasil['berhasil']) {
-            // Jika rate limited, kirim 429. Jika gagal login biasa, 401.
             if (isset($hasil['limited']) && $hasil['limited']) {
                 Bantu::gagal($hasil['pesan'], 429);
             }
             Bantu::gagal($hasil['pesan'], 401);
         }
 
-        // Catat waktu masuk terakhir.
         try {
             Database::eksekusi('UPDATE admin SET masuk_terakhir = NOW() WHERE pengguna = ?', [$pengguna]);
         } catch (Throwable $e) { /* abaikan */ }

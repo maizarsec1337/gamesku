@@ -1,18 +1,9 @@
 <?php
-// =====================================================================
-// PengendaliMedia.php — tabel `media` + unggahan berkas ke folder uploads/.
-//   GET  /api/media                 (admin) daftar metadata media.
-//   POST /api/media                 (admin) unggah berkas (multipart field "berkas").
-//   DELETE /api/media/{id}          (admin) hapus metadata + berkas fisik.
-//
-// Jenis media mengikuti layananMedia frontend: Thumbnail, Banner, Preview,
-// Gambar Produk.
-// =====================================================================
+// Media + unggahan berkas ke folder uploads/ (admin).
 
 class PengendaliMedia extends PengendaliDasar
 {
     private const JENIS = ['Thumbnail', 'Banner', 'Preview', 'Gambar Produk'];
-    // Hanya jenis berkas ini yang diizinkan (keamanan).
     private const MIME_IZIN = [
         'image/png' => 'png', 'image/jpeg' => 'jpg', 'image/jpg' => 'jpg',
         'image/webp' => 'webp', 'image/gif' => 'gif', 'image/svg+xml' => 'svg',
@@ -97,7 +88,7 @@ class PengendaliMedia extends PengendaliDasar
 
         $jenis = $this->salahDari(Bantu::teks('jenis', 'Thumbnail'), self::JENIS, 'Thumbnail');
         $id = Bantu::idBaru('med');
-        // URL relatif yang bisa dilayani server (lihat api/index.php static).
+        // URL relatif yang dilayani server (lihat api/index.php).
         $url = '/uploads/' . $namaSimpan;
 
         Database::eksekusi(

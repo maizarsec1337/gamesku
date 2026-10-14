@@ -1,6 +1,4 @@
-// =====================================================================
-// Fungsi bantu pemformatan angka dan tanggal dalam format Indonesia.
-// =====================================================================
+// Fungsi bantu pemformatan angka dan tanggal (format Indonesia).
 
 const pemformatAngka = new Intl.NumberFormat('id-ID')
 

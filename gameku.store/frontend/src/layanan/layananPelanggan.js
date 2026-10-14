@@ -1,12 +1,4 @@
-// =====================================================================
-// LAYANAN PELANGGAN — akun pembeli Gamesku.
-////
-// MULAI KOSONG. Tidak ada pelanggan contoh dan tidak ada email/username
-// karangan. Pelanggan pertama muncul setelah pendaftaran nyata lewat
-// frontend toko atau API PHP.
-//
-// Bentuk data meniru kolom tabel `pelanggan`.
-// =====================================================================
+// Layanan pelanggan: akun pembeli (mulai kosong, diisi pendaftaran/API).
 
 import { buatKoleksi } from './layananKoleksi.js'
 import { memo } from './penyimpananLokal.js'
@@ -14,16 +6,14 @@ import { STATUS_PELANGGAN } from '../data/konstanta.js'
 
 const koleksi = buatKoleksi('pelanggan', 'pel')
 
-// Berlangganan perubahan pelanggan.
 export const subscribePelanggan = (dengar) => koleksi.berlangganan(dengar)
 
-// ---------- Pembacaan (memo: referensi stabil untuk useSyncExternalStore) ----------
-
+// Pembacaan (memo: referensi stabil untuk useSyncExternalStore).
 export const daftarPelanggan = memo(() => koleksi.daftar())
 
 export const ambilPelangganId = memo((id) => koleksi.ambil(id))
 
-// Mencari pelanggan bebas (nama / username / email).
+// Pencarian nama / username / email.
 export const cariPelanggan = memo((kataKunci) => {
   const kunci = String(kataKunci || '').trim().toLowerCase()
   if (!kunci) return daftarPelanggan()
@@ -32,7 +22,6 @@ export const cariPelanggan = memo((kataKunci) => {
   )
 })
 
-// Pelanggan baru akan dibuat oleh halaman pendaftaran / API PHP.
 export function tambahPelanggan(data) {
   if (!data?.email) return { berhasil: false, pesan: 'Email pelanggan wajib diisi.' }
   const baru = koleksi.tambah({

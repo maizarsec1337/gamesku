@@ -1,11 +1,5 @@
 <?php
-// =====================================================================
-// PengendaliDasbor.php — ringkasan statistik admin (agregat SQL).
-//   GET /api/dasbor   (admin) statistik, grafik penjualan, produk terlaris.
-//
-// Semua angka dihitung dari data nyata. Database kosong => semua nol
-// (bukan angka contoh), meniru layananDasbor frontend.
-// =====================================================================
+// Statistik admin (agregat SQL): kartu, grafik penjualan, produk terlaris.
 
 class PengendaliDasbor extends PengendaliDasar
 {
@@ -14,13 +8,13 @@ class PengendaliDasbor extends PengendaliDasar
         Auth::wajib();
         if ($metode !== 'GET') $this->metodeTakDiizinkan();
 
-        // --- Hitungan dasar ---
+        // Hitungan dasar.
         $jumlahProduk    = (int) (Database::nilai('SELECT COUNT(*) FROM produk') ?? 0);
         $jumlahPesanan   = (int) (Database::nilai('SELECT COUNT(*) FROM pesanan') ?? 0);
         $jumlahPelanggan = (int) (Database::nilai('SELECT COUNT(*) FROM pelanggan') ?? 0);
         $pendapatan      = (int) (Database::nilai("SELECT COALESCE(SUM(total),0) FROM pesanan WHERE status = 'Berhasil'") ?? 0);
 
-        // --- Ringkasan isi tiap tabel ---
+        // Ringkasan isi tiap tabel.
         $ringkasan = [
             'produk'    => $jumlahProduk,
             'kategori'  => (int) (Database::nilai('SELECT COUNT(*) FROM kategori') ?? 0),
@@ -32,7 +26,7 @@ class PengendaliDasbor extends PengendaliDasar
             'media'     => (int) (Database::nilai('SELECT COUNT(*) FROM media') ?? 0),
         ];
 
-        // --- Kartu statistik (bentuk sama dengan statistikDasbor frontend) ---
+        // Kartu statistik.
         $statistik = [
             ['id' => 'produk',     'judul' => 'Total Produk',     'nilai' => (string) $jumlahProduk,    'ket' => 'produk di katalog'],
             ['id' => 'pesanan',    'judul' => 'Total Pesanan',    'nilai' => (string) $jumlahPesanan,   'ket' => 'transaksi masuk'],
@@ -40,13 +34,10 @@ class PengendaliDasbor extends PengendaliDasar
             ['id' => 'pendapatan', 'judul' => 'Total Pendapatan', 'nilai' => Bantu::rupiah($pendapatan),'ket' => 'dari pesanan berhasil'],
         ];
 
-        // --- Grafik penjualan 14 hari terakhir (dari pesanan Berhasil) ---
         $grafik = $this->grafikPenjualan(14);
 
-        // --- Produk terlaris (dari item pesanan Berhasil) ---
         $terlaris = $this->produkTerlaris(5);
 
-        // --- Pesanan per status ---
         $perStatus = [];
         foreach (['Menunggu', 'Diproses', 'Berhasil', 'Gagal'] as $st) {
             $perStatus[$st] = (int) (Database::nilai('SELECT COUNT(*) FROM pesanan WHERE status = ?', [$st]) ?? 0);
@@ -61,13 +52,11 @@ class PengendaliDasbor extends PengendaliDasar
         ]);
     }
 
-    // Deret total penjualan per hari (14 hari terakhir) termasuk hari kosong.
     private function grafikPenjualan(int $hari): array
     {
         $hari = max(1, min(90, $hari));
         $mundur = $hari - 1;
-        // INTERVAL tidak menerima placeholder prepared statement, jadi integer
-        // yang sudah divalidasi disisipkan langsung (aman dari injeksi).
+        // INTERVAL tidak menerima placeholder; integer tervalidasi disisipkan langsung.
         $rows = Database::banyak(
             "SELECT DATE(dibuat_pada) AS tanggal, SUM(total) AS total
              FROM pesanan WHERE status = 'Berhasil'
@@ -92,7 +81,6 @@ class PengendaliDasbor extends PengendaliDasar
         return $hasil;
     }
 
-    // Peringkat produk berdasarkan pendapatan dari item pesanan Berhasil.
     private function produkTerlaris(int $jumlah): array
     {
         $rows = Database::banyak(

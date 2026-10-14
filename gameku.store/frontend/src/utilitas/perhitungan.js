@@ -1,7 +1,4 @@
-// =====================================================================
-// Perhitungan keranjang dan pesanan. Semua angka dihitung dari data
-// nyata sehingga ringkasan selalu konsisten di setiap halaman.
-// =====================================================================
+// Perhitungan keranjang dan pesanan dari data nyata.
 
 import { ambilPromoKode } from '../layanan/layananPromo.js'
 
@@ -22,8 +19,7 @@ export function hitungJumlahItem(daftarItem = []) {
   return daftarItem.reduce((total, item) => total + (Number(item.jumlah) || 0), 0)
 }
 
-// Mencari promo berdasarkan kode yang dimasukkan pembeli.
-// Promo berasal dari layananPromo (dibuat admin) — tanpa kode karangan.
+// Mencari promo berdasarkan kode yang dimasukkan pembeli (dibuat admin).
 export function cariPromo(kode) {
   if (!kode) return undefined
   return ambilPromoKode(kode)

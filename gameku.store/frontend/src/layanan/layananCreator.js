@@ -1,11 +1,4 @@
-// =====================================================================
-// LAYANAN CREATOR — kreator konten Minecraft di Gamesku.
-////
-// MULAI KOSONG. Tidak ada creator contoh. Creator pertama muncul setelah
-// ada pendaftaran kreator lewat form undangan atau API PHP.
-//
-// Bentuk data meniru kolom tabel `creator`.
-// =====================================================================
+// Layanan creator: kreator konten (mulai kosong, diisi lewat pendaftaran).
 
 import { buatKoleksi } from './layananKoleksi.js'
 import { catat } from './layananAktivitas.js'
@@ -14,14 +7,13 @@ import { STATUS_CREATOR } from '../data/konstanta.js'
 
 const koleksi = buatKoleksi('creator', 'cr')
 
-// Berlangganan perubahan creator.
 export const subscribeCreator = (dengar) => koleksi.berlangganan(dengar)
 
 export const daftarCreator = memo(() => koleksi.daftar())
 
 export const ambilCreatorId = memo((id) => koleksi.ambil(id))
 
-// Nama creator unik (dipakai form produk).
+// Nama creator unik untuk form produk.
 export const daftarNamaCreator = memo(() =>
   [...new Set(daftarCreator().map((c) => c.nama).filter(Boolean))].sort(),
 )

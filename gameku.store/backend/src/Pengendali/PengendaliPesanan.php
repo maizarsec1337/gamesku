@@ -1,18 +1,5 @@
 <?php
-// =====================================================================
-// PengendaliPesanan.php — tabel `pesanan` + `pesanan_item`.
-//
-//   POST /api/pesanan          (publik) checkout. Server yang menghitung
-//                              subtotal, biaya layanan, potongan promo, dan
-//                              total akhir (sumber kebenaran, bukan klien).
-//   GET  /api/pesanan          (admin) daftar pesanan (bisa filter status).
-//   GET  /api/pesanan/{id}     (admin) satu pesanan + item-nya.
-//   PUT  /api/pesanan/{id}     (admin) ubah status.
-//   DELETE /api/pesanan/{id}   (admin) hapus.
-//
-// Perhitungan meniru perhitungan.js frontend:
-//   BIAYA_LAYANAN = 1000; potongan = min(subtotal*diskon%, 50000).
-// =====================================================================
+// Pesanan + item; semua angka checkout dihitung server dari harga di DB.
 
 class PengendaliPesanan extends PengendaliDasar
 {
@@ -24,7 +11,7 @@ class PengendaliPesanan extends PengendaliDasar
         switch ($metode) {
             case 'POST':
                 $this->validateCsrf();
-                $this->checkout(); // publik
+                $this->checkout();
                 break;
             case 'GET':
                 Auth::wajib();
@@ -46,7 +33,6 @@ class PengendaliPesanan extends PengendaliDasar
         }
     }
 
-    // Bentuk baris pesanan untuk respons (mirip kolom frontend).
     private function petakan(array $r): array
     {
         return [
@@ -114,12 +100,8 @@ class PengendaliPesanan extends PengendaliDasar
         Bantu::sukses($hasil);
     }
 
-    /**
-     * Checkout publik. Server menghitung ulang semua angka dari harga produk
-     * di DB (anti manipulasi harga dari klien). Menerima:
-     *   item: [{ produkId?, nama?, harga?, jumlah }]
-     *   kodePromo?, pembeli:{nama?,email?,whatsapp?}, metode?
-     */
+    // Checkout publik: hitung ulang dari harga di DB (bukan dari klien).
+    // Terima: item[{produkId?,nama?,harga?,jumlah}], kodePromo?, pembeli{}, metode?.
     private function checkout(): void
     {
         $badan = $this->badan();
@@ -128,7 +110,7 @@ class PengendaliPesanan extends PengendaliDasar
             Bantu::gagal('Keranjang kosong.');
         }
 
-        // --- Bangun ulang baris item dari harga produk di DB ---
+        // Bangun ulang baris item dari harga produk di DB.
         $barisItem = [];
         $subtotal = 0;
         $namaRingkas = [];
@@ -169,7 +151,7 @@ class PengendaliPesanan extends PengendaliDasar
 
         if ($barisItem === []) Bantu::gagal('Item keranjang tidak valid.');
 
-        // --- Potongan promo (bila ada & berlaku) ---
+        // Potongan promo (bila berlaku).
         $kodePromo = strtoupper(Bantu::potong((string) ($badan['kodePromo'] ?? ''), 40));
         $potongan = 0;
         $promoDipakai = null;
@@ -191,7 +173,7 @@ class PengendaliPesanan extends PengendaliDasar
         $biayaLayanan = self::BIAYA_LAYANAN;
         $total = max($subtotal + $biayaLayanan - $potongan, 0);
 
-        // --- Data pembeli ---
+        // Data pembeli.
         $pembeli = is_array($badan['pembeli'] ?? null) ? $badan['pembeli'] : [];
         $namaPembeli = Bantu::potong((string) ($pembeli['nama'] ?? ($badan['nama'] ?? '')), 120);
         $email       = Bantu::potong((string) ($pembeli['email'] ?? ''), 150);
@@ -199,7 +181,7 @@ class PengendaliPesanan extends PengendaliDasar
         $metode      = Bantu::potong((string) ($badan['metode'] ?? ''), 60);
         $produkRingkas = Bantu::potong(implode(', ', array_unique($namaRingkas)), 255);
 
-        // --- Nomor pesanan unik ---
+        // Nomor pesanan unik.
         $nomor = Bantu::nomorPesanan();
         while (Database::satu('SELECT id FROM pesanan WHERE id = ?', [$nomor])) {
             $nomor = Bantu::nomorPesanan();
@@ -214,7 +196,7 @@ class PengendaliPesanan extends PengendaliDasar
         Bantu::sukses($hasil, 'Pesanan dibuat.', 201);
     }
 
-    // Menyimpan pesanan + item + efek samping (pelanggan, promo) dalam transaksi.
+    // Simpan pesanan + item + efek samping (pelanggan, promo) dalam transaksi.
     private function simpanPesanan(
         string $nomor, string $namaPembeli, string $email, string $whatsapp, string $metode,
         string $produkRingkas, string $kategori, int $subtotal, int $biayaLayanan, int $potongan,
@@ -224,7 +206,7 @@ class PengendaliPesanan extends PengendaliDasar
             $nomor, $namaPembeli, $email, $whatsapp, $metode, $produkRingkas, $kategori,
             $subtotal, $biayaLayanan, $potongan, $total, $kodePromo, $barisItem, $promoDipakai
         ) {
-            // Cari/buat pelanggan berdasarkan email (opsional).
+            // Cari/buat pelanggan berdasarkan email.
             $pelangganId = null;
             if ($email !== '') {
                 $pel = Database::satu('SELECT id FROM pelanggan WHERE email = ?', [$email]);
@@ -287,7 +269,7 @@ class PengendaliPesanan extends PengendaliDasar
         if (!$id) Bantu::gagal('ID pesanan wajib ada.', 400);
         $baris = Database::satu('SELECT id FROM pesanan WHERE id = ?', [$id]);
         if (!$baris) Bantu::gagal('Pesanan tidak ditemukan.', 404);
-        // pesanan_item terhapus otomatis (ON DELETE CASCADE).
+        // pesanan_item ikut terhapus (ON DELETE CASCADE).
         Database::eksekusi('DELETE FROM pesanan WHERE id = ?', [$id]);
         Aktivitas::catat("Pesanan {$id} dihapus", 'hapus', 'merah');
         Bantu::sukses(['id' => $id], 'Pesanan dihapus.');

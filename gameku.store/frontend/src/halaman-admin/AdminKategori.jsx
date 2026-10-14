@@ -17,16 +17,8 @@ import '../css/admin-tabel.css'
 
 const formKosong = { nama: '', slug: '', deskripsi: '', ikon: 'kategori', gambar: '', status: STATUS_KATEGORI[0] }
 
-// =====================================================================
-// Halaman kategori (/admin/kategori).
-//
-// TIDAK ADA KATEGORI BAWAAN. Daftar mulai kosong. Admin membuat
-// kategorinya sendiri, dan kategori itu langsung tersedia di form
-// Tambah Produk.
-//
-// Alur: buat kategori → kategori masuk daftar → muncul di pilihan
-//       produk → produk memakai kategori tersebut.
-// =====================================================================
+// Halaman kategori (/admin/kategori); kategori dibuat admin, langsung
+// tersedia di form Tambah Produk.
 export default function AdminKategori() {
   const { tampilkanPesan } = useAdmin()
   const kategori = useDaftar(layananKategori)

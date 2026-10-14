@@ -44,12 +44,7 @@
 .flash-card .cr{font-size:11px;color:#94A3B8;text-decoration:line-through}
 .flash-card .cta-mini{margin-top:6px;width:100%;background:#EFF6FF;color:#1D4ED8;font-weight:800;font-size:11.5px;border-radius:9px;padding:8px;min-height:34px}
 
-/* =====================================================================
-   RESPONSIF HOME
-   Tablet (>=768px): kategori 4 kolom, shortcut dibatasi lebarnya.
-   Desktop (>=1024px): hero menampilkan 3 slide berjajar, kategori 6 kolom,
-   flash sale jadi grid, kontainer konten lebih lega.
-   ===================================================================== */
+/* Responsif home: kategori & shortcut melebar di tablet/desktop. */
 @media (min-width:768px){
   .hero-isi{padding-inline:24px!important}
   .rel-kategori{grid-template-columns:repeat(4,1fr)!important;gap:12px!important}

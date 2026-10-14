@@ -1,13 +1,8 @@
 <?php
-// =====================================================================
-// Aktivitas.php — mencatat jejak aksi ke tabel `aktivitas`.
-// Dipakai pengendali lain (produk/kategori/promo/...) untuk audit log.
-// Bentuknya meniru layananAktivitas di frontend: teks, ikon, warna.
-// =====================================================================
+// Pencatat jejak audit ke tabel `aktivitas`.
 
 class Aktivitas
 {
-    // Mencatat satu aktivitas. Kegagalan log tidak boleh membatalkan aksi utama.
     public static function catat(string $teks, string $ikon = 'centangLingkaran', string $warna = 'hijau', ?string $adminPengguna = null): void
     {
         try {
@@ -16,11 +11,10 @@ class Aktivitas
                 [Bantu::potong($teks, 255), $ikon, $warna, $adminPengguna]
             );
         } catch (Throwable $e) {
-            // Diamkan: pencatatan aktivitas bersifat sampingan.
+            // Pencatatan aktivitas bersifat sampingan; kegagalan diabaikan.
         }
     }
 
-    // Daftar aktivitas terbaru (paling baru dulu), dibatasi jumlah.
     public static function terbaru(int $jumlah = 50): array
     {
         $jumlah = max(1, min(200, $jumlah));
@@ -30,7 +24,6 @@ class Aktivitas
         );
     }
 
-    // Mengosongkan seluruh jejak aktivitas.
     public static function kosongkan(): void
     {
         Database::eksekusi('DELETE FROM aktivitas');

@@ -1,13 +1,11 @@
+// Konfigurasi Vite.
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
-    // Dev server meneruskan semua request /api ke backend (tanpa CORS).
-    // Backend disiapkan teman satu tim di folder ../backend.
-    // Default port 8000; ubah lewat env API_PROXY bila backend lain port.
+    // Dev server meneruskan /api ke backend (port via env API_PROXY).
     port: 5173,
     proxy: {
       '/api': {
@@ -25,15 +23,13 @@ export default defineConfig({
     },
   },
   build: {
-    // Hasil frontend dibangun LANGSUNG ke folder deployment terpadu
-    // gameku.store/dist (satu paket dengan backend PHP). Jangan ubah
-    // outDir ini tanpa menyesuaikan scripts/kemas-backend.mjs.
+    // Build langsung ke dist terpadu (satu paket dengan backend PHP).
     outDir: '../dist',
     emptyOutDir: true,
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        // Pisahkan admin dari toko: pengunjung tidak mengunduh kode dashboard.
+        // Pisahkan chunk admin dari toko.
         manualChunks(id) {
           if (id.includes('halaman-admin') || id.includes('komponen/admin') || id.includes('IkonAdmin')) {
             return 'admin'

@@ -1,17 +1,9 @@
-// Komponen presentasi Streamku — siap menerima data API resmi nanti.
-// ATURAN: hanya merender field yang benar-benar ada pada item.
-// Tidak ada thumbnail/video/judul/kreator/durasi/penonton/LIVE karangan.
-// Bila field tidak ada, bagian itu tidak dirender (bukan diisi palsu).
-//
-// Bentuk item yang didukung (semua opsional, sesuai kontrak API nanti):
-//   { id, judul, kreator, kategori, durasi, deskripsi,
-//     thumbnail, urlVideo, url }
+// Komponen presentasi Streamku; hanya merender field yang benar-benar ada.
 import { Link } from 'react-router-dom'
 import Ikon from './Ikon.jsx'
 import KeadaanKosong from './KeadaanKosong.jsx'
 
-// Area pemutar utama 16:9. Merender <video>/<iframe> HANYA bila URL
-// nyata tersedia; bila tidak, tampilkan empty state profesional.
+// Area pemutar utama 16:9; <video>/<iframe> hanya bila URL nyata tersedia.
 export function AreaVideoUtama({ video }) {
   const sumber = String(video?.urlVideo || video?.url || '').trim()
   if (!video || !sumber) {
@@ -35,7 +27,7 @@ export function AreaVideoUtama({ video }) {
   )
 }
 
-// Kartu video: thumbnail HANYA bila URL nyata; tanpa klaim durasi/LIVE.
+// Kartu video; thumbnail hanya bila URL nyata.
 export function KartuVideo({ video }) {
   const thumb = String(video?.thumbnail || '').trim()
   const judul = String(video?.judul || '').trim()
@@ -68,7 +60,7 @@ export function KartuVideo({ video }) {
   return <article className="sk-kartu">{isi}</article>
 }
 
-// Grid daftar video — kosong = empty state rapi, bukan kartu palsu.
+// Grid daftar video; kosong = empty state.
 export function DaftarVideo({ daftar }) {
   if (!Array.isArray(daftar) || daftar.length === 0) {
     return (

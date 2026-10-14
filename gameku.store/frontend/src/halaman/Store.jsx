@@ -1,5 +1,4 @@
 // Halaman /store — Marketplace Gamesku + search + filter + sort.
-// Katalog dibaca dari layananProduk, kategori dari layananKategori.
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useSyncExternalStore } from 'react'
@@ -48,8 +47,7 @@ export default function Store() {
       if (aktif) daftar = daftar.filter((p) => p.kategoriId === aktif.id)
     }
     return urutkanProduk(daftar, urutan)
-    // semuaProduk sengaja tidak dipakai: useSyncExternalStore di atas
-    // sudah membuat halaman ikut render ulang saat katalog berubah.
+    // semuaProduk sengaja tidak dipakai: useSyncExternalStore sudah merender ulang.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [param, kataKunci, kategoriProduk, kategori, urutan])
 

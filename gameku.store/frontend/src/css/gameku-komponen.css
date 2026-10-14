@@ -31,8 +31,7 @@
 @keyframes skel{to{background-position:-200% 0}}
 @media(prefers-reduced-motion:reduce){.hero-slider{scroll-snap-type:none}.skel{animation:none}}
 
-/* Responsif kartu & section pada tablet/desktop — tipografi & jarak naik
-   mengikuti lebar kartu yang bertambah saat jumlah kolom bertambah. */
+/* Responsif kartu & section pada tablet/desktop. */
 @media (min-width:1024px){
   .badan-produk{padding:12px!important}
   .nama-produk{font-size:13.5px!important;min-height:38px!important}

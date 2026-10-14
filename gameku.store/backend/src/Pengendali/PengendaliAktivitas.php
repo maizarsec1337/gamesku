@@ -1,11 +1,5 @@
 <?php
-// =====================================================================
-// PengendaliAktivitas.php — tabel `aktivitas` (audit log).
-//   GET    /api/aktivitas        (admin) daftar aktivitas terbaru.
-//   DELETE /api/aktivitas        (admin) kosongkan jejak aktivitas.
-// Pencatatan aktivitas dilakukan otomatis oleh pengendali lain lewat
-// Aktivitas::catat(); di sini hanya pembacaan & pembersihan.
-// =====================================================================
+// Pembacaan & pembersihan tabel `aktivitas` (admin); pencatatan via Aktivitas::catat().
 
 class PengendaliAktivitas extends PengendaliDasar
 {

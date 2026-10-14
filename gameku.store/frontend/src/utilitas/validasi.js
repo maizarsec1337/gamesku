@@ -1,6 +1,4 @@
-// =====================================================================
-// Validasi sederhana untuk isian formulir. Belum terhubung ke server.
-// =====================================================================
+// Validasi sederhana untuk isian formulir.
 
 // Email harus memiliki format nama@domain.tld
 export function emailValid(nilai) {

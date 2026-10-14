@@ -1,10 +1,4 @@
-// Halaman /streamku — platform video gaming Gameku.store, SIAP API.
-//
-// SUMBER DATA: layananStreamku (pola sama seperti layanan lain).
-// Saat ini daftar KOSONG — halaman menampilkan empty state profesional,
-// bukan video/kreator/judul/durasi/penonton/LIVE karangan.
-// Filter & sortir DINONAKTIFKAN selama belum ada data (disabled +
-// penjelasan), agar tidak ada interaksi yang seolah berfungsi.
+// Halaman /streamku — platform video gaming Gameku.store (data dari layananStreamku).
 import { useMemo, useState } from 'react'
 import { useSyncExternalStore } from 'react'
 import Ikon from '../komponen/Ikon.jsx'
@@ -35,7 +29,7 @@ export default function HalamanStreamku() {
   const [urutan, setUrutan] = useState('terbaru')
   useReveal()
 
-  // Data nyata saja. Tanpa data = array kosong (bukan contoh).
+  // Data nyata saja; tanpa data = array kosong.
   const kategoriAsli = kategoriVideo()
   const hasilCari = cariVideo(kataKunci)
   const adaData = daftarVideo().length > 0

@@ -1,8 +1,4 @@
-/* Lapisan final Gamesku — pengaman mobile-only (shell 430px) + safe-area.
-   Aturan visual utama hidup di file masing-masing (global, navigasi,
-   filter, detail, beranda, kaki, gameku-home, gameku-komponen).
-   Layout tablet/desktop ditambahkan lewat media query di file sumbernya,
-   jadi override di sini hanya berlaku untuk layar < 768px. */
+/* Lapisan final: pengaman mobile-only (shell 430px) + safe-area, berlaku < 768px. */
 @media (max-width: 767px) {
   .kaki-utama,
   .tata-detail { grid-template-columns: 1fr; }
