@@ -42,3 +42,19 @@
   .tambah-kecil{font-size:12.5px;min-height:40px}
   .streamku{max-width:1200px;margin:10px auto 0}
 }
+
+/* ===== Animasi ringan (transisi halus, bukan gerakan berlebihan) =====
+   Semua transisi otomatis dinetralkan oleh aturan * di global.css saat
+   pengguna memilih prefers-reduced-motion. Zoom gambar hanya aktif pada
+   perangkat dengan hover (bukan sentuh) agar tidak mengganggu scroll. */
+.kartu-produk{transition:transform 200ms ease,box-shadow 200ms ease}
+.gambar-produk img{transition:transform 350ms ease}
+.tombol-suka,.tambah-kecil,.pil,.gk-short a{transition:background 180ms ease,color 180ms ease,border-color 180ms ease,box-shadow 180ms ease,transform 140ms ease}
+@media (hover:hover) and (pointer:fine){
+  .kartu-produk:hover .gambar-produk img{transform:scale(1.05)}
+}
+@media (hover:hover){
+  .pil:hover{border-color:#93C5FD;color:#1D4ED8}
+  .flash-card{transition:transform 200ms ease,box-shadow 200ms ease}
+  .flash-card:hover{transform:translateY(-2px);box-shadow:0 12px 22px -14px rgba(0,0,0,.45)}
+}

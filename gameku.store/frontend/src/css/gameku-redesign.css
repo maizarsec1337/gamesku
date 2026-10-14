@@ -8,40 +8,45 @@
 }
 .sr-hanya{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* ===== 1. LOGIN ===== */
-.gk-masuk{min-height:100dvh;background:radial-gradient(900px 420px at 85% -5%,rgba(249,115,22,.22),transparent 60%),linear-gradient(165deg,#17181C 0%,#1F2126 55%,#26292F 100%);color:#F4F5F6;display:flex;flex-direction:column}
-.gk-masuk-atas{border-bottom:1px solid rgba(255,255,255,.08)}
-.gk-masuk-atas-isi{display:flex;align-items:center;justify-content:space-between;min-height:60px}
-.gk-masuk-atas .logo-teks{color:#fff!important}
-.gk-masuk-atas .logo-teks small{color:#FDBA74!important}
-.gk-logo{background:linear-gradient(135deg,#F97316,#EA580C)!important;color:#fff!important}
-.gk-kembali{font-size:13px;font-weight:700;color:#FDBA74;border:1px solid rgba(249,115,22,.45);border-radius:10px;padding:8px 14px;min-height:38px;display:inline-flex;align-items:center}
-.gk-kembali:hover{background:rgba(249,115,22,.14)}
-.gk-masuk-utama{flex:1;display:flex;align-items:center;padding-block:26px}
+/* ===== 1. LOGIN — tema PUTIH–BIRU (identitas Gamesku) ===== */
+/* Putih sebagai permukaan utama, biru sebagai aksen/tombol/fokus.
+   Struktur dua kolom desktop (brand + form) dipertahankan; hanya
+   palet & kerapian yang diubah — logika autentikasi tidak disentuh. */
+.gk-masuk{min-height:100dvh;background:linear-gradient(180deg,#F8FAFF 0%,#F1F5F9 100%);color:#0F172A;display:flex;flex-direction:column}
+.gk-masuk-atas{border-bottom:1px solid #E2E8F0;background:#fff;position:sticky;top:0;z-index:20}
+.gk-masuk-atas-isi{display:flex;align-items:center;justify-content:space-between;min-height:64px}
+.gk-masuk-atas .logo-teks{color:#0F172A!important}
+.gk-masuk-atas .logo-teks small{color:#2563EB!important}
+.gk-logo{background:linear-gradient(135deg,#2563EB,#1D4ED8)!important;color:#fff!important}
+.gk-kembali{font-size:13px;font-weight:700;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:10px;padding:8px 14px;min-height:38px;display:inline-flex;align-items:center;background:#fff;transition:background 160ms ease,border-color 160ms ease}
+.gk-kembali:hover{background:#EFF6FF;border-color:#93C5FD}
+/* align-items:safe center mencegah konten terpotong di atas saat
+   viewport pendek (keyboard virtual) — scroll tetap menjangkau form. */
+.gk-masuk-utama{flex:1;display:flex;align-items:center;align-items:safe center;padding-block:28px}
 .gk-masuk-grid{display:grid;grid-template-columns:1fr;gap:16px;width:100%;max-width:420px;margin-inline:auto}
-.gk-masuk-brand{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:22px 20px;position:relative;overflow:hidden}
-.gk-masuk-brand::after{content:"";position:absolute;right:-70px;top:-70px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,.35),transparent 70%)}
-.gk-brand-lencana{display:inline-flex;align-items:center;gap:6px;background:rgba(249,115,22,.16);border:1px solid rgba(249,115,22,.5);color:#FDBA74;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:5px 11px}
-.gk-masuk-brand h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin-top:12px;line-height:1.25}
-.gk-masuk-brand>p{color:#C6C9CF;font-size:13.5px;margin-top:6px;line-height:1.6}
-.gk-brand-poin{margin-top:14px;display:grid;gap:9px;font-size:13px;color:#D8DBDF}
+.gk-masuk-brand{background:linear-gradient(160deg,#EFF6FF 0%,#DBEAFE 100%);border:1px solid #BFDBFE;border-radius:20px;padding:22px 20px;position:relative;overflow:hidden;box-shadow:0 12px 34px -26px rgba(37,99,235,.45)}
+.gk-masuk-brand::after{content:"";position:absolute;right:-70px;top:-70px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.16),transparent 70%)}
+.gk-brand-lencana{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:5px 11px}
+.gk-masuk-brand h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin-top:12px;line-height:1.25;color:#0F172A}
+.gk-masuk-brand>p{color:#475569;font-size:13.5px;margin-top:6px;line-height:1.6}
+.gk-brand-poin{margin-top:14px;display:grid;gap:9px;font-size:13px;color:#334155}
 .gk-brand-poin li{display:flex;gap:9px;align-items:flex-start;line-height:1.5}
-.gk-brand-poin svg{color:#F97316;flex-shrink:0;margin-top:2px}
+.gk-brand-poin svg{color:#2563EB;flex-shrink:0;margin-top:2px}
 .gk-brand-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
-.gk-brand-stat div{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:9px 6px;text-align:center}
-.gk-brand-stat strong{display:block;font-size:14px;color:#fff}
-.gk-brand-stat span{font-size:10.5px;color:#9AA0AA}
-.gk-masuk-kartu{background:#fff;color:#15171A;border-radius:20px;padding:20px 18px;box-shadow:0 24px 60px -24px rgba(0,0,0,.55)}
-.gk-tab{display:grid;grid-template-columns:1fr 1fr;background:#F1F2F4;border-radius:12px;padding:4px;gap:4px}
-.gk-tab button{border-radius:9px;font-weight:800;font-size:13.5px;padding:10px;min-height:42px;color:#6B7280}
-.gk-tab button.aktif{background:#1B1D21;color:#fff;box-shadow:0 6px 14px -8px rgba(0,0,0,.5)}
-.gk-masuk-judul{font-size:18px;font-weight:800;margin-top:14px;letter-spacing:-.01em}
-.gk-masuk-sub{font-size:13px;color:#6B7280;margin-top:4px}
+.gk-brand-stat div{background:#fff;border:1px solid #DBEAFE;border-radius:12px;padding:9px 6px;text-align:center}
+.gk-brand-stat strong{display:block;font-size:14px;color:#1D4ED8}
+.gk-brand-stat span{font-size:10.5px;color:#64748B}
+.gk-masuk-kartu{background:#fff;color:#0F172A;border:1px solid #E2E8F0;border-radius:20px;padding:22px 20px;box-shadow:0 20px 50px -34px rgba(15,23,42,.4)}
+.gk-tab{display:grid;grid-template-columns:1fr 1fr;background:#EFF3F8;border-radius:12px;padding:4px;gap:4px}
+.gk-tab button{border-radius:9px;font-weight:800;font-size:13.5px;padding:10px;min-height:42px;color:#64748B;transition:background 160ms ease,color 160ms ease}
+.gk-tab button.aktif{background:#2563EB;color:#fff;box-shadow:0 8px 18px -12px rgba(37,99,235,.9)}
+.gk-masuk-judul{font-size:18px;font-weight:800;margin-top:14px;letter-spacing:-.01em;color:#0F172A}
+.gk-masuk-sub{font-size:13px;color:#64748B;margin-top:4px}
 .gk-input{display:flex;align-items:center;gap:9px;border:1.5px solid #E2E8F0;border-radius:12px;padding:0 12px;background:#fff;transition:border-color 160ms ease,box-shadow 160ms ease}
-.gk-input svg{color:#9AA0AA;flex-shrink:0}
-.gk-input input{flex:1;border:none;outline:none;background:none;padding:12px 0;font-size:14px;color:#15171A;min-width:0}
-.gk-input:focus-within{border-color:#F97316;box-shadow:0 0 0 3px rgba(249,115,22,.18)}
-.gk-input:focus-within svg{color:#F97316}
+.gk-input svg{color:#94A3B8;flex-shrink:0}
+.gk-input input{flex:1;border:none;outline:none;background:none;padding:12px 0;font-size:14px;color:#0F172A;min-width:0}
+.gk-input:focus-within{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.16)}
+.gk-input:focus-within svg{color:#2563EB}
 .gk-input.gk-error{border-color:#DC2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
 
 /* ===== 2. BANNER CAROUSEL HOME ===== */
@@ -75,20 +80,19 @@
 .gk-banner-titik button.on{width:32px;background:#F97316}
 .gk-banner-nomor{position:absolute;right:12px;bottom:10px;font-size:11px;font-weight:800;color:rgba(255,255,255,.85);background:rgba(0,0,0,.3);border-radius:999px;padding:3px 9px;z-index:2}
 
-.gk-lihat{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;color:#6B7280}
-.gk-lihat:hover{background:#F1F2F4;color:#15171A}
+.gk-lihat{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;color:#64748B;transition:background 160ms ease,color 160ms ease}
+.gk-lihat:hover{background:#EFF6FF;color:#1D4ED8}
 .gk-pesan{display:flex;gap:8px;align-items:flex-start;background:#FFF7ED;border:1px solid #FDBA74;color:#9A3412;font-size:12.5px;border-radius:12px;padding:10px 12px;margin-top:4px;line-height:1.55}
 .gk-pesan svg{flex-shrink:0;margin-top:1px}
 .gk-pesan-ok{background:#ECFDF5;border-color:#6EE7B7;color:#065F46}
 .gk-pesan-info{background:#EFF6FF;border-color:#93C5FD;color:#1D4ED8}
-.gk-tombol-masuk{background:linear-gradient(135deg,#F97316,#EA580C)!important;color:#fff!important;margin-top:12px;box-shadow:0 12px 26px -14px rgba(249,115,22,.7)}
+.gk-tombol-masuk{background:linear-gradient(135deg,#2563EB,#1D4ED8)!important;color:#fff!important;margin-top:12px;box-shadow:0 14px 28px -18px rgba(37,99,235,.9)}
 .gk-tombol-masuk:hover{filter:brightness(1.05)}
 
-/* ===== 3. TOMBOL KOMUNITAS NYATA (pengganti chat palsu) ===== */
-/* Tidak ada backend chat — tombol ini tautan Discord asli dari Footer. */
-.gk-chat-nyata{position:fixed;right:14px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#F97316,#EA580C);color:#fff;font-weight:800;font-size:13.5px;border-radius:999px;padding:12px 18px 12px 14px;min-height:50px;box-shadow:0 16px 34px -14px rgba(249,115,22,.8);transition:transform 160ms ease}
-.gk-chat-nyata:hover{transform:translateY(-2px)}
-.gk-chat-nyata:active{transform:scale(.95)}
+/* ===== 3. ASISTEN GAMESKU ===== */
+/* Tombol chat palsu dihapus; digantikan komponen ChatbotAI (lihat
+   src/komponen/ChatbotAI.jsx + src/css/chatbot.css). Tautan komunitas
+   (Discord) tetap ada di Footer dan halaman Bantuan. */
 
 /* ===== 4. STREAMKU (tanpa klaim LIVE/penonton) ===== */
 .gk-banner-kosong{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid #E2E8F0;border-radius:20px;padding:18px;color:#0F172A}
@@ -117,7 +121,6 @@
   .gk-slide{padding:24px 64px 48px 26px}
   .gk-slide-visual{display:block}
   .sk-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-  .gk-chat-nyata{right:20px;bottom:24px}
 }
 @media (min-width:1024px){
   .gk-masuk-grid{max-width:960px}
@@ -130,8 +133,6 @@
 @media (min-width:1440px){
   .sk-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
-@media (prefers-reduced-motion:reduce){
-
 /* ===== 6. STREAMKU PROFESIONAL (dark charcoal + oranye, siap API) ===== */
 .sk-kepala-atas{display:grid;gap:14px}
 .sk-cari-atas{display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid #E2E8F0;border-radius:13px;padding:0 8px 0 13px;color:#64748B;max-width:420px}
@@ -166,15 +167,14 @@
   .sk-filter-bar{padding:14px 16px}
   .sk-video-judul{font-size:20px}
 }
+/* Hormati prefers-reduced-motion: matikan transisi carousel & kartu. */
 @media (prefers-reduced-motion:reduce){
   .sk-kartu{transition:none}
-}
-
   .gk-slide{transition:none;transform:none}
 }
 
 .sk-cta-bawah{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 
 .gk-masuk-bawah{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:14px}
-.gk-masuk-bawah .tautan-lihat{color:#EA580C}
-.gk-masuk-catatan{font-size:11.5px;color:#9AA0AA;margin-top:10px;line-height:1.6}
+.gk-masuk-bawah .tautan-lihat{color:#1D4ED8}
+.gk-masuk-catatan{font-size:11.5px;color:#64748B;margin-top:10px;line-height:1.6}

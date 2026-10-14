@@ -1,6 +1,6 @@
 // Beranda Gamesku — hero slider + shortcut + 9 kategori + flash sale + populer + Streamku.
-import { Link, useNavigate } from 'react-router-dom'
-import { useState, useSyncExternalStore } from 'react'
+import { Link } from 'react-router-dom'
+import { useSyncExternalStore } from 'react'
 import BannerUtama from '../komponen/BannerUtama.jsx'
 import Kategori from '../komponen/Kategori.jsx'
 import BagianProduk from '../komponen/BagianProduk.jsx'
@@ -31,8 +31,6 @@ const keunggulan = [
 
 export default function Beranda() {
   useSyncExternalStore(subscribeProduk, produkTersedia, produkTersedia)
-  const navigasi = useNavigate()
-  const [cari, setCari] = useState('')
   const semua = produkTersedia()
   const promo = semua.filter((p) => p.hargaDiskon > 0 && p.hargaDiskon > p.harga)
   const terbaru = produkTerbaru(6)
@@ -40,21 +38,9 @@ export default function Beranda() {
   const populer = [...promo, ...semua.filter((p) => !(p.hargaDiskon > 0 && p.hargaDiskon > p.harga))].slice(0, 6)
   useReveal()
 
-  const kirimCari = (e) => {
-    e.preventDefault()
-    const rapi = cari.trim()
-    navigasi(rapi ? `/store?cari=${encodeURIComponent(rapi)}` : '/store')
-  }
-
   return (
     <>
       <BannerUtama />
-      <div className="wadah" style={{ paddingTop: 12 }}>
-        <form className="cari-mobile" onSubmit={kirimCari} role="search" style={{ border: '1.5px solid #E2E8F0' }}>
-          <Ikon nama="cari" ukuran={16} />
-          <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari diamond, Robux, voucher..." aria-label="Cari produk Gamesku" />
-        </form>
-      </div>
       <nav className="gk-short reveal" aria-label="Layanan Gamesku">
         {SHORTCUT.map((s) => (
           <Link key={s.nama} to={s.ke}><span className="ic"><Ikon nama={s.ikon} ukuran={19} /></span>{s.nama}</Link>
@@ -77,12 +63,6 @@ export default function Beranda() {
         <BagianProduk judul="Produk Populer" subjudul="Paling diburu pemain minggu ini." daftar={populer} tautan="/store" />
       </div>
       <Streamku />
-      <div className="wadah">
-        <a className="gk-chat-nyata" href="https://discord.gg/gamesku" target="_blank" rel="noreferrer" aria-label="Buka Discord komunitas Gameku.store">
-          <Ikon nama="chat" ukuran={22} />
-          <span>Chat Komunitas</span>
-        </a>
-      </div>
       <div className="reveal">
         <BagianProduk judul="Rekomendasi Untukmu" subjudul="Rilisan terbaru dari kreator." daftar={terbaru} tautan="/store?urut=terbaru" />
       </div>

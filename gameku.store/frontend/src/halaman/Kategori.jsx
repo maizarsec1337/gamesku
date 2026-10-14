@@ -12,6 +12,7 @@ import {
   urutkanProduk,
 } from '../layanan/layananProduk.js'
 import { subscribeKategori, daftarKategori } from '../layanan/layananKategori.js'
+import useReveal from '../layanan/gunakanReveal.js'
 import '../css/filter.css'
 
 export default function HalamanKategori() {
@@ -21,6 +22,7 @@ export default function HalamanKategori() {
 
   useSyncExternalStore(subscribeProduk, produkTersedia, produkTersedia)
   useSyncExternalStore(subscribeKategori, daftarKategori, daftarKategori)
+  useReveal()
 
   const kategori = daftarKategori()
   const aktif = kategori.find((k) => k.slug === slug)
@@ -60,7 +62,7 @@ export default function HalamanKategori() {
           jumlah={daftarHasil.length}
         />
       </div></section>
-      <section className="bagian"><div className="wadah">
+      <section className="bagian reveal"><div className="wadah">
         {daftarHasil.length === 0 ? (
           <KeadaanKosong
             judul="Belum ada produk"

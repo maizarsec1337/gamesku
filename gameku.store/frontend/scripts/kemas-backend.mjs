@@ -56,12 +56,18 @@ for (const [dari, ke] of salinan) {
 }
 
 // --- 3) SATU config: backend/config/config.php -> dist/config/config.php ---
+// config.php diabaikan git (lihat .gitignore), jadi pada checkout bersih
+// berkas ini memang belum ada — README menetapkan config diisi di hosting.
+// Maka: salin bila ada, jika tidak ada cukup beri peringatan (JANGAN gagal)
+// agar build terpadu tetap menghasilkan struktur dist yang lengkap.
 const configSumber = join(backend, 'config', 'config.php')
-if (!existsSync(configSumber)) {
-  gagal('backend/config/config.php tidak ditemukan (config utama hilang?).')
-}
 mkdirSync(join(dist, 'config'), { recursive: true })
-cpSync(configSumber, join(dist, 'config', 'config.php'))
+if (existsSync(configSumber)) {
+  cpSync(configSumber, join(dist, 'config', 'config.php'))
+} else {
+  console.warn('[kemas-backend] PERINGATAN: backend/config/config.php tidak ditemukan.')
+  console.warn('[kemas-backend] Di hosting, salin backend/config/contoh.config.php menjadi dist/config/config.php lalu isi kredensial.')
+}
 
 // --- 4) Database: skema + installer (diproteksi .htaccess, lihat bawah) ---
 mkdirSync(join(dist, 'database'), { recursive: true })
@@ -129,13 +135,14 @@ RemoveType .php .phtml
 )
 
 // --- 8) Verifikasi: semua wajib ada, kalau tidak -> gagal keras ---
+// Catatan: config/config.php TIDAK diwajibkan di sini karena diisi di
+// hosting (lihat langkah 3) dan tidak ikut di-commit.
 const wajib = [
   'index.html',
   'assets',
   'api/index.php',
   'src/bootstrap.php',
   'src/Database.php',
-  'config/config.php',
   'database/skema.sql',
   'uploads',
   '.htaccess',

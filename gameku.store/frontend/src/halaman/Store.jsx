@@ -14,6 +14,7 @@ import {
   urutkanProduk,
 } from '../layanan/layananProduk.js'
 import { subscribeKategori, daftarKategori } from '../layanan/layananKategori.js'
+import useReveal from '../layanan/gunakanReveal.js'
 import '../css/filter.css'
 
 export default function Store() {
@@ -24,6 +25,7 @@ export default function Store() {
 
   useSyncExternalStore(subscribeProduk, produkTersedia, produkTersedia)
   useSyncExternalStore(subscribeKategori, daftarKategori, daftarKategori)
+  useReveal()
 
   // Memilih kategori lewat query URL agar bisa dibagikan.
   const pilihKategori = (idKategori) => {
@@ -70,7 +72,7 @@ export default function Store() {
           jumlah={daftarHasil.length}
         />
       </div></section>
-      <section className="bagian"><div className="wadah">
+      <section className="bagian reveal"><div className="wadah">
         {daftarHasil.length === 0 ? (
           <KeadaanKosong
             ikon={<Ikon nama="kotak" ukuran={40} />}

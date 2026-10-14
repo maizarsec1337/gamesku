@@ -14,10 +14,14 @@
 }
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
+/* CATATAN SCROLL: jangan pakai `overflow-x:hidden` di body.
+   Nilai itu memaksa overflow-y menjadi `auto` sehingga body jadi
+   container scroll kedua (pemicu scroll macet/ganda & sticky aneh).
+   `overflow-x:clip` tetap memotong luapan horizontal tanpa efek itu. */
 body{
   margin:0; background:#DCE3EE; color:var(--teks);
   font-family:'Plus Jakarta Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
-  font-size:15px; line-height:1.55; overflow-x:hidden;
+  font-size:15px; line-height:1.55; overflow-x:clip;
   display:flex; justify-content:center; min-height:100vh; min-height:100dvh;
 }
 #root{
