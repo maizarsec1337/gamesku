@@ -73,7 +73,8 @@ export default function Beranda() {
     if (kategoriAktif === 'semua') return semua
     return semua.filter((p) => String(p.kategoriNama || '') === kategoriAktif)
   }, [semua, kategoriAktif])
-  useReveal()
+  // Pasang ulang observer saat loading selesai — node .reveal baru harus terpantau.
+  useReveal(loading)
 
   const kirimCari = (e) => {
     e.preventDefault()
@@ -119,7 +120,7 @@ export default function Beranda() {
 
   return (
     <>
-      <BannerUtama />
+      <BannerUtama daftar={semua} />
       <div className="wadah" style={{ paddingTop: 12 }}>
         <form className="cari-mobile" onSubmit={kirimCari} role="search" style={{ border: '1.5px solid #263663' }}>
           <Ikon nama="cari" ukuran={16} />
