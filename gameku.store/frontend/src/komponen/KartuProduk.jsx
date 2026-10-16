@@ -20,7 +20,7 @@ export default function KartuProduk({ produk, modeFlash = false }) {
   const thumb = String(produk.thumbnail || '').trim()
 
   const tambahCepat = () => {
-    tambahItem({ id: produk.id, nama: produk.nama, keterangan: namaKategori(produk.kategoriId) || produk.jenis, harga: produk.harga, jumlah: 1 })
+    tambahItem({ id: produk.id, nama: produk.nama, keterangan: produk.kategoriNama || namaKategori(produk.kategoriId) || produk.jenis, harga: produk.harga, jumlah: 1 })
   }
 
   const gambar = thumb ? (
@@ -61,7 +61,7 @@ export default function KartuProduk({ produk, modeFlash = false }) {
         <Ikon nama="hati" ukuran={16} />
       </button>
       <div className="badan-produk">
-        <span className="kategori-produk">{namaKategori(produk.kategoriId) || produk.jenis}</span>
+        <span className="kategori-produk">{produk.kategoriNama || namaKategori(produk.kategoriId) || produk.jenis}</span>
         <Link className="nama-produk" to={`/produk/${produk.slug}`}>{produk.nama}</Link>
         <div className="harga-produk">
           {produk.harga === 0 ? <span className="harga-gratis">Gratis</span> : (<><strong>{formatRupiah(produk.harga)}</strong>{produk.hargaDiskon > 0 && <span className="coret">{formatRupiah(produk.hargaDiskon)}</span>}</>)}

@@ -22,7 +22,7 @@ const judulSeksi = {
   tampilan: ['Tampilan', 'Sesuaikan tampilan panel admin'],
 }
 
-const pilihanWarna = ['#62B34A', '#B08355', '#4C8DFF', '#D9A441', '#E5484D', '#9CA3AF']
+const pilihanWarna = ['#43DDF5', '#BD54F5', '#43DDF5', '#F044D8', '#F0447A', '#A7B2D0']
 
 // Saklar toggle (role switch agar aksesibel).
 function Saklar({ aktif, ubah, label }) {
@@ -69,7 +69,7 @@ export default function AdminPengaturan() {
     animasi: true,
     padat: false,
   })
-  const [warna, setWarna] = useState('#62B34A')
+  const [warna, setWarna] = useState('#43DDF5')
 
   const ubahSaklar = (kunci) => setSaklar((s) => ({ ...s, [kunci]: !s[kunci] }))
   const simpan = () => {

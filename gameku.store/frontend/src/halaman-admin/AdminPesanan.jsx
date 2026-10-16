@@ -205,7 +205,7 @@ export default function AdminPesanan() {
               </div>
               <div className="baris-detail">
                 <span className="k">Total bayar</span>
-                <span className="v" style={{ color: '#7ed965', fontSize: 15 }}>
+                <span className="v" style={{ color: '#7FE7F8', fontSize: 15 }}>
                   {dipilih.total === 0 ? 'Gratis' : formatRupiah(dipilih.total)}
                 </span>
               </div>

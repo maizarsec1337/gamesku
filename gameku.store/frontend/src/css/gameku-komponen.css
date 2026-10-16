@@ -1,33 +1,48 @@
-/* Gamesku — kartu produk ringkas, gambar proporsional, badge kuning. */
-.kartu-produk{background:#fff!important;border:1px solid #E2E8F0!important;border-radius:14px!important;box-shadow:0 4px 14px -10px rgba(15,23,42,.18)!important;position:relative}
+/* Gamesku — kartu produk ringkas, gambar proporsional, badge neon (tema dark). */
+.kartu-produk{background:#101A35!important;border:1px solid #263663!important;border-radius:14px!important;box-shadow:0 4px 16px -10px rgba(0,0,0,.5)!important;position:relative}
 .kartu-produk:active{transform:scale(.97)}
-.kartu-produk:hover{transform:translateY(-2px)!important;box-shadow:0 12px 22px -14px rgba(37,99,235,.4)!important}
+.kartu-produk:hover{transform:translateY(-2px)!important;box-shadow:0 12px 24px -14px rgba(67,221,245,.35)!important;border-color:#33477F!important}
 .gambar-produk{aspect-ratio:1/1!important;border-radius:12px 12px 0 0}
 .gambar-produk img{width:100%;height:100%;object-fit:cover}
 .gambar-produk .ikon-besar{font-size:42px!important}
-.baris-badge .lencana-merah,.flash-card .img .diskon{background:#FACC15!important;color:#422006!important;border:1px solid #EAB308!important}
+.baris-badge .lencana-merah,.flash-card .img .diskon{background:#F044D8!important;color:#0B0D1E!important;border:1px solid #F044D8!important}
 .badan-produk{padding:10px!important}
-.kategori-produk{color:#64748B!important;font-size:10px!important}
-.nama-produk{font-size:12.5px!important;min-height:34px!important;line-height:1.35!important}
-.harga-produk strong{color:#1D4ED8!important;font-size:13.5px!important}
-.harga-gratis{color:#15803D!important;font-weight:800}
-.tombol-suka{width:32px!important;height:32px!important;border-radius:10px!important;background:rgba(255,255,255,.96)!important;color:#1D4ED8!important;box-shadow:0 4px 10px -6px rgba(0,0,0,.4)}
-.tombol-suka.aktif{color:#E11D48!important}
-.tambah-kecil{margin-top:8px;width:100%;background:#EFF6FF;color:#1D4ED8;font-weight:800;font-size:12px;border-radius:10px;padding:9px;min-height:38px;display:flex;align-items:center;justify-content:center;gap:6px}
-.tambah-kecil:active{transform:scale(.95);background:#FACC15;color:#422006}
-.spanduk-promo{background:linear-gradient(120deg,#EFF6FF,#DBEAFE)!important;border:1px solid #BFDBFE!important}
-.cari-besar{background:#fff!important;border:1.5px solid #E2E8F0!important;color:#64748B!important}
-.cari-besar input{color:#0F172A!important}
-.pil{color:#475569!important;background:#fff!important}
-.pil-aktif{background:#2563EB!important;color:#fff!important;border-color:#2563EB!important}
+.kategori-produk{color:#A7B2D0!important;font-size:10px!important}
+.nama-produk{font-size:12.5px!important;min-height:34px!important;line-height:1.35!important;color:#F4F7FF!important}
+.harga-produk strong{color:#43DDF5!important;font-size:13.5px!important}
+.harga-gratis{color:#43DDF5!important;font-weight:800}
+.tombol-suka{width:32px!important;height:32px!important;border-radius:10px!important;background:rgba(11,13,30,.9)!important;color:#43DDF5!important;box-shadow:0 4px 10px -6px rgba(0,0,0,.6)}
+.tombol-suka.aktif{color:#F044D8!important}
+.tambah-kecil{margin-top:8px;width:100%;background:rgba(67,221,245,.12);color:#43DDF5;font-weight:800;font-size:12px;border-radius:10px;padding:9px;min-height:38px;display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(67,221,245,.3);transition:background var(--trans)}
+.tambah-kecil:hover{background:rgba(67,221,245,.2)}
+.tambah-kecil:active{transform:scale(.95);background:#F044D8;color:#0B0D1E}
+.spanduk-promo{background:linear-gradient(120deg,#101A35,#16224A)!important;border:1px solid #263663!important}
+.cari-besar{background:#0D1530!important;border:1.5px solid #263663!important;color:#A7B2D0!important}
+.cari-besar input{color:#F4F7FF!important}
+.pil{color:#A7B2D0!important;background:#101A35!important}
+.pil-aktif{background:linear-gradient(135deg,#43DDF5,#BD54F5)!important;color:#0B0D1E!important;border-color:#43DDF5!important}
 .galeri-utama{border-radius:16px!important}
 .galeri-utama img{width:100%;height:100%;object-fit:cover}
-.harga-detail strong{color:#1D4ED8!important;font-size:24px!important}
-.streamku{margin:6px 14px 0;border-radius:20px;padding:18px;background:linear-gradient(120deg,#0F172A,#1D4ED8);color:#fff;position:relative;overflow:hidden}
+.harga-detail strong{color:#43DDF5!important;font-size:24px!important}
+.streamku{margin:6px 14px 0;border-radius:20px;padding:18px;background:linear-gradient(120deg,#101A35,#16224A);color:#fff;position:relative;overflow:hidden;border:1px solid #263663}
 .streamku h2{font-size:16px;font-weight:800}
-.streamku p{font-size:12.5px;color:#BFDBFE;margin-top:4px}
-.streamku .cta{margin-top:10px;display:inline-flex;background:#FACC15;color:#422006;font-weight:800;font-size:12.5px;border-radius:10px;padding:10px 14px;min-height:40px;align-items:center;gap:6px}
-.skel{border-radius:14px;background:linear-gradient(90deg,#E2E8F0 25%,#F1F5F9 50%,#E2E8F0 75%);background-size:200% 100%;animation:skel 1.1s linear infinite;min-height:120px}
+.streamku p{font-size:12.5px;color:#A7B2D0;margin-top:4px}
+.streamku .cta{margin-top:10px;display:inline-flex;background:#F044D8;color:#0B0D1E;font-weight:800;font-size:12.5px;border-radius:10px;padding:10px 14px;min-height:40px;align-items:center;gap:6px;flex:none}
+.streamku-ringkas{padding:14px}
+.streamku-atas{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.streamku-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.streamku-mini-kartu{background:#0D1530;border:1px solid #263663;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.streamku-mini-thumb{aspect-ratio:16/9;display:grid;place-items:center;background:#0B0D1E;color:#43DDF5;overflow:hidden}
+.streamku-mini-thumb img{width:100%;height:100%;object-fit:cover}
+.streamku-mini-judul{font-size:11.5px;font-weight:700;color:#F4F7FF;padding:8px 9px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:44px}
+.gk-pil-kategori .pil{padding:8px 14px;border-radius:999px;border:1.5px solid #263663;background:#101A35;font-weight:700;font-size:12.5px;color:#A7B2D0;min-height:36px}
+.gk-pil-kategori .pil-aktif{background:linear-gradient(135deg,#43DDF5,#BD54F5);color:#0B0D1E;border-color:#43DDF5}
+.gk-kenapa{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.gk-kenapa-kartu{background:#101A35;border:1px solid #263663;border-radius:14px;padding:12px;display:grid;gap:4px}
+.gk-kenapa-kartu strong{font-size:13px;color:#F4F7FF}
+.gk-kenapa-kartu p{font-size:12px;color:#A7B2D0;line-height:1.5}
+.gk-kenapa-ikon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(67,221,245,.12);color:#43DDF5;border:1px solid rgba(67,221,245,.3)}
+.skel{border-radius:14px;background:linear-gradient(90deg,#16224A 25%,#1E2C55 50%,#16224A 75%);background-size:200% 100%;animation:skel 1.1s linear infinite;min-height:120px}
 @keyframes skel{to{background-position:-200% 0}}
 @media(prefers-reduced-motion:reduce){.hero-slider{scroll-snap-type:none}.skel{animation:none}}
 

@@ -1,52 +1,74 @@
-// Halaman /streamku — platform video gaming Gameku.store (data dari layananStreamku).
-import { useMemo, useState } from 'react'
-import { useSyncExternalStore } from 'react'
+// Halaman /streamku — katalog anime Streamku (data dari backend /api/anime).
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Ikon from '../komponen/Ikon.jsx'
-import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
 import useReveal from '../layanan/gunakanReveal.js'
-import {
-  subscribeStreamku,
-  daftarVideo,
-  kategoriVideo,
-  cariVideo,
-} from '../layanan/layananStreamku.js'
-import {
-  AreaVideoUtama,
-  DaftarVideo,
-  CatatanApiStreamku,
-} from '../komponen/StreamkuTayang.jsx'
+import { katalogAnime, GalatAnime } from '../layanan/layananAnime.js'
+import { DaftarAnime, MuatKerangka, GalatStreamku } from '../komponen/StreamkuTayang.jsx'
 
-
-const OPSI_URUT = [
-  { id: 'terbaru', nama: 'Terbaru' },
-  { id: 'judul', nama: 'Judul A–Z' },
-]
+const PER = 24
 
 export default function HalamanStreamku() {
-  useSyncExternalStore(subscribeStreamku, daftarVideo, daftarVideo)
-  const [kataKunci, setKataKunci] = useState('')
-  const [kategori, setKategori] = useState('semua')
-  const [urutan, setUrutan] = useState('terbaru')
   useReveal()
+  const [params, setParams] = useSearchParams()
 
-  // Data nyata saja; tanpa data = array kosong.
-  const kategoriAsli = kategoriVideo()
-  const hasilCari = cariVideo(kataKunci)
-  const adaData = daftarVideo().length > 0
+  const qAwal = params.get('q') || ''
+  const halamanAwal = Math.max(1, parseInt(params.get('halaman') || '1', 10) || 1)
 
-  const daftar = useMemo(() => {
-    const hasil = kategori === 'semua'
-      ? hasilCari
-      : hasilCari.filter((v) => String(v?.kategori || '') === kategori)
-    const salin = [...hasil]
-    if (urutan === 'judul') {
-      salin.sort((a, b) => String(a?.judul || '').localeCompare(String(b?.judul || ''), 'id'))
-    }
-    return salin
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasilCari, kategori, urutan])
+  const [kueri, setKueri] = useState(qAwal)
+  const [masukan, setMasukan] = useState(qAwal)
+  const [halaman, setHalaman] = useState(halamanAwal)
+  const [status, setStatus] = useState('memuat') // memuat | siap | galat
+  const [galat, setGalat] = useState('')
+  const [data, setData] = useState(null)
+  const [muatUlang, setMuatUlang] = useState(0)
 
-  const utama = daftar[0] || null
+  // Ambil katalog setiap kali q / halaman / pemicu muat-ulang berubah.
+  useEffect(() => {
+    let batal = false
+    setStatus('memuat')
+    setGalat('')
+    katalogAnime({ q: kueri, halaman, per: PER })
+      .then((d) => {
+        if (batal) return
+        setData(d)
+        setStatus('siap')
+      })
+      .catch((e) => {
+        if (batal) return
+        setGalat(e instanceof GalatAnime ? e.message : 'Tidak dapat memuat katalog anime.')
+        setStatus('galat')
+      })
+    return () => { batal = true }
+  }, [kueri, halaman, muatUlang])
+
+  // Sinkronkan URL (?q & ?halaman) agar detail/refresh bekerja.
+  const pertama = useRef(true)
+  useEffect(() => {
+    if (pertama.current) { pertama.current = false; return }
+    const p = new URLSearchParams()
+    if (kueri) p.set('q', kueri)
+    if (halaman > 1) p.set('halaman', String(halaman))
+    setParams(p, { replace: true })
+  }, [kueri, halaman, setParams])
+
+  // Pencarian: tekan Enter / submit untuk query ke server.
+  const kirimCari = (e) => {
+    e.preventDefault()
+    const nilai = masukan.trim()
+    setHalaman(1)
+    setKueri(nilai)
+  }
+
+  const cobaLagi = useCallback(() => setMuatUlang((n) => n + 1), [])
+
+  const keHalaman = (n) => {
+    setHalaman(n)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const totalHalaman = data?.totalHalaman || 1
+  const total = data?.total || 0
 
   return (
     <>
@@ -54,64 +76,49 @@ export default function HalamanStreamku() {
         <div>
           <span className="lencana lencana-merah"><Ikon nama="siaran" ukuran={13} /> Streamku</span>
           <h1 className="judul-halaman">Streamku</h1>
-          <p className="subjudul-halaman">Ruang video gaming Gameku.store — tonton konten kreator, pelajari build, dan temukan produk terkait di Store.</p>
+          <p className="subjudul-halaman">Katalog anime Gameku.store — telusuri seri dan episode dari katalog resmi.</p>
         </div>
-        <form className="sk-cari-atas" role="search" onSubmit={(e) => e.preventDefault()}>
+        <form className="sk-cari-atas" role="search" onSubmit={kirimCari}>
           <Ikon nama="cari" ukuran={16} />
           <input
-            value={kataKunci}
-            onChange={(e) => setKataKunci(e.target.value)}
-            placeholder={adaData ? 'Cari judul, kreator, kategori…' : 'Pencarian aktif setelah video tersedia'}
-            aria-label="Cari video Streamku"
-            disabled={!adaData}
+            value={masukan}
+            onChange={(e) => setMasukan(e.target.value)}
+            placeholder="Cari judul anime…"
+            aria-label="Cari anime"
           />
         </form>
       </div></section>
 
       <section className="bagian reveal"><div className="wadah">
-        <div className="sk-filter-bar" aria-label="Filter video">
-          <div className="sk-pil" role="tablist" aria-label="Kategori video">
-            <button type="button" role="tab" aria-selected={kategori === 'semua'} className={kategori === 'semua' ? 'pil pil-aktif' : 'pil'} onClick={() => setKategori('semua')} disabled={!adaData}>Semua</button>
-            {kategoriAsli.map((k) => (
-              <button key={k} type="button" role="tab" aria-selected={kategori === k} className={kategori === k ? 'pil pil-aktif' : 'pil'} onClick={() => setKategori(k)} disabled={!adaData}>{k}</button>
-            ))}
-          </div>
-          <div className="baris-urut">
-            <label className="label-isian" htmlFor="urut-video" style={{ margin: 0 }}>Urutkan:</label>
-            <select id="urut-video" className="pilih pilih-urut" value={urutan} onChange={(e) => setUrutan(e.target.value)} disabled={!adaData}>
-              {OPSI_URUT.map((o) => (<option key={o.id} value={o.id}>{o.nama}</option>))}
-            </select>
-            <span className="lencana lencana-abu">{daftar.length} video</span>
+        <div className="judul-bagian">
+          <div>
+            <h2>{kueri ? `Hasil untuk “${kueri}”` : 'Katalog Anime'}</h2>
+            <p>
+              {status === 'siap'
+                ? `${total} seri ditemukan.`
+                : status === 'memuat' ? 'Memuat katalog…' : 'Gagal memuat katalog.'}
+            </p>
           </div>
         </div>
-        {!adaData && (
-          <p className="sk-filter-note" role="note">Filter dan pencarian nonaktif — belum ada data video dari API resmi.</p>
-        )}
-      </div></section>
 
-      <section className="bagian reveal"><div className="wadah">
-        <div className="judul-bagian"><div><h2>Video Utama</h2><p>Rasio 16:9 · terisi otomatis dari API nanti.</p></div></div>
-        <AreaVideoUtama video={utama} />
-        {utama?.judul && <h3 className="sk-video-judul">{utama.judul}</h3>}
-        {(utama?.kreator || utama?.kategori) && (
-          <p className="subjudul-halaman">{[utama.kreator, utama.kategori].filter(Boolean).join(' · ')}</p>
+        {status === 'memuat' && <MuatKerangka jumlah={PER} />}
+        {status === 'galat' && <GalatStreamku pesan={galat} onCobaLagi={cobaLagi} />}
+        {status === 'siap' && (
+          <>
+            <DaftarAnime daftar={data.items} />
+            {totalHalaman > 1 && (
+              <nav className="sk-navigasi-halaman" aria-label="Navigasi halaman">
+                <button type="button" className="pil" onClick={() => keHalaman(halaman - 1)} disabled={halaman <= 1}>
+                  <Ikon nama="panahKiri" ukuran={14} /> Sebelumnya
+                </button>
+                <span className="sk-info-halaman">Halaman {halaman} dari {totalHalaman}</span>
+                <button type="button" className="pil" onClick={() => keHalaman(halaman + 1)} disabled={halaman >= totalHalaman}>
+                  Berikutnya <Ikon nama="panahKanan" ukuran={14} />
+                </button>
+              </nav>
+            )}
+          </>
         )}
-      </div></section>
-
-      <section className="bagian reveal"><div className="wadah">
-        <div className="judul-bagian"><div><h2>Daftar Video</h2><p>{adaData ? `${daftar.length} video tersedia.` : 'Menunggu API resmi — tanpa video contoh.'}</p></div></div>
-        {adaData ? (
-          <DaftarVideo daftar={daftar} />
-        ) : (
-          <KeadaanKosong
-            ikon="siaran"
-            judul="Belum ada video Streamku"
-            deskripsi="Video, thumbnail, judul, kreator, dan durasi akan tampil di sini setelah API resmi dihubungkan. Halaman ini sengaja tidak menampilkan konten contoh."
-            teksTombol="Lihat Store"
-            tautanTombol="/store"
-          />
-        )}
-        <div style={{ marginTop: 14 }}><CatatanApiStreamku /></div>
       </div></section>
     </>
   )

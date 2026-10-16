@@ -48,7 +48,7 @@
 .kartu-statistik:nth-child(4) { animation-delay: .18s; }
 .kartu-statistik:hover {
   transform: translateY(-3px);
-  border-color: #374252;
+  border-color: #33477F;
   box-shadow: 0 14px 34px rgba(0, 0, 0, .3);
 }
 .kartu-statistik-kepala {
@@ -65,8 +65,8 @@
   display: grid;
   place-items: center;
 }
-.kartu-statistik-ikon.hijau { background: rgba(98, 179, 74, .14); color: var(--adm-hijau); }
-.kartu-statistik-ikon.coklat { background: rgba(176, 131, 85, .16); color: var(--adm-coklat); }
+.kartu-statistik-ikon.hijau { background: rgba(67, 221, 245, .14); color: var(--adm-hijau); }
+.kartu-statistik-ikon.coklat { background: rgba(189, 84, 245, .16); color: var(--adm-coklat); }
 .perubahan {
   display: inline-flex;
   align-items: center;
@@ -76,8 +76,8 @@
   padding: 4px 9px;
   border-radius: 99px;
 }
-.perubahan.naik { background: rgba(98, 179, 74, .13); color: #7ed965; }
-.perubahan.turun { background: rgba(229, 72, 77, .13); color: #f87171; }
+.perubahan.naik { background: rgba(67, 221, 245, .13); color: #7FE7F8; }
+.perubahan.turun { background: rgba(240, 68, 122, .13); color: #FF8AA5; }
 .kartu-statistik-judul {
   font-size: 12.8px;
   color: var(--adm-redup);
@@ -97,7 +97,7 @@
   justify-content: space-between;
   gap: 10px;
 }
-.kartu-statistik-ket { font-size: 11.3px; color: #6b7280; }
+.kartu-statistik-ket { font-size: 11.3px; color: #7F8CAD; }
 .sparkline { width: 96px; height: 36px; overflow: visible; }
 
 /* ---------- Grid utama dasbor ---------- */
@@ -124,7 +124,7 @@
 /* ---------- Grafik penjualan ---------- */
 .grafik-bungkus { padding: 8px 10px 4px; position: relative; }
 .grafik-svg { width: 100%; height: auto; display: block; }
-.grafik-garis-tipis { stroke: rgba(43, 53, 66, .8); stroke-width: 1; }
+.grafik-garis-tipis { stroke: rgba(38, 54, 99, .8); stroke-width: 1; }
 .grafik-label {
   fill: var(--adm-redup);
   font-size: 11px;
@@ -175,7 +175,7 @@
   transition: background .18s, color .18s;
 }
 .periode-pil button:hover { color: var(--adm-teks); }
-.periode-pil button.aktif { background: var(--adm-hijau); color: #0b130a; }
+.periode-pil button.aktif { background: var(--adm-hijau); color: #0B0D1E; }
 .grafik-ringkas { display: flex; align-items: baseline; gap: 12px; }
 .grafik-ringkas strong { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .grafik-sisi-kanan { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -203,7 +203,7 @@
 .peringkat-terlaris {
   font-size: 15px;
   font-weight: 800;
-  color: #4b5563;
+  color: #5A6A94;
   font-variant-numeric: tabular-nums;
   width: 26px;
   transition: color .16s;
@@ -260,12 +260,12 @@
   place-items: center;
   z-index: 1;
 }
-.ikon-aktivitas.hijau { background: rgba(98, 179, 74, .14); color: #7ed965; }
-.ikon-aktivitas.amber { background: rgba(217, 164, 65, .14); color: #ecc06a; }
-.ikon-aktivitas.biru { background: rgba(76, 141, 255, .14); color: #86aefc; }
+.ikon-aktivitas.hijau { background: rgba(67, 221, 245, .14); color: #7FE7F8; }
+.ikon-aktivitas.amber { background: rgba(240, 68, 216, .14); color: #F58FE0; }
+.ikon-aktivitas.biru { background: rgba(67, 221, 245, .14); color: #8CECFA; }
 .teks-aktivitas { flex: 1; line-height: 1.4; }
 .teks-aktivitas p { margin: 0; font-size: 13.3px; }
-.teks-aktivitas time { font-size: 11.4px; color: #6b7280; }
+.teks-aktivitas time { font-size: 11.4px; color: #7F8CAD; }
 
 /* Pesanan terbaru di dasbor: kurangi padding agar muat */
 .kartu-panel .tabel-data th, .kartu-panel .tabel-data td { padding-left: 16px; padding-right: 16px; }

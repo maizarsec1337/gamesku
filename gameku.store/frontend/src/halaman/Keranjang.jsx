@@ -30,7 +30,7 @@ export default function HalamanKeranjang() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <strong style={{ fontSize: 14 }}>{item.nama}</strong>
                 <p className="subjudul-halaman" style={{ margin: 0 }}>{item.keterangan}</p>
-                <strong style={{ color: '#1D4ED8' }}>{formatRupiah(item.harga * item.jumlah)}</strong>
+                <strong style={{ color: '#43DDF5' }}>{formatRupiah(item.harga * item.jumlah)}</strong>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <button type="button" className="tombol-ikon" aria-label="Kurangi" onClick={() => ubahJumlah(item.id, item.jumlah - 1)}>−</button>

@@ -20,8 +20,12 @@ if (!existsSync(join(dist, 'index.html'))) {
 }
 
 // Salin backend (whitelist).
+// Catatan: folder api/ juga memuat data & artefak internal Streamku
+// (data_anime_lengkap.json + berkas riset .md/.html/.js/.py/.csv) yang TIDAK
+// boleh ikut terekspos sebagai aset publik. Karena itu hanya api/index.php
+// yang disalin; katalog anime dipindahkan ke lokasi ter-proteksi src/data/
+// (diblokir akses HTTP oleh .htaccess deployment).
 const salinan = [
-  ['api', 'api'],
   ['src', 'src'],
 ]
 for (const [dari, ke] of salinan) {
@@ -32,6 +36,20 @@ for (const [dari, ke] of salinan) {
     filter: (jalur) => !/\.bak$|\.log$/i.test(jalur),
   })
 }
+
+// API: salin HANYA front-controller index.php (bukan dump JSON/artefak riset).
+mkdirSync(join(dist, 'api'), { recursive: true })
+const apiIndex = join(backend, 'api', 'index.php')
+if (!existsSync(apiIndex)) gagal('backend/api/index.php tidak ditemukan.')
+cpSync(apiIndex, join(dist, 'api', 'index.php'))
+
+// Katalog anime -> lokasi ter-proteksi dist/src/data/ (sesuai KatalogAnime::jalurBerkas()).
+const katalogSumber = join(backend, 'api', 'data_anime_lengkap.json')
+if (existsSync(katalogSumber)) {
+  mkdirSync(join(dist, 'src', 'data'), { recursive: true })
+  cpSync(katalogSumber, join(dist, 'src', 'data', 'data_anime_lengkap.json'))
+}
+
 
 // Satu config: backend/config/config.php -> dist/config/config.php.
 const configSumber = join(backend, 'config', 'config.php')
@@ -121,6 +139,22 @@ const wajib = [
 for (const relatif of wajib) {
   if (!existsSync(join(dist, relatif))) gagal(`hasil kemas kurang: dist/${relatif}`)
 }
+
+// Pastikan katalog anime terpasang di lokasi ter-proteksi (bukan di api/ publik).
+if (existsSync(join(backend, 'api', 'data_anime_lengkap.json'))
+    && !existsSync(join(dist, 'src', 'data', 'data_anime_lengkap.json'))) {
+  gagal('katalog anime tidak terpasang di dist/src/data/ (lokasi ter-proteksi).')
+}
+
+// Jaga agar tidak ada dump JSON/artefak riset yang bocor ke api/ publik.
+const apiPublik = join(dist, 'api')
+if (existsSync(apiPublik)) {
+  const bocor = readdirSync(apiPublik).filter((n) => n !== 'index.php')
+  if (bocor.length > 0) {
+    gagal(`dist/api/ memuat berkas non-index yang seharusnya tidak diekspos: ${bocor.join(', ')}`)
+  }
+}
+
 
 // Ringkasan isi dist/.
 function daftar(dir, awalan = '') {

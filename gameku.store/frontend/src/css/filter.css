@@ -1,11 +1,13 @@
-/* Filter Gamesku — search + pil kategori + sort, mobile-only. */
+/* Filter Gamesku — search + pil kategori + sort, tema dark neon. */
 .bilah-saring{display:flex;flex-direction:column;gap:10px;margin:14px 0}
-.cari-besar{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #E2E8F0;border-radius:12px;padding:4px 6px 4px 14px;color:#64748B}
-.cari-besar input{flex:1;background:none;border:none;outline:none;color:#0F172A;padding:10px 0;font-size:14px}
+.cari-besar{display:flex;align-items:center;gap:8px;background:#0D1530;border:1.5px solid #263663;border-radius:12px;padding:4px 6px 4px 14px;color:#A7B2D0}
+.cari-besar input{flex:1;background:none;border:none;outline:none;color:#F4F7FF;padding:10px 0;font-size:14px}
+.cari-besar input::placeholder{color:#7F8CAD}
 .pil-kategori{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .pil-kategori::-webkit-scrollbar{display:none}
-.pil{flex-shrink:0;padding:9px 15px;border-radius:999px;border:1.5px solid #E2E8F0;font-size:13px;font-weight:700;color:#475569;min-height:38px;background:#fff}
-.pil-aktif{background:#2563EB!important;color:#fff!important;border-color:#2563EB!important}
+.pil{flex-shrink:0;padding:9px 15px;border-radius:999px;border:1.5px solid #263663;font-size:13px;font-weight:700;color:#A7B2D0;min-height:38px;background:#101A35;transition:border-color var(--trans),color var(--trans)}
+.pil:hover{border-color:#33477F;color:#F4F7FF}
+.pil-aktif{background:linear-gradient(135deg,#43DDF5,#BD54F5)!important;color:#0B0D1E!important;border-color:#43DDF5!important}
 .baris-urut{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .pilih-urut{flex:1;min-width:160px}
 

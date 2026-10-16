@@ -1,16 +1,16 @@
 /* Gaya utama admin: tema, tombol umum, bilah samping. */
 :root {
-  --adm-bg: #111827;
-  --adm-sidebar: #151D27;
-  --adm-kartu: #1D2733;
-  --adm-border: #2B3542;
-  --adm-hijau: #62B34A;
-  --adm-coklat: #B08355;
-  --adm-teks: #F3F4F6;
-  --adm-redup: #9CA3AF;
-  --adm-amber: #D9A441;
-  --adm-merah: #E5484D;
-  --adm-biru: #4C8DFF;
+  --adm-bg: #0B0D1E;
+  --adm-sidebar: #0E1630;
+  --adm-kartu: #101A35;
+  --adm-border: #263663;
+  --adm-hijau: #43DDF5;
+  --adm-coklat: #BD54F5;
+  --adm-teks: #F4F7FF;
+  --adm-redup: #A7B2D0;
+  --adm-amber: #F044D8;
+  --adm-merah: #F0447A;
+  --adm-biru: #43DDF5;
 }
 
 /* Latar tubuh khusus selama berada di rute admin. */
@@ -48,10 +48,10 @@ body.mode-admin {
 .tombol-admin:active { transform: translateY(1px); }
 .tombol-admin:focus-visible { outline: 2px solid var(--adm-hijau); outline-offset: 2px; }
 .tombol-admin[disabled] { opacity: .55; cursor: not-allowed; }
-.tombol-hijau { background: var(--adm-hijau); color: #0b130a; }
-.tombol-hijau:hover:not([disabled]) { background: #6fc356; box-shadow: 0 6px 16px rgba(98, 179, 74, .28); }
-.tombol-cokelat { background: var(--adm-coklat); color: #171009; }
-.tombol-cokelat:hover:not([disabled]) { background: #c19460; box-shadow: 0 6px 16px rgba(176, 131, 85, .25); }
+.tombol-hijau { background: var(--adm-hijau); color: #0B0D1E; }
+.tombol-hijau:hover:not([disabled]) { background: #5FE0F7; box-shadow: 0 6px 16px rgba(67, 221, 245, .28); }
+.tombol-cokelat { background: var(--adm-coklat); color: #0B0D1E; }
+.tombol-cokelat:hover:not([disabled]) { background: #C77BF7; box-shadow: 0 6px 16px rgba(189, 84, 245, .25); }
 .tombol-garis {
   background: transparent;
   border-color: var(--adm-border);
@@ -59,11 +59,11 @@ body.mode-admin {
 }
 .tombol-garis:hover:not([disabled]) { border-color: var(--adm-redup); background: rgba(255, 255, 255, .04); }
 .tombol-bahaya {
-  background: rgba(229, 72, 77, .12);
-  border-color: rgba(229, 72, 77, .4);
-  color: #f87171;
+  background: rgba(240, 68, 122, .12);
+  border-color: rgba(240, 68, 122, .4);
+  color: #FF8AA5;
 }
-.tombol-bahaya:hover:not([disabled]) { background: rgba(229, 72, 77, .22); }
+.tombol-bahaya:hover:not([disabled]) { background: rgba(240, 68, 122, .22); }
 .tombol-kecil { padding: 7px 13px; font-size: 12.5px; border-radius: 8px; }
 
 /* ---------- Bilah samping ---------- */
@@ -93,11 +93,11 @@ body.mode-admin {
   border-radius: 11px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--adm-hijau), #3f7c30);
-  color: #0b130a;
+  background: linear-gradient(135deg, var(--adm-hijau), #1E9FC4);
+  color: #0B0D1E;
   font-weight: 800;
   font-size: 17px;
-  box-shadow: 0 4px 12px rgba(98, 179, 74, .3);
+  box-shadow: 0 4px 12px rgba(67, 221, 245, .3);
 }
 .bilah-logo-teks { display: flex; flex-direction: column; line-height: 1.15; }
 .bilah-logo-teks strong { font-size: 15.5px; letter-spacing: .06em; }
@@ -133,7 +133,7 @@ body.mode-admin {
   font-weight: 700;
   letter-spacing: .16em;
   text-transform: uppercase;
-  color: #6b7280;
+  color: #7F8CAD;
 }
 .bilah-tautan {
   display: flex;
@@ -152,7 +152,7 @@ body.mode-admin {
 .bilah-tautan svg { flex-shrink: 0; }
 .bilah-tautan:hover { background: rgba(255, 255, 255, .05); color: var(--adm-teks); }
 .bilah-tautan.aktif {
-  background: rgba(98, 179, 74, .13);
+  background: rgba(67, 221, 245, .13);
   color: var(--adm-teks);
   font-weight: 600;
 }
@@ -170,7 +170,7 @@ body.mode-admin {
 .bilah-tautan .lencana-jumlah {
   margin-left: auto;
   background: var(--adm-hijau);
-  color: #0b130a;
+  color: #0B0D1E;
   font-size: 10.5px;
   font-weight: 700;
   padding: 1px 7px;
@@ -195,8 +195,8 @@ body.mode-admin {
   place-items: center;
   font-weight: 700;
   font-size: 15px;
-  color: #171009;
-  background: linear-gradient(135deg, var(--adm-coklat), #8a6a45);
+  color: #0B0D1E;
+  background: linear-gradient(135deg, var(--adm-coklat), #8A3FC4);
 }
 .bilah-profil-teks { flex: 1; min-width: 0; line-height: 1.25; }
 .bilah-profil-teks strong {
@@ -238,7 +238,7 @@ body.mode-admin {
   gap: 18px;
   height: 68px;
   padding: 0 28px;
-  background: rgba(17, 24, 39, .88);
+  background: rgba(16, 26, 53, .92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--adm-border);
 }
@@ -293,11 +293,11 @@ body.mode-admin {
   font-size: 13px;
   transition: border-color .2s, box-shadow .2s;
 }
-.cari-admin input::placeholder { color: #6b7280; }
+.cari-admin input::placeholder { color: #7F8CAD; }
 .cari-admin input:focus {
   outline: none;
   border-color: var(--adm-hijau);
-  box-shadow: 0 0 0 3px rgba(98, 179, 74, .15);
+  box-shadow: 0 0 0 3px rgba(67, 221, 245, .15);
 }
 
 .kepala-ikon {
@@ -389,7 +389,7 @@ body.mode-admin {
   padding: 12px 16px;
   background: none;
   border: 0;
-  border-bottom: 1px solid rgba(43, 53, 66, .6);
+  border-bottom: 1px solid rgba(38, 54, 99, .6);
   color: var(--adm-teks);
   font: inherit;
   font-size: 13px;
@@ -401,9 +401,9 @@ body.mode-admin {
 .jungkit-item:hover { background: rgba(255, 255, 255, .04); }
 .jungkit-item svg { flex-shrink: 0; margin-top: 2px; color: var(--adm-hijau); }
 .jungkit-item small { display: block; color: var(--adm-redup); font-size: 11.5px; margin-top: 2px; }
-.jungkit-item.bahaya { color: #f87171; }
-.jungkit-item.bahaya:hover { background: rgba(229, 72, 77, .1); }
-.jungkit-item.bahaya svg { color: #f87171; }
+.jungkit-item.bahaya { color: #FF8AA5; }
+.jungkit-item.bahaya:hover { background: rgba(240, 68, 122, .1); }
+.jungkit-item.bahaya svg { color: #FF8AA5; }
 
 /* ---------- Isi halaman ---------- */
 .admin-isi {
@@ -463,7 +463,7 @@ body.mode-admin {
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%) translateY(3px);
-  background: #0b111c;
+  background: #080B1A;
   border: 1px solid var(--adm-border);
   color: var(--adm-teks);
   font-size: 11.5px;
@@ -485,8 +485,8 @@ body.mode-admin {
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(900px 480px at 18% -10%, rgba(98, 179, 74, .09), transparent 60%),
-    radial-gradient(760px 420px at 110% 115%, rgba(176, 131, 85, .08), transparent 55%),
+    radial-gradient(900px 480px at 18% -10%, rgba(67, 221, 245, .09), transparent 60%),
+    radial-gradient(760px 420px at 110% 115%, rgba(189, 84, 245, .08), transparent 55%),
     var(--adm-bg);
 }
 .login-kartu {
@@ -522,11 +522,11 @@ body.mode-admin {
   font-size: 14px;
   transition: border-color .2s, box-shadow .2s;
 }
-.login-kolom input::placeholder { color: #6b7280; }
+.login-kolom input::placeholder { color: #7F8CAD; }
 .login-kolom input:focus {
   outline: none;
   border-color: var(--adm-hijau);
-  box-shadow: 0 0 0 3px rgba(98, 179, 74, .15);
+  box-shadow: 0 0 0 3px rgba(67, 221, 245, .15);
 }
 .login-kolom label {
   display: block;
@@ -557,9 +557,9 @@ body.mode-admin {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: rgba(229, 72, 77, .1);
-  border: 1px solid rgba(229, 72, 77, .35);
-  color: #fca5a5;
+  background: rgba(240, 68, 122, .1);
+  border: 1px solid rgba(240, 68, 122, .35);
+  color: #FFA9BA;
   font-size: 13px;
   padding: 11px 14px;
   border-radius: 10px;
@@ -577,15 +577,15 @@ body.mode-admin {
   padding-top: 18px;
   border-top: 1px solid var(--adm-border);
   font-size: 11.8px;
-  color: #6b7280;
+  color: #7F8CAD;
   text-align: center;
   line-height: 1.6;
 }
 .spinner-bulat {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(11, 19, 10, .3);
-  border-top-color: #0b130a;
+  border: 2px solid rgba(67, 221, 245, .3);
+  border-top-color: #0B0D1E;
   border-radius: 50%;
   animation: adminPutar .7s linear infinite;
 }
@@ -641,7 +641,7 @@ body.mode-admin {
   overflow: hidden;
   transition: border-color .2s ease;
 }
-.kartu-panel.hover:hover { border-color: #374252; }
+.kartu-panel.hover:hover { border-color: #33477F; }
 .panel-kepala {
   display: flex;
   align-items: center;
@@ -703,9 +703,9 @@ body.mode-admin {
 }
 .chip:hover { border-color: var(--adm-redup); color: var(--adm-teks); }
 .chip.aktif {
-  background: rgba(98, 179, 74, .14);
-  border-color: rgba(98, 179, 74, .5);
-  color: #8fd97a;
+  background: rgba(67, 221, 245, .14);
+  border-color: rgba(67, 221, 245, .5);
+  color: #8CECFA;
   font-weight: 600;
 }
 .chip:focus-visible { outline: 2px solid var(--adm-hijau); outline-offset: 2px; }
@@ -729,11 +729,11 @@ body.mode-admin {
   font-size: 13px;
   transition: border-color .2s, box-shadow .2s;
 }
-.cari-panel input::placeholder { color: #6b7280; }
+.cari-panel input::placeholder { color: #7F8CAD; }
 .cari-panel input:focus {
   outline: none;
   border-color: var(--adm-hijau);
-  box-shadow: 0 0 0 3px rgba(98, 179, 74, .15);
+  box-shadow: 0 0 0 3px rgba(67, 221, 245, .15);
 }
 
 /* ---------- Jendela modal ---------- */

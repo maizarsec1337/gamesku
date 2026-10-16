@@ -39,7 +39,7 @@ export default function HalamanProfil() {
             { label: 'Keranjang', nilai: jumlahItem },
           ].map((s) => (
             <article key={s.label} className="kartu"><div className="kartu-isi" style={{ textAlign: 'center' }}>
-              <strong style={{ fontSize: 22, color: '#1D4ED8' }}>{s.nilai}</strong>
+              <strong style={{ fontSize: 22, color: '#43DDF5' }}>{s.nilai}</strong>
               <p className="subjudul-halaman" style={{ margin: 0 }}>{s.label}</p>
             </div></article>
           ))}

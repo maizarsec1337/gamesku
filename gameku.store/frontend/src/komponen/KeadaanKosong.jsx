@@ -12,7 +12,7 @@ export default function KeadaanKosong({
 }) {
   return (
     <div className="keadaan-kosong">
-      <div className="keadaan-kosong-ikon" aria-hidden="true" style={{ display: 'grid', placeItems: 'center', color: '#1D4ED8' }}>
+      <div className="keadaan-kosong-ikon" aria-hidden="true" style={{ display: 'grid', placeItems: 'center', color: '#43DDF5' }}>
         {typeof ikon === 'string' ? <Ikon nama={ikon} ukuran={40} /> : ikon}
       </div>
       <h3>{judul}</h3>
