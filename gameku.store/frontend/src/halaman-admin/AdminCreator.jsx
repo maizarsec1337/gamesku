@@ -9,12 +9,7 @@ import layananCreator, { tambahCreator } from '../layanan/layananCreator.js'
 import { STATUS_CREATOR, waktuRelatif } from '../data/konstanta.js'
 import '../css/admin-tabel.css'
 
-// =====================================================================
-// Halaman creator (/admin/creator).
-//
-// MULAI KOSONG. Tidak ada creator contoh. Creator ditambahkan lewat
-// formulir undangan di bawah.
-// =====================================================================
+// Halaman creator (/admin/creator); mulai kosong, diisi lewat formulir undangan.
 export default function AdminCreator() {
   const { tampilkanPesan } = useAdmin()
   const creator = useDaftar(layananCreator)

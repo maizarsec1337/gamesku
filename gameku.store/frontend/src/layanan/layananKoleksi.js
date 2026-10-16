@@ -1,13 +1,4 @@
-// =====================================================================
-// LAYANAN KOLEKSI — ponds terakhir yang dipakai semua service Gamesku.
-////
-// Menyediakan operasi standar (daftar/tambah/perbarui/hapus) di atas
-// localStorage. Tidak ada satu pun data contoh di dalam berkas ini:
-// daftar selalu kosong sampai admin mengisinya sendiri.
-//
-// Nanti di integrasi PHP, ganti isi lima fungsi di bawah dengan fetch()
-// ke /api/*.php — bentuk datanya sudah sama dengan kolom tabel.
-// =====================================================================
+// Layanan koleksi: operasi CRUD standar di atas localStorage untuk semua service.
 
 import { baca, tulis, hapus, berlangganan } from './penyimpananLokal.js'
 

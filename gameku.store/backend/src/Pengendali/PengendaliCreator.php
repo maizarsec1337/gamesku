@@ -1,12 +1,5 @@
 <?php
-// =====================================================================
-// PengendaliCreator.php — tabel `creator`.
-//   GET  /api/creator            (admin) daftar creator.
-//   GET  /api/creator/{id}       (admin) satu creator.
-//   POST /api/creator            (publik) pendaftaran creator baru.
-//   PUT  /api/creator/{id}       (admin) ubah (mis. status moderasi).
-//   DELETE /api/creator/{id}     (admin) hapus.
-// =====================================================================
+// CRUD creator: daftar, tambah (publik/pendaftaran), ubah status, hapus.
 
 class PengendaliCreator extends PengendaliDasar
 {
@@ -21,7 +14,7 @@ class PengendaliCreator extends PengendaliDasar
                 break;
             case 'POST':
                 $this->validateCsrf();
-                $this->tambah(); // publik (pendaftaran kreator)
+                $this->tambah();
                 break;
             case 'PUT':
             case 'PATCH':

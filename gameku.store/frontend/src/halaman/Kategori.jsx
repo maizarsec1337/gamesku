@@ -34,9 +34,7 @@ export default function HalamanKategori() {
     let daftar = cariProduk(kataKunci)
     if (kategoriAktif !== 'semua') daftar = daftar.filter((p) => p.kategoriId === kategoriAktif)
     return urutkanProduk(daftar, urutan)
-    // pelanggan sengaja tidak dipakai: useSyncExternalStore di atas
-    // sudah membuat halaman ikut render ulang saat katalog berubah.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps (katalog sudah di-subscribe)
   }, [kataKunci, kategoriAktif, urutan])
 
   return (

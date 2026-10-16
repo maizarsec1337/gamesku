@@ -1,25 +1,4 @@
-<#
-    .SYNOPSIS
-        Pemeriksaan otomatis keamanan backend PHP gamesku.store.
-    .DESCRIPTION
-        Script ini melakukan pemeriksaan non-destruktif terhadap:
-        - Sintaks PHP
-        - Konfigurasi session cookies
-        - Konfigurasi CORS
-        - Keamanan file (secret, .gitignore)
-        - Penanganan error
-        - CSRF protection
-        - Validasi input
-        - Rate limiting
-        - Security headers
-        - Koneksi database (PDO prepared statements)
-
-        Jenis: BACKEND ONLY. Frontend (React/Vercel) tidak disentuh.
-    .NOTE
-        Python/Curl versi akan ditambahkan ketika dependency tersedia.
-    .EXAMPLE
-        pwsh .\backend\security-check.ps1
-#>
+# Pemeriksaan keamanan backend PHP (jalankan: pwsh backend\security-check.ps1).
 
 param(
     [switch]$All = $false,

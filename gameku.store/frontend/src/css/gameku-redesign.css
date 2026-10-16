@@ -1,6 +1,4 @@
-/* Gameku.store redesign — login + banner carousel + chat + Streamku.
-   Satu file khusus redesign agar stylesheet lama tidak tercampur.
-   Palet: charcoal #1B1D21, abu gelap #26292F, putih, aksen oranye #F97316. */
+/* Redesign Gameku.store: login, banner carousel, chat, Streamku (aksen oranye). */
 :root{
   --gk-charcoal:#1B1D21; --gk-charcoal-2:#23252B; --gk-abu:#3A3E46;
   --gk-oranye:#F97316; --gk-oranye-tua:#EA580C; --gk-oranye-lembut:#FFF1E6;

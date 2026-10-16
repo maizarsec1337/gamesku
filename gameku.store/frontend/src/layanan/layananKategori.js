@@ -1,13 +1,4 @@
-// =====================================================================
-// LAYANAN KATEGORI — daftar kategori produk Gamesku.
-////
-// MULAI KOSONG. Tidak ada kategori bawaan. Kategori dibuat sendiri oleh
-// admin lewat halaman /admin/kategori, lalu langsung tersedia sebagai
-// pilihan pada form Tambah Produk.
-//
-// Bentuk data sengaja meniru kolom tabel `kategori`:
-//   id, nama, slug, deskripsi, ikon, gambar, status
-// =====================================================================
+// Layanan kategori: kategori produk Gamesku (mulai kosong, diisi admin).
 
 import { buatKoleksi } from './layananKoleksi.js'
 import { catat } from './layananAktivitas.js'
@@ -78,10 +69,7 @@ export function hapusKategori(id) {
   return { berhasil: true }
 }
 
-// ---------- Pembacaan ----------
-//
-// Dibiungkus memo() supaya referensinya stabil (syarat useSyncExternalStore).
-
+// Pembacaan (memo: referensi stabil untuk useSyncExternalStore).
 export const daftarKategori = memo(() => koleksi.daftar())
 
 export const ambilKategoriId = memo((id) => koleksi.ambil(id))

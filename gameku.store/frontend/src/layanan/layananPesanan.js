@@ -1,12 +1,4 @@
-// =====================================================================
-// LAYANAN PESANAN — transaksi masuk Gamesku.
-////
-// MULAI KOSONG. Tidak ada pesanan contoh, tidak ada pelanggan contoh.
-// Pesanan pertama akan muncul setelah toko menerima transaksi nyata
-// (nanti lewat checkout + API PHP), bukan karena data dikarang di sini.
-//
-// Bentuk data meniru kolom tabel `pesanan`.
-// =====================================================================
+// Layanan pesanan: transaksi masuk toko (mulai kosong, diisi checkout/API).
 
 import { buatKoleksi } from './layananKoleksi.js'
 import { memo } from './penyimpananLokal.js'
@@ -14,13 +6,12 @@ import { STATUS_PESANAN } from '../data/konstanta.js'
 
 const koleksi = buatKoleksi('pesanan', 'psn')
 
-// ---------- Pembacaan (memo: referensi stabil untuk useSyncExternalStore) ----------
-
+// Pembacaan (memo: referensi stabil untuk useSyncExternalStore).
 export const daftarPesanan = memo(() => koleksi.daftar())
 
 export const ambilPesananId = memo((id) => koleksi.ambil(id))
 
-// Hanya pesanan berstatus berhasil — sumber hitungan pendapatan.
+// Pesanan berhasil — sumber hitungan pendapatan.
 export const pesananBerhasil = memo(() => daftarPesanan().filter((p) => p.status === 'Berhasil'))
 
 // Pesanan terbaru untuk dasbor.
@@ -30,7 +21,7 @@ export const pesananTerbaru = memo((jumlah = 6) =>
     .slice(0, jumlah),
 )
 
-// Jumlah pesanan per status (untuk kartu ringkasan).
+// Jumlah pesanan per status (kartu ringkasan).
 export const hitungPerStatus = memo(() => {
   const hasil = {}
   for (const status of STATUS_PESANAN) hasil[status] = 0
@@ -40,9 +31,7 @@ export const hitungPerStatus = memo(() => {
   return hasil
 })
 
-// ---------- Penulisan ----------
-
-// Mencatat pesanan baru (dipanggil setelah checkout berhasil).
+// Penulisan.
 export function tambahPesanan(data) {
   if (!data || !data.pelanggan || !data.produk) {
     return { berhasil: false, pesan: 'Pesanan perlu data pelanggan dan produk.' }
@@ -57,7 +46,6 @@ export function tambahPesanan(data) {
   return { berhasil: true, data: baru }
 }
 
-// Mengubah status pesanan.
 export function ubahStatusPesanan(id, status) {
   if (!STATUS_PESANAN.includes(status)) {
     return { berhasil: false, pesan: `Status "${status}" tidak dikenal.` }
@@ -67,7 +55,7 @@ export function ubahStatusPesanan(id, status) {
   return { berhasil: true, data: baru }
 }
 
-// Berlangganan perubahan pesanan (agar dasbor & sidebar ikut memuat ulang).
+// Berlangganan perubahan pesanan (dasbor & sidebar ikut memuat ulang).
 export const subscribePesanan = (dengar) => koleksi.berlangganan(dengar)
 
 export default {

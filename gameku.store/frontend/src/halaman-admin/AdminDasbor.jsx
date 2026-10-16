@@ -17,16 +17,9 @@ const tanggalIni = new Date().toLocaleDateString('id-ID', {
   year: 'numeric',
 })
 
-// =====================================================================
-// Dasbor utama admin (/admin).
-//
-// Semua angka berasal dari layananDasbor yang menghitungnya dari data
-// nyata. Database kosong => Produk 0, Pesanan 0, Pelanggan 0, Pendapatan
-// Rp 0 — bukan angka contoh.
-// =====================================================================
+// Dasbor utama admin (/admin); semua angka dihitung dari data nyata.
 export default function AdminDasbor() {
-  // Semua kartu dasbor membaca satu snapshot yang sama, sehingga
-  // statistik / grafik / pesanan / produk terlaris selalu sinkron.
+  // Semua kartu membaca satu snapshot agar selalu sinkron.
   const { statistik, terbaru } = useSyncExternalStore(
     subscribeDasbor,
     ringkasanDasbor,

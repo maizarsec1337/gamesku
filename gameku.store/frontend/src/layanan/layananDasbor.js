@@ -1,17 +1,4 @@
-// =====================================================================
-// LAYANAN DASBOR — statistik, grafik, dan ringkasan admin.
-//
-// SEMUA angka dihitung dari data nyata. Tidak ada nilai tetap, tidak ada
-// data contoh. Saat database kosong hasilnya benar-benar nol:
-//
-//   Produk     : 0
-//   Pesanan    : 0
-//   Pelanggan  : 0
-//   Pendapatan : Rp 0
-//
-// Nanti angka-angka ini diganti query agregat dari database (SQL SUM/COUNT)
-// tanpa mengubah komponen halaman.
-// =====================================================================
+// Layanan dasbor: statistik, grafik, dan ringkasan admin (semua dari data nyata).
 
 import { daftarProduk, subscribeProduk } from './layananProduk.js'
 import {
@@ -31,8 +18,7 @@ import { subscribeAktivitas } from './layananAktivitas.js'
 import { formatRupiah, formatAngka } from '../utilitas/format.js'
 import { memo } from './penyimpananLokal.js'
 
-// ---------- Statistik utama ----------
-
+// Statistik utama.
 export const statistikDasbor = memo(() => {
   const produk = daftarProduk()
   const pesanan = daftarPesanan()
@@ -75,10 +61,7 @@ export const statistikDasbor = memo(() => {
   ]
 })
 
-// ---------- Grafik penjualan ----------
-
-// Deret penjualan per hari dari pesanan yang benar-benar ada.
-// Mengembalikan array kosong bila belum ada transaksi.
+// Deret penjualan per hari; array kosong bila belum ada transaksi.
 export const grafikPenjualan = memo((hari = 14) => {
   const pesanan = pesananBerhasil()
   if (!pesanan.length) return []
@@ -104,9 +87,7 @@ export const grafikPenjualan = memo((hari = 14) => {
   return hasil
 })
 
-// ---------- Produk terlaris ----------
-
-// Peringkat penjualan. Tanpa transaksi, hasilnya kosong (bukan 0 palsu).
+// Produk terlaris; kosong bila belum ada transaksi.
 export const produkTerlaris = memo((jumlah = 5) => {
   const pesanan = pesananBerhasil()
   if (!pesanan.length) return []
@@ -127,8 +108,7 @@ export const produkTerlaris = memo((jumlah = 5) => {
     .map((baris, i) => ({ ...baris, peringkat: String(i + 1).padStart(2, '0') }))
 })
 
-// ---------- Ringkasan jumlah isi ----------
-
+// Ringkasan jumlah isi tiap tabel.
 export const ringkasanIsi = memo(() => ({
   produk: daftarProduk().length,
   kategori: daftarKategori().length,
@@ -140,10 +120,7 @@ export const ringkasanIsi = memo(() => ({
   media: daftarMedia().length,
 }))
 
-// ---------- Ringkasan untuk dasbor ----------
-
-// Satu objek berisi statistik + pesanan terbaru, dibaca satu kali oleh
-// halaman dasbor agar semua kartu selalu sinkron.
+// Ringkasan dasbor: statistik + pesanan terbaru dalam satu objek.
 export const ringkasanDasbor = memo(() => ({
   statistik: statistikDasbor(),
   terbaru: pesananTerbaru(6),
@@ -151,8 +128,7 @@ export const ringkasanDasbor = memo(() => ({
   ringkasan: ringkasanIsi(),
 }))
 
-// Berlangganan perubahan apa pun (kategori baru, produk baru, dst)
-// supaya dasbor ikut memuat ulang tanpa perlu refresh manual.
+// Berlangganan semua sumber data agar dasbor memuat ulang otomatis.
 export const subscribeDasbor = (dengar) => {
   const berhenti = [
     subscribePesanan(dengar),

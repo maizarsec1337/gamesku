@@ -1,12 +1,4 @@
-// =====================================================================
-// LAYANAN ULASAN — ulasan produk dari pelanggan.
-//
-// MULAI KOSONG. Tidak ada ulasan contoh, tidak ada nama pelanggan
-// karangan di halaman moderasi. Ulasan pertama muncul setelah ada
-// transaksi nyata dan pelanggan menulis ulasan.
-//
-// Bentuk data meniru kolom tabel `ulasan`.
-// =====================================================================
+// Layanan ulasan: ulasan produk dari pelanggan (mulai kosong).
 
 import { buatKoleksi } from './layananKoleksi.js'
 import { memo } from './penyimpananLokal.js'
@@ -14,19 +6,18 @@ import { STATUS_ULASAN } from '../data/konstanta.js'
 
 const koleksi = buatKoleksi('ulasan', 'uls')
 
-// Berlangganan perubahan ulasan.
 export const subscribeUlasan = (dengar) => koleksi.berlangganan(dengar)
 
 export const daftarUlasan = memo(() => koleksi.daftar())
 
 export const ambilUlasanId = memo((id) => koleksi.ambil(id))
 
-// Ulasan yang sudah disetujui (untuk tampil di halaman produk).
+// Ulasan disetujui untuk tampil di halaman produk.
 export const ulasanDisetujui = memo((produkId) =>
   daftarUlasan().filter((u) => u.status === 'Disetujui' && (!produkId || u.produkId === produkId)),
 )
 
-// Rata-rata rating satu produk. Tanpa ulasan => null (bukan 0 palsu).
+// Rata-rata rating satu produk; null bila belum ada ulasan.
 export const rataRating = memo((produkId) => {
   const milik = ulasanDisetujui(produkId)
   if (!milik.length) return null

@@ -89,12 +89,7 @@ img{max-width:100%;display:block}
 .reveal.tampil{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}.reveal{opacity:1;transform:none}}
 
-/* =====================================================================
-   RESPONSIF TABLET & DESKTOP
-   Mobile (<768px) tetap memakai shell 430px seperti semula.
-   Tablet (>=768px)  : shell jadi lebar penuh, kontainer 960px, 3 kolom.
-   Desktop (>=1024px): navigasi atas, kontainer 1200px, 4 kolom.
-   ===================================================================== */
+/* Responsif tablet & desktop: shell lebar penuh, kontainer & kolom melebar. */
 @media (min-width:768px){
   body{display:block;background:var(--latar)}
   #root{max-width:none;box-shadow:none;border-radius:0}

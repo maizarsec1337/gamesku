@@ -1,13 +1,4 @@
-// =====================================================================
-// LAYANAN MEDIA — pustaka gambar & berkas Gamesku.
-////
-// MULAI KOSONG. Tidak ada gambar contoh. Media pertama muncul setelah
-// admin mengunggah berkas nyata.
-//
-// CATATAN: pada tahap ini hanya metadata berkas (nama, jenis, ukuran)
-// yang disimpan di browser. Penyimpanan file sungguhan (folder uploads
-// + /api/media.php) menyusul saat backend PHP siap.
-// =====================================================================
+// Layanan media: pustaka berkas (metadata; unggahan fisik lewat backend).
 
 import { buatKoleksi } from './layananKoleksi.js'
 import { catat } from './layananAktivitas.js'
@@ -18,20 +9,17 @@ const koleksi = buatKoleksi('media', 'med')
 
 export const JENIS_MEDIA = ['Thumbnail', 'Banner', 'Preview', 'Gambar Produk']
 
-// Berlangganan perubahan media.
 export const subscribeMedia = (dengar) => koleksi.berlangganan(dengar)
 
 export const daftarMedia = memo(() => koleksi.daftar())
 
 export const ambilMediaId = memo((id) => koleksi.ambil(id))
 
-// Mencari media berdasarkan jenis.
 export const cariMedia = memo((jenis) => {
   if (!jenis || jenis === 'Semua') return daftarMedia()
   return daftarMedia().filter((m) => m.jenis === jenis)
 })
 
-// Mendaftarkan berkas baru hasil unggahan admin.
 export function tambahMedia(berkas, jenis = 'Thumbnail') {
   if (!berkas?.name) return { berhasil: false, pesan: 'Berkas tidak valid.' }
 

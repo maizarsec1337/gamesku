@@ -1,14 +1,5 @@
 <?php
-// =====================================================================
-// PengendaliPelanggan.php — tabel `pelanggan`.
-//   POST /api/pelanggan          (publik) daftar akun pembeli baru.
-//   GET  /api/pelanggan          (admin) daftar pelanggan.
-//   GET  /api/pelanggan/{id}     (admin) satu pelanggan.
-//   PUT  /api/pelanggan/{id}     (admin) ubah (mis. status).
-//   DELETE /api/pelanggan/{id}   (admin) hapus.
-//
-// total_beli & jumlah_pesanan dihitung dari tabel pesanan agar konsisten.
-// =====================================================================
+// CRUD pelanggan; totalBeli & jumlahPesanan dihitung dari tabel pesanan.
 
 class PengendaliPelanggan extends PengendaliDasar
 {
@@ -21,7 +12,7 @@ class PengendaliPelanggan extends PengendaliDasar
                 break;
             case 'POST':
                 $this->validateCsrf();
-                $this->daftarBaru(); // publik
+                $this->daftarBaru();
                 break;
             case 'PUT':
             case 'PATCH':
@@ -76,7 +67,7 @@ class PengendaliPelanggan extends PengendaliDasar
         $ada = Database::satu('SELECT id FROM pelanggan WHERE email = ?', [$email]);
         if ($ada) Bantu::gagal('Email sudah terdaftar.');
 
-        // Sandi opsional (pembeli mungkin daftar cepat tanpa sandi).
+        // Sandi opsional (pendaftaran cepat tanpa sandi).
         $sandi = (string) ($this->badan()['sandi'] ?? '');
         $hash = $sandi !== '' ? Auth::hash($sandi) : null;
 

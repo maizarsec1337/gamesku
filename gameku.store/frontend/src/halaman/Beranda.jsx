@@ -34,7 +34,7 @@ export default function Beranda() {
   const semua = produkTersedia()
   const promo = semua.filter((p) => p.hargaDiskon > 0 && p.hargaDiskon > p.harga)
   const terbaru = produkTerbaru(6)
-  // Populer = produk diskon dulu, lalu sisanya (data asli, tanpa angka karangan).
+  // Populer = produk diskon dulu, lalu sisanya.
   const populer = [...promo, ...semua.filter((p) => !(p.hargaDiskon > 0 && p.hargaDiskon > p.harga))].slice(0, 6)
   useReveal()
 

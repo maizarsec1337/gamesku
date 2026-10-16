@@ -1,12 +1,6 @@
-// =====================================================================
-// KONSTANTA Gamesku
-//
-// Hanya berisi pilihan nilainya (dropdown, warna, label) — TIDAK ADA
-// data produk, kategori, pesanan, atau pengguna di dalam berkas ini.
-// Semua daftar data hidup di src/layanan/ dan dimulai dari kosong.
-// =====================================================================
+// Konstanta Gamesku: pilihan nilai (dropdown, warna, label) — tanpa data contoh.
 
-// ---------- Produk ----------
+// Produk.
 
 export const JENIS_PRODUK = [
   'Skin',
@@ -21,29 +15,29 @@ export const JENIS_PRODUK = [
 
 export const STATUS_PRODUK = ['Draft', 'Aktif', 'Nonaktif']
 
-// ---------- Kategori ----------
+// Kategori.
 
 export const STATUS_KATEGORI = ['Aktif', 'Nonaktif']
 
-// ---------- Pesanan ----------
+// Pesanan.
 
 export const STATUS_PESANAN = ['Menunggu', 'Diproses', 'Berhasil', 'Gagal']
 
-// ---------- Promo ----------
+// Promo.
 
 export const STATUS_PROMO = ['Aktif', 'Terjadwal', 'Berakhir']
 
-// ---------- Ulasan ----------
+// Ulasan.
 
 export const STATUS_ULASAN = ['Menunggu', 'Disetujui', 'Disembunyikan']
 
-// ---------- Creator / Pelanggan ----------
+// Creator / pelanggan.
 
 export const STATUS_CREATOR = ['Aktif', 'Review', 'Ditangguhkan']
 
 export const STATUS_PELANGGAN = ['Aktif', 'Nonaktif']
 
-// ---------- Ikon kategori (nama ikon lucide lewat komponen Ikon) ----------
+// Ikon kategori (nama ikon lewat komponen Ikon).
 
 export const IKON_KATEGORI = [
   'kategori',
@@ -64,9 +58,7 @@ export const IKON_KATEGORI = [
   'media',
 ]
 
-// ---------- Palet gradasi thumbnail ----------
-// Dipakai untuk memberi warna placeholder pada kartu produk.
-// Urutan dipilih otomatis, tidak terikat kategori tertentu.
+// Palet gradasi thumbnail; urutan dipilih otomatis, tidak terikat kategori.
 
 export const PALET_GRADASI = [
   ['#2563EB', '#1D4ED8'],

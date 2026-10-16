@@ -3,16 +3,9 @@ import { KonteksPesanan } from './konteksPesanan.js'
 import { daftarPesanan, subscribePesanan } from '../layanan/layananPesanan.js'
 import { buatNomorPesanan } from '../utilitas/perhitungan.js'
 
-// =====================================================================
-// Penyedia data pesanan.
-//
-// MULAI KOSONG. Tidak ada pesanan contoh, tidak ada akun contoh
-// (tidak ada email/wa hardcoded). Daftar awal dibaca dari service
-// (localStorage), lalu pesanan baru hasil checkout ditambahkan di atas.
-// =====================================================================
+// Penyedia data pesanan (mulai kosong; checkout menambah di atas service).
 export function PenyediaPesanan({ children }) {
   const [daftarPesananState, setDaftarPesananState] = useState(daftarPesanan)
-  // Ikut berubah bila service diperbarui dari halaman lain.
   subscribePesanan(() => setDaftarPesananState(daftarPesanan()))
 
   const buatPesanan = useCallback((dataBaru) => {

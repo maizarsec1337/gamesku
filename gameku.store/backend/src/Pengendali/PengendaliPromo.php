@@ -1,15 +1,5 @@
 <?php
-// =====================================================================
-// PengendaliPromo.php — tabel `promo`.
-//   GET  /api/promo            daftar (admin: semua, tamu: yang berlaku hari ini)
-//   GET  /api/promo/cek?kode=X (publik) cek satu kode promo.
-//   POST /api/promo            (admin) tambah.
-//   PUT  /api/promo/{id}       (admin) ubah.
-//   DELETE /api/promo/{id}     (admin) hapus.
-//
-// Status dihitung ulang dari tanggal (mulai/berakhir) setiap kali dibaca,
-// meniru normalisasi() di layananPromo frontend.
-// =====================================================================
+// CRUD promo; status dihitung ulang dari tanggal (mulai/berakhir) tiap dibaca.
 
 class PengendaliPromo extends PengendaliDasar
 {
@@ -44,7 +34,6 @@ class PengendaliPromo extends PengendaliDasar
         }
     }
 
-    // Hitung status dari tanggal hari ini (sama seperti frontend).
     private function statusDari(?string $mulai, ?string $berakhir): string
     {
         if ($mulai && $berakhir) {

@@ -1,16 +1,5 @@
 <?php
-/**
- * gamesku-store-backend-security-check.php
- * Pemeriksaan keamanan otomatis untuk backend PHP.
- * Jalankan: php backend/security-check.php
- *
- * Cek non-destruktif:
- * - Sintaks PHP
- * - Konfigurasi session cookies
- * - Konfigurasi CORS
- * - Ketersediaan endpoint (tes kuasi)
- * - Kesesuaian secret config
- */
+// Pemeriksaan keamanan backend (jalankan: php backend/security-check.php).
 
 declare(strict_types=1);
 

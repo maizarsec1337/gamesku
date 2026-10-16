@@ -1,38 +1,17 @@
-// =====================================================================
-// LAYANAN STREAMKU — sumber data halaman /streamku.
-//
-// POLA SAMA seperti layanan lain (layananProduk/layananKategori):
-// baca lewat useSyncExternalStore/useDaftar, tulis lewat koleksi.
-// MULAI KOSONG. Tidak ada video/stream/kreator contoh.
-//
-// PERSIAPAN API (kontrak belum diberikan, jadi TIDAK ada fetch di sini):
-// - Ganti isi fungsi baca di bawah dengan pemanggilan API resmi nanti,
-//   tanpa mengubah komponen (komponen hanya memakai fungsi yang
-//   diekspor dari berkas ini).
-// - JANGAN mengarang endpoint, format respons, field, maupun mock.
-// - Bentuk item yang DIHARAPKAN komponen (dokumentasi, bukan data):
-//     { id, judul, kreator, kategori, durasi, thumbnail, urlVideo, url }
-//   Semua field opsional; komponen hanya merender field yang benar-benar
-//   ada pada item. Tidak ada nilai karangan.
-// =====================================================================
+// Layanan Streamku: sumber data halaman /streamku (mulai kosong; API menyusul).
 
 import { buatKoleksi } from './layananKoleksi.js'
 import { memo } from './penyimpananLokal.js'
 
 const koleksi = buatKoleksi('streamku', 'stm')
 
-// Berlangganan perubahan daftar (dipakai useSyncExternalStore/useDaftar).
 export const subscribeStreamku = (dengar) => koleksi.berlangganan(dengar)
 
-// Daftar video: SELALU dari koleksi nyata (saat ini kosong).
-// Nanti: ganti isi dengan hasil API resmi, tetap kembalikan array.
 export const daftarVideo = memo(() => koleksi.daftar())
 
-// Satu video berdasarkan id (atau undefined bila tidak ada).
 export const ambilVideoId = memo((id) => koleksi.ambil(id))
 
-// Kategori TURUNAN dari data nyata — bukan daftar karangan.
-// Kosong bila belum ada video.
+// Kategori diturunkan dari data nyata; kosong bila belum ada video.
 export const kategoriVideo = memo(() => {
   const unik = new Set()
   for (const v of koleksi.daftar()) {
@@ -42,8 +21,7 @@ export const kategoriVideo = memo(() => {
   return [...unik].sort((a, b) => a.localeCompare(b, 'id'))
 })
 
-// Pencarian pada data nyata (judul/kreator/kategori).
-// Kata kunci kosong = seluruh daftar nyata.
+// Pencarian judul/kreator/kategori; kata kunci kosong = seluruh daftar.
 export const cariVideo = memo((kataKunci) => {
   const kunci = String(kataKunci || '').trim().toLowerCase()
   const semua = koleksi.daftar()
@@ -53,8 +31,7 @@ export const cariVideo = memo((kataKunci) => {
   )
 })
 
-// Status integrasi: API resmi BELUM dipasang (kontrak belum diberikan).
-// Komponen memakai ini untuk menampilkan catatan kebutuhan secara jujur.
+// Status integrasi API (belum tersedia sampai kontrak diberikan).
 export const STATUS_API_STREAMKU = 'belum-tersedia'
 
 export default {

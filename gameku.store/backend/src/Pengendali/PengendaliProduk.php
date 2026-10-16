@@ -1,15 +1,5 @@
 <?php
-// =====================================================================
-// PengendaliProduk.php — tabel `produk`.
-//   GET  /api/produk                publik: hanya status Aktif (tamu).
-//                                   admin (sesi): semua status.
-//   GET  /api/produk/{id|slug}      satu produk (id atau slug).
-//   GET  /api/produk?kategori=..    filter kategori.
-//   GET  /api/produk?cari=..        cari nama/creator/slug.
-//   POST /api/produk                (admin) tambah.
-//   PUT  /api/produk/{id}           (admin) ubah.
-//   DELETE /api/produk/{id}         (admin) hapus.
-// =====================================================================
+// CRUD produk; tamu hanya melihat status Aktif, cari via id/slug.
 
 class PengendaliProduk extends PengendaliDasar
 {
@@ -51,7 +41,7 @@ class PengendaliProduk extends PengendaliDasar
         }
     }
 
-    // Decode kolom JSON `preview` dan pastikan angka bertipe int.
+    // Decode kolom JSON `preview`; angka bertipe int.
     private function petakan(array $p): array
     {
         if (isset($p['preview']) && is_string($p['preview'])) {
@@ -107,7 +97,7 @@ class PengendaliProduk extends PengendaliDasar
 
     private function satu(string $kunci): void
     {
-        // Cari berdasarkan id, bila tidak ada coba slug.
+        // Cari by id, bila tidak ada coba slug.
         $baris = Database::satu(self::PILIH . ' WHERE p.id = ?', [$kunci]);
         if (!$baris) {
             $baris = Database::satu(self::PILIH . ' WHERE p.slug = ?', [$kunci]);
@@ -129,7 +119,6 @@ class PengendaliProduk extends PengendaliDasar
         // Harga coret hanya sah bila lebih besar dari harga jual.
         if ($hargaDiskon <= $harga) $hargaDiskon = 0;
 
-        // preview: terima array biasa.
         $previewMentah = $this->badan()['preview'] ?? null;
         $preview = null;
         if (is_array($previewMentah)) {
@@ -195,7 +184,6 @@ class PengendaliProduk extends PengendaliDasar
         Bantu::sukses($this->ambilTerpetakan($idBaru), 'Produk ditambahkan.', 201);
     }
 
-    // Ambil satu produk (terpetakan) untuk dikembalikan setelah tulis.
     private function ambilTerpetakan(string $id): ?array
     {
         $baris = Database::satu(self::PILIH . ' WHERE p.id = ?', [$id]);

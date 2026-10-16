@@ -1,20 +1,13 @@
 <?php
-// =====================================================================
-// Auth.php — autentikasi admin berbasis sesi PHP.
-// Password disimpan sebagai hash (password_hash / password_verify).
-// Kredensial diperiksa di server, bukan di peramban.
-// =====================================================================
+// Autentikasi admin berbasis sesi PHP (password_hash / password_verify).
 
 class Auth
 {
     private const COOKIE_SECURE = (bool) (getenv('GAMEKU_SECURE_COOKIE') ?? (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'));
 
-    // Memulai sesi secara aman (hanya sekali).
     public static function mulai(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
-            // Cookie sesi: hanya HTTP, tidak terakses JS, SameSite Lax, path '/',
-            // hanya dikirim di HTTPS (jika konfigurasi memaksa), dan timeout 30 menit.
             session_set_cookie_params([
                 'httponly'     => true,
                 'samesite'     => 'Lax',
@@ -26,8 +19,7 @@ class Auth
         }
     }
 
-    // Cek ulang status admin setiap request — akun Nonaktif tidak boleh
-    // membuat session tetap aktif (mencegah privilege escalation).
+    // Cek ulang status admin tiap request: akun Nonaktif langsung mengakhiri sesi.
     private static function cekStatusAktif(array $sesi): void
     {
         $baris = Database::satu(
@@ -45,11 +37,9 @@ class Auth
                 [(int) $sesi['id']]
             );
         } catch (Throwable $e) {
-            // Biarkan saja.
         }
     }
 
-    // Hapus session paksa tanpa mengirimkan cookie ke klien.
     private static function keluarSesiPaksa(): void
     {
         $_SESSION = [];
@@ -63,7 +53,6 @@ class Auth
         session_destroy();
     }
 
-    // Mencoba masuk. Mengembalikan data admin (tanpa hash) bila berhasil.
     public static function masuk(string $pengguna, string $sandi): array
     {
         $baris = Database::satu(
@@ -71,7 +60,7 @@ class Auth
             [$pengguna]
         );
 
-        // Pesan gagal dibuat samar agar tidak membocorkan akun yang ada.
+        // Pesan samar agar akun yang ada tidak bocor.
         if (!$baris || !password_verify($sandi, $baris['sandi_hash'])) {
             return ['berhasil' => false, 'pesan' => 'Pengguna atau sandi salah.'];
         }
@@ -79,7 +68,7 @@ class Auth
             return ['berhasil' => false, 'pesan' => 'Akun admin tidak aktif.'];
         }
 
-        // Cegah session fixation: regenerasi ID sesi sebelum mengikat data.
+        // Regenerasi ID sesi sebelum mengikat data (cegah session fixation).
         session_regenerate_id(true);
         $_SESSION['admin'] = [
             'id'      => (int) $baris['id'],
@@ -93,7 +82,6 @@ class Auth
         ];
     }
 
-    // Keluar dari sesi.
     public static function keluar(): void
     {
         self::mulai();
@@ -106,7 +94,6 @@ class Auth
         self::keluarSesiPaksa();
     }
 
-    // Data sesi admin yang sedang masuk (atau null).
     public static function sesi(): ?array
     {
         self::mulai();
@@ -117,7 +104,7 @@ class Auth
         return $sesi;
     }
 
-    // Menjaga endpoint: menghentikan dengan 401 bila belum masuk.
+    // Menghentikan request dengan 401 bila belum masuk.
     public static function wajib(): array
     {
         $sesi = self::sesi();
@@ -127,15 +114,13 @@ class Auth
         return $sesi;
     }
 
-    // Memeriksa bahwa request datang dari sumber yang sama (sesi) — pre-check
-    // untuk CSRF (dipanggil oleh PengendaliDasar).
+    // Pre-check CSRF: membandingkan token dengan milik sesi (hash_equals).
     public static function cekCsrf(string $token): bool
     {
         $persegi = $_SESSION['_csrf_token'] ?? null;
         return is_string($persegi) && is_string($token) && hash_equals($persegi, $token);
     }
 
-    // Membuat token CSRF baru untuk validasi state-changing request.
     public static function buatTokenCsrf(): string
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -146,22 +131,18 @@ class Auth
         return $token;
     }
 
-    // Membuat hash sandi (dipakai installer / ganti sandi).
     public static function hash(string $sandi): string
     {
         return password_hash($sandi, PASSWORD_DEFAULT);
     }
 }
 
-// --- Rate limiting untuk endpoint /api/auth/masuk ---
-// Menyimpan hit hitung per IP + key (user) dalam session, disegarkan per hit.
+// Rate limiter login: hitungan per IP dalam session (window 60 detik, maks 10).
 class AuthRateLimiter
 {
-    // Batas permintaan per 60 detik (untuk login).
     private const WINDOW = 60;
     private const MAX_REQUESTS = 10;
 
-    // Refresh token di session setiap request. Gunakan sebagai store primitif.
     public static function check(?string $key = null): array
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -176,20 +157,17 @@ class AuthRateLimiter
             $store = [];
         }
 
-        // Siapkan kunci rolling untuk IP + key user.
         $ips = $store['ips'] ?? [];
         if (!is_array($ips)) {
             $ips = [];
             $store['ips'] = $ips;
         }
 
-        // Tambahkan entri IP jika belum ada.
         if (!isset($ips[$ip])) {
             $ips[$ip] = ['count' => 0, 'window_start' => $now];
         }
         $entry = &$ips[$ip];
 
-        // Reset jika window sudah lewat.
         if ($now - $entry['window_start'] > $window) {
             $entry = ['count' => 0, 'window_start' => $now];
         }

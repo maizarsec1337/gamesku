@@ -19,7 +19,7 @@ import App from './App.jsx'
 const akar = document.getElementById('root')
 if (!akar) throw new Error('Elemen #root tidak ditemukan pada index.html.')
 
-// Titik masuk aplikasi Gamesku
+// Titik masuk aplikasi Gamesku.
 createRoot(akar).render(
   <StrictMode>
     <BatasKesalahan>

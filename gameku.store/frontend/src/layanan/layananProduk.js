@@ -1,17 +1,4 @@
-// =====================================================================
-// LAYANAN PRODUK — katalog produk Gamesku.
-////
-// MULAI KOSONG. Tidak ada produk contoh. Admin yang mengisinya sendiri
-// lewat /admin/produk dan /admin/produk/tambah.
-//
-// Bentuk data meniru kolom tabel `produk`:
-//   id, nama, slug, kategoriId, jenis, deskripsiSingkat, deskripsiLengkap,
-//   harga, hargaDiskon, thumbnail, preview, fileProduk, versiMinecraft,
-//   creator, status, dibuatPada, diperbaruiPada
-//
-// Kolom `terjual` sengaja tidak ada: belum ada transaksi sama sekali,
-// sehingga angka penjualan harus 0 — bukan karangan.
-// =====================================================================
+// Layanan produk: katalog produk Gamesku (mulai kosong, diisi admin).
 
 import { buatKoleksi } from './layananKoleksi.js'
 import { catat } from './layananAktivitas.js'
@@ -20,7 +7,7 @@ import { JENIS_PRODUK, STATUS_PRODUK, jadikanSlug } from '../data/konstanta.js'
 
 const koleksi = buatKoleksi('produk', 'prd')
 
-// Bentuk form kosong — dipakai form Tambah/Edit Produk.
+// Bentuk form kosong untuk form Tambah/Edit Produk.
 export const formKosong = () => ({
   nama: '',
   slug: '',
@@ -74,7 +61,7 @@ function validasi(isi) {
 
 
 
-// Menambah produk baru (dipakai tombol "Simpan Produk" & "Simpan Draft").
+// Menambah produk baru.
 export function tambahProduk(data) {
   const isi = normalisasi(data)
   const galat = validasi(isi)
@@ -128,12 +115,8 @@ export function ubahStatusProduk(id, status) {
 }
 
 
-// ---------- Pembacaan ----------
-//
-// SEMUA fungsi di bawah dibungkus memo() agar hasilnya memakai referensi
-// yang sama antar-panggilan. Ini syarat wajib agar aman dipakai sebagai
-// snapshot useSyncExternalStore (kalau tidak, React menganggap data
-// selalu berubah dan aplikasi masuk render tak berujung / layar kosong).
+// Fungsi pembaca dibungkus memo() agar referensi stabil
+// (syarat useSyncExternalStore — cegah render tak berujung).
 
 export const daftarProduk = memo(() => koleksi.daftar())
 

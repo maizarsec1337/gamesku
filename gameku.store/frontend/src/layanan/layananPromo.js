@@ -1,11 +1,4 @@
-// =====================================================================
-// LAYANAN PROMO — kode diskon & kampanye Gamesku.
-////
-// MULAI KOSONG. Tidak ada promo contoh. Admin membuat promo sendiri lewat
-// /admin/promo.
-//
-// Bentuk data meniru kolom tabel `promo`.
-// =====================================================================
+// Layanan promo: kode diskon & kampanye (mulai kosong, diisi admin).
 
 import { buatKoleksi } from './layananKoleksi.js'
 import { catat } from './layananAktivitas.js'
@@ -14,7 +7,6 @@ import { STATUS_PROMO } from '../data/konstanta.js'
 
 const koleksi = buatKoleksi('promo', 'prm')
 
-// Berlangganan perubahan promo.
 export const subscribePromo = (dengar) => koleksi.berlangganan(dengar)
 
 export const formKosong = () => ({

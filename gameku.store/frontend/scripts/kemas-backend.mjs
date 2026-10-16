@@ -1,32 +1,11 @@
-// =====================================================================
-// kemas-backend.mjs — mengemas backend PHP ke folder dist terpadu.
-//
-// Dijalankan otomatis setelah `vite build` lewat `npm run build`
-// (lihat package.json). Hasil akhir: SATU folder gameku.store/dist
-// berisi frontend hasil build + backend PHP yang siap diunggah.
-//
-// Yang disalin (whitelist dari sumber asli, tanpa duplikat):
-//   backend/api/            -> dist/api/      (front-controller)
-//   backend/src/            -> dist/src/      (kecuali *.bak)
-//   backend/config/config.php -> dist/config/config.php (SATU config,
-//                                sumber tunggal, jangan buat config lain)
-//   backend/database/*.sql + instal.php -> dist/database/
-//   backend/uploads/.gitkeep -> dist/uploads/ (folder kosong siap tulis)
-//
-// Yang SENGAJA tidak disalin:
-//   contoh.config.php (memuat kredensial asli!), *.bak, *.log, logs/,
-//   package.json backend, *.md, security-check.*, .env* — dev-only/rahasia.
-//
-// Proteksi akses web ditulis ke dist/.htaccess (blokir config/src/
-// database/logs + matikan eksekusi skrip di uploads/).
-// =====================================================================
+// Mengemas backend PHP ke folder dist terpadu (dijalankan setelah vite build).
 
 import { cpSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const skripDir = dirname(fileURLToPath(import.meta.url))
-const akar = join(skripDir, '..', '..') // gameku.store/
+const akar = join(skripDir, '..', '..')
 const backend = join(akar, 'backend')
 const dist = join(akar, 'dist')
 
@@ -35,12 +14,12 @@ function gagal(pesan) {
   process.exit(1)
 }
 
-// --- 1) Prasyarat: vite build harus sudah mengisi dist/ ---
+// Prasyarat: vite build harus sudah mengisi dist/.
 if (!existsSync(join(dist, 'index.html'))) {
   gagal('dist/index.html tidak ditemukan. Jalankan `vite build` dulu.')
 }
 
-// --- 2) Salin backend (whitelist) ---
+// Salin backend (whitelist).
 const salinan = [
   ['api', 'api'],
   ['src', 'src'],
@@ -50,16 +29,19 @@ for (const [dari, ke] of salinan) {
   if (!existsSync(sumber)) gagal(`folder backend/${dari}/ tidak ditemukan.`)
   cpSync(sumber, join(dist, ke), {
     recursive: true,
-    // Buang duplikat basi (*.bak) dan log bila ada.
     filter: (jalur) => !/\.bak$|\.log$/i.test(jalur),
   })
 }
 
+<<<<<<< HEAD
 // --- 3) SATU config: backend/config/config.php -> dist/config/config.php ---
 // config.php diabaikan git (lihat .gitignore), jadi pada checkout bersih
 // berkas ini memang belum ada — README menetapkan config diisi di hosting.
 // Maka: salin bila ada, jika tidak ada cukup beri peringatan (JANGAN gagal)
 // agar build terpadu tetap menghasilkan struktur dist yang lengkap.
+=======
+// Satu config: backend/config/config.php -> dist/config/config.php.
+>>>>>>> c42b248a5099cbe0055c0ec30b7ee090f6ea8e99
 const configSumber = join(backend, 'config', 'config.php')
 mkdirSync(join(dist, 'config'), { recursive: true })
 if (existsSync(configSumber)) {
@@ -69,19 +51,19 @@ if (existsSync(configSumber)) {
   console.warn('[kemas-backend] Di hosting, salin backend/config/contoh.config.php menjadi dist/config/config.php lalu isi kredensial.')
 }
 
-// --- 4) Database: skema + installer (diproteksi .htaccess, lihat bawah) ---
+// Database: skema + installer.
 mkdirSync(join(dist, 'database'), { recursive: true })
 for (const berkas of ['skema.sql', 'instal.php']) {
   const sumber = join(backend, 'database', berkas)
   if (existsSync(sumber)) cpSync(sumber, join(dist, 'database', berkas))
 }
 
-// --- 5) Folder uploads kosong (siap tulis di hosting) ---
+// Folder uploads kosong (siap tulis di hosting).
 mkdirSync(join(dist, 'uploads'), { recursive: true })
 const gitkeep = join(backend, 'uploads', '.gitkeep')
 if (existsSync(gitkeep)) cpSync(gitkeep, join(dist, 'uploads', '.gitkeep'))
 
-// --- 6) dist/.htaccess gabungan: API + SPA + proteksi rahasia ---
+// dist/.htaccess gabungan: API + SPA + proteksi.
 writeFileSync(
   join(dist, '.htaccess'),
   `# ---------------------------------------------------------------------
@@ -122,7 +104,7 @@ Options -Indexes
 `,
 )
 
-// --- 7) Matikan eksekusi skrip di folder unggahan ---
+// Matikan eksekusi skrip di folder unggahan.
 writeFileSync(
   join(dist, 'uploads', '.htaccess'),
   `# Unggahan hanya boleh diunduh, tidak boleh dieksekusi sebagai skrip.
@@ -134,9 +116,13 @@ RemoveType .php .phtml
 `,
 )
 
+<<<<<<< HEAD
 // --- 8) Verifikasi: semua wajib ada, kalau tidak -> gagal keras ---
 // Catatan: config/config.php TIDAK diwajibkan di sini karena diisi di
 // hosting (lihat langkah 3) dan tidak ikut di-commit.
+=======
+// Verifikasi berkas wajib ada.
+>>>>>>> c42b248a5099cbe0055c0ec30b7ee090f6ea8e99
 const wajib = [
   'index.html',
   'assets',
@@ -151,7 +137,7 @@ for (const relatif of wajib) {
   if (!existsSync(join(dist, relatif))) gagal(`hasil kemas kurang: dist/${relatif}`)
 }
 
-// --- 9) Ringkasan isi dist/ ---
+// Ringkasan isi dist/.
 function daftar(dir, awalan = '') {
   let keluar = []
   for (const nama of readdirSync(dir).sort()) {

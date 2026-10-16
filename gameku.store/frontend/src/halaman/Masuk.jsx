@@ -1,11 +1,6 @@
 // Halaman /masuk — login/daftar pembeli Gameku.store (di luar TataLetak).
-// Fungsi asli yang dipakai:
-// - Mode daftar: tambahPelanggan() dari layananPelanggan (fungsi nyata,
-//   menulis ke koleksi 'pelanggan', siap diganti POST /api/pelanggan).
-// - Mode masuk: TANPA endpoint masuk pembeli di backend (hanya ada
-//   POST /api/auth/masuk untuk ADMIN). Maka mode masuk TIDAK memverifikasi
-//   apa pun — hanya validasi bentuk + pesan jujur bahwa sesi pembeli butuh
-//   backend. Tidak ada redirect palsu ke /profil, tidak ada akun contoh.
+// Mode daftar memakai tambahPelanggan() nyata; mode masuk hanya validasi bentuk
+// (endpoint sesi pembeli belum ada di backend).
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Ikon from '../komponen/Ikon.jsx'
@@ -27,10 +22,7 @@ export default function HalamanMasuk() {
 
   const ubah = (kunci) => (e) => setForm((f) => ({ ...f, [kunci]: e.target.value }))
 
-  // Validasi bentuk input (fungsi asli dari kode lama, dipertahankan).
-  // Catatan jujur: layananPelanggan.tambahPelanggan() hanya menyimpan
-  // nama+email (tanpa kata sandi), sama seperti bentuk aslinya. Maka
-  // kolom kata sandi hanya tampil pada mode masuk untuk cek validasi.
+  // Validasi bentuk input; tambahPelanggan() menyimpan nama + email saja.
   const kirim = (e) => {
     e.preventDefault()
     const galat = {}
@@ -44,7 +36,6 @@ export default function HalamanMasuk() {
       return
     }
     if (mode === 'daftar') {
-      // FUNGSI ASLI: tulis ke layananPelanggan (tanpa data karangan).
       const hasil = tambahPelanggan({ nama: form.nama.trim(), email: form.email.trim(), username: '' })
       if (!hasil.berhasil) {
         setJenisPesan('salah')
@@ -55,8 +46,7 @@ export default function HalamanMasuk() {
       setPesan(`Pendaftaran tersimpan di browser ini (${hasil.data.email}). Masuk sesi pembeli membutuhkan endpoint backend yang belum tersedia — lihat catatan di bawah.`)
       return
     }
-    // Mode masuk: JUJUR — tidak ada endpoint masuk pembeli, jadi tidak ada
-    // verifikasi. Jangan redirect ke /profil seolah sudah masuk.
+    // Mode masuk: tanpa endpoint sesi pembeli, jadi tidak ada verifikasi.
     setJenisPesan('info')
     setPesan('Masuk sesi pembeli belum tersedia: backend hanya menyediakan POST /api/auth/masuk untuk admin. Data yang kamu isi tidak diverifikasi dan tidak membuat sesi. Gunakan mode Daftar untuk menyimpan data lewat fungsi asli tambahPelanggan().')
   }

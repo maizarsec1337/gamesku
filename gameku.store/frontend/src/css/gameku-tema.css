@@ -1,7 +1,4 @@
-/* Lapisan token legacy Gamesku — HANYA alias variabel + layar muat.
-   Jangan menambahkan override !important komponen di sini:
-   aturan visual sudah dimiliki masing-masing file (navigasi,
-   gameku-home, gameku-komponen, global, dst). */
+/* Token variabel legacy + layar muat; jangan tambah override !important di sini. */
 :root{
   /* alias lama → sistem baru */
   --primer:#2563EB; --primer-gelap:#1D4ED8; --primer-terang:#60A5FA;

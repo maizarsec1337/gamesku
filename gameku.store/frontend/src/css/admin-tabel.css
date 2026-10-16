@@ -1,6 +1,4 @@
-/* ================================================================
-   ADMIN TABEL — tabel data, lencana status, aksi baris, thumbnail
-   ================================================================ */
+/* Gaya tabel admin: data, lencana status, aksi baris, thumbnail. */
 
 .bungkus-tabel { width: 100%; overflow-x: auto; scrollbar-width: thin; }
 .tabel-data {

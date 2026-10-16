@@ -1,6 +1,4 @@
-// Halaman /profil — tampilan akun. Data akun & login disambung ke
-// PHP + database nanti. Tanpa session, halaman menampilkan empty state
-// (tidak ada pengguna contoh, tidak ada email karangan).
+// Halaman /profil — tampilan akun; tanpa sesi menampilkan empty state.
 import { Link } from 'react-router-dom'
 import { useWishlist } from '../konteks/konteksWishlist.js'
 import { useKeranjang } from '../konteks/konteksKeranjang.js'

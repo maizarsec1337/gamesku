@@ -4,23 +4,7 @@ import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
 import '../css/admin-utama.css'
 
-// =====================================================================
-// HALAMAN MASUK ADMIN (/admin/login) — FORM TAMPILAN SAJA.
-//
-// Yang SENGAJA tidak ada di halaman ini:
-//   - akun bawaan / akun demo
-//   - username atau password yang tertanam di kode
-//   - bypass login dengan kombinasi tertentu
-//
-// Form ini tidak memverifikasi apa pun di sisi peramban. Autentikasi
-// sesungguhnya akan datang dari PHP + database:
-//
-//   POST /api/admin/masuk.php  { pengguna, sandi }
-//   → password_hash() + password_verify() + session PHP di server
-//
-// Selama modul itu belum ada, tautan "Buka Dasbor" hanya membuka
-// tampilan panel (pratinjau UI), bukan sesi admin yang sah.
-// =====================================================================
+// Halaman masuk admin (/admin/login); autentikasi penuh ditangani backend PHP.
 export default function AdminLogin() {
   const { sesiServer } = useAdmin()
   const [pengguna, setPengguna] = useState('')

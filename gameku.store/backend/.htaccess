@@ -1,10 +1,4 @@
-# ---------------------------------------------------------------------
-# .htaccess backend gameku.store (opsional, untuk Apache / XAMPP).
-#
-# Meneruskan semua request /api/* ke api/index.php (front-controller),
-# KECUALI bila berkas/folder benar-benar ada (mis. gambar di /uploads/).
-# Tidak diperlukan bila menjalankan lewat `php -S ... api/index.php`.
-# ---------------------------------------------------------------------
+# .htaccess backend (opsional, untuk Apache/XAMPP): teruskan /api/* ke front-controller.
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -14,7 +8,6 @@
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # Teruskan sisanya ke front-controller, pertahankan query string.
     RewriteRule ^ api/index.php [QSA,L]
 </IfModule>
 

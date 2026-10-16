@@ -14,7 +14,7 @@ import HalamanProfil from './halaman/Profil.jsx'
 import HalamanMasuk from './halaman/Masuk.jsx'
 import HalamanBantuan from './halaman/Bantuan.jsx'
 import TidakDitemukan from './halaman/TidakDitemukan.jsx'
-// Rute admin Gamesku (dashboard CMS) —
+// Rute admin Gamesku (dashboard CMS).
 import TataLetakAdmin from './komponen/admin/TataLetakAdmin.jsx'
 import AdminLogin from './halaman-admin/AdminLogin.jsx'
 import AdminDasbor from './halaman-admin/AdminDasbor.jsx'
@@ -29,16 +29,13 @@ import AdminUlasan from './halaman-admin/AdminUlasan.jsx'
 import AdminMedia from './halaman-admin/AdminMedia.jsx'
 import AdminPengaturan from './halaman-admin/AdminPengaturan.jsx'
 
-// =====================================================================
-// Rute aplikasi. Data diambil dari src/layanan (localStorage sementara),
-// siap diganti API PHP (/api/*.php) tanpa mengubah komponen.
-// =====================================================================
+// Rute aplikasi (admin + toko depan).
 export default function App() {
   return (
     <>
       <GulirKeAtas />
       <Routes>
-        {/* ===== Dashboard Admin (UI dulu, siap API PHP) ===== */}
+        {/* Rute admin. */}
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<TataLetakAdmin />}>
           <Route index element={<AdminDasbor />} />
@@ -54,7 +51,7 @@ export default function App() {
           <Route path="pengaturan" element={<AdminPengaturan />} />
         </Route>
 
-        {/* ===== Marketplace (toko depan) ===== */}
+        {/* Marketplace (toko depan). */}
         <Route path="/masuk" element={<HalamanMasuk />} />
         <Route element={<TataLetak />}>
           <Route path="/" element={<Beranda />} />

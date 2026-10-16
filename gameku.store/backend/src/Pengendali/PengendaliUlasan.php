@@ -1,13 +1,5 @@
 <?php
-// =====================================================================
-// PengendaliUlasan.php — tabel `ulasan`.
-//   GET  /api/ulasan/produk/{produkId}   (publik) ulasan Disetujui utk produk.
-//   GET  /api/ulasan                     (admin) semua ulasan (moderasi).
-//   GET  /api/ulasan/{id}                (admin) satu ulasan.
-//   POST /api/ulasan                     (publik) kirim ulasan (status Menunggu).
-//   PUT  /api/ulasan/{id}                (admin) ubah status moderasi.
-//   DELETE /api/ulasan/{id}              (admin) hapus.
-// =====================================================================
+// Ulasan: kirim (publik, status Menunggu), moderasi & hapus (admin).
 
 class PengendaliUlasan extends PengendaliDasar
 {
@@ -34,7 +26,7 @@ class PengendaliUlasan extends PengendaliDasar
                 break;
             case 'POST':
                 $this->validateCsrf();
-                $this->kirim(); // publik
+                $this->kirim();
                 break;
             case 'PUT':
             case 'PATCH':
@@ -100,7 +92,7 @@ class PengendaliUlasan extends PengendaliDasar
             Bantu::gagal('Ulasan perlu produk dan nama pelanggan.');
         }
 
-        // Ambil nama produk (aman bila produk ada).
+        // Ambil nama produk dari DB bila ada.
         $produk = Database::satu('SELECT nama FROM produk WHERE id = ?', [$produkId]);
         $produkNama = $produk['nama'] ?? Bantu::potong($this->teks('produk'), 160);
 

@@ -1,15 +1,5 @@
 <?php
-// =====================================================================
-// PengendaliKategori.php — tabel `kategori`.
-//   GET  /api/kategori            publik (admin: semua, tamu: Aktif saja)
-//   GET  /api/kategori/{id}       satu kategori
-//   POST /api/kategori            (admin) tambah
-//   PUT  /api/kategori/{id}       (admin) ubah
-//   DELETE /api/kategori/{id}     (admin) hapus
-//
-// Bentuk baris dikembalikan dengan nama kolom ala frontend:
-//   id, nama, slug, deskripsi, ikon, gambar, status
-// =====================================================================
+// CRUD kategori; tamu hanya melihat status Aktif.
 
 class PengendaliKategori extends PengendaliDasar
 {
@@ -44,7 +34,7 @@ class PengendaliKategori extends PengendaliDasar
 
     private function hanyaAktif(): bool
     {
-        // Bila ada sesi admin, tampilkan semua status.
+        // Admin melihat semua status; tamu hanya Aktif.
         return Auth::sesi() === null;
     }
 
@@ -118,7 +108,6 @@ class PengendaliKategori extends PengendaliDasar
         Bantu::sukses($this->ambilTerpetakan($idBaru), 'Kategori ditambahkan.', 201);
     }
 
-    // Ambil satu kategori (terpetakan) untuk dikembalikan setelah tulis.
     private function ambilTerpetakan(string $id): ?array
     {
         return Database::satu(
@@ -134,7 +123,7 @@ class PengendaliKategori extends PengendaliDasar
         $baris = Database::satu('SELECT id, nama FROM kategori WHERE id = ?', [$id]);
         if (!$baris) Bantu::gagal('Kategori tidak ditemukan.', 404);
 
-        // Produk yang memakai kategori ini -> kategori_id jadi NULL (ON DELETE SET NULL).
+        // FK produk.kategori_id: ON DELETE SET NULL.
         Database::eksekusi('DELETE FROM kategori WHERE id = ?', [$id]);
         Aktivitas::catat("Kategori \"{$baris['nama']}\" dihapus", 'hapus', 'merah');
         Bantu::sukses(['id' => $id], 'Kategori dihapus.');

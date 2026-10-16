@@ -2,13 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { KonteksKeranjang } from './konteksKeranjang.js'
 import { cariPromo, hitungRingkasan, hitungSubtotal } from '../utilitas/perhitungan.js'
 
-// =====================================================================
-// Penyedia data keranjang untuk seluruh halaman.
-// MULAI KOSONG. Tidak ada item contoh: keranjang hanya berisi produk
-// yang benar-benar ditambahkan pembeli.
-// =====================================================================
-
-// Penyedia data keranjang untuk seluruh halaman.
+// Penyedia data keranjang (mulai kosong; hanya produk yang ditambahkan pembeli).
 export function PenyediaKeranjang({ children }) {
   const [daftarItem, setDaftarItem] = useState([])
   const [kodePromo, setKodePromo] = useState('')

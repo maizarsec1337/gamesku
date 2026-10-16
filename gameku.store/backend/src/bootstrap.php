@@ -1,23 +1,18 @@
 <?php
-// =====================================================================
-// bootstrap.php — dipersiapkan sebelum router menjalankan endpoint.
-// Mengatur autoload kelas, header CORS, sesi, dan pelaporan error.
-// =====================================================================
+// Bootstrap: konfigurasi global, autoload, header/CORS, sesi, dan rate limiting.
 
-// --- Konfigurasi keamanan global ---
+// Keamanan session global.
 ini_set('session.cookie_httponly', '1');
 ini_set('session.use_strict_mode', '1');
 ini_set('session.use_only_cookies', '1');
 ini_set('session.cache_limiter', 'nocache');
-// Tidak boleh mengekspos detail exception di respons (hanya saat debug eksplisit).
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 ini_set('error_log', __DIR__ . '/../logs/error.log');
 
-// Pelaporan error: jangan bocorkan ke output saat produksi, tapi catat.
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
-// --- Autoload kelas di src/ dan src/Pengendali/ ---
+// Autoload kelas di src/ dan src/Pengendali/.
 spl_autoload_register(function ($kelas) {
     $jalur = [
         __DIR__ . '/' . $kelas . '.php',
@@ -31,19 +26,18 @@ spl_autoload_register(function ($kelas) {
     }
 });
 
-// --- Header dasar ---
+// Header dasar.
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
-// Defense-in-depth headers.
 header('X-XSS-Protection: 1; mode=block');
 header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
 header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
 
-// --- CORS ---
+// CORS.
 $cfg = require __DIR__ . '/../config/config.php';
 $asal = $_SERVER['HTTP_ORIGIN'] ?? '';
 $izinkan = $cfg['cors_origins'] ?? [];
@@ -54,7 +48,7 @@ if ($asal !== '' && in_array($asal, $izinkan, true)) {
     header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-HTTP-Method-Override, X-Requested-With, X-CSRF-Token');
     header('Access-Control-Max-Age: 86400');
-    // Batas maksimum ukuran request (256 KB untuk JSON API, 8 MB multipart).
+    // Batas ukuran request: 256 KB JSON, 8 MB multipart.
     $sizeLimit = 262144;
     if (array_key_exists('CONTENT_LENGTH', $_SERVER)) {
         $size = (int) $_SERVER['CONTENT_LENGTH'];
@@ -64,17 +58,17 @@ if ($asal !== '' && in_array($asal, $izinkan, true)) {
     }
 }
 
-// Balas preflight CORS dan berhenti.
+// Balas preflight CORS.
 if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-// --- Rate limiting middleware ---
+// Rate limiting middleware.
 $rateLimiterCfg = $cfg['rate_limiting'] ?? [];
 $rateLimitEnabled = $rateLimiterCfg['enabled'] ?? false;
 $rateLimitPaths = $rateLimiterCfg['paths'] ?? [];
-$rateLimitKeys = $rateLimiterCfg['keys'] ?? ['ip']; // ip, ip+path, session
+$rateLimitKeys = $rateLimiterCfg['keys'] ?? ['ip'];
 $rateLimits = $rateLimiterCfg['limits'] ?? [
     'default'  => 60,
     'sensitive' => 30,
@@ -106,7 +100,6 @@ if ($rateLimitEnabled && !in_array($jalur, ['/', '/sehat'], true)) {
     $store[$key] = $hits;
     $_SESSION['_rate_limit'] = $store;
 
-    // Tentukan prioritas endpoint.
     $isSensitive = in_array($jalur, $rateLimitPaths['sensitive'] ?? [], true);
     $isWrite     = in_array($jalur, $rateLimitPaths['write'] ?? [], true);
     $limit = $rateLimits['default'];
@@ -122,7 +115,7 @@ if ($rateLimitEnabled && !in_array($jalur, ['/', '/sehat'], true)) {
     }
 }
 
-// --- Handler error global -> respons JSON rapi ---
+// Handler error global -> respons JSON.
 set_exception_handler(function (Throwable $e) {
     http_response_code(500);
     error_log('[gameku] ' . $e->getMessage());
@@ -134,10 +127,10 @@ set_exception_handler(function (Throwable $e) {
     exit;
 });
 
-// --- Sesi selalu disiapkan agar status login admin terbaca di semua endpoint ---
+// Sesi disiapkan agar status login admin terbaca di semua endpoint.
 Auth::mulai();
 
-// --- Akses ke token CSRF dari session ---
+// Token CSRF dari session.
 if (session_status() === PHP_SESSION_ACTIVE && !isset($_SESSION['_csrf_token'])) {
     $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
 }
