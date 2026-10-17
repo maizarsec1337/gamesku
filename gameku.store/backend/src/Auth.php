@@ -21,7 +21,7 @@ class Auth
                 'samesite'     => 'Lax',
                 'path'         => '/',
                 'secure'       => self::cookieSecure(),
-                'max_lifetime' => 1800,
+                'lifetime' => 1800,
             ]);
             session_start();
         }

@@ -6,7 +6,7 @@ import useReveal from '../layanan/gunakanReveal.js'
 import { katalogAnime, GalatAnime } from '../layanan/layananAnime.js'
 import { DaftarAnime, MuatKerangka, GalatStreamku } from '../komponen/StreamkuTayang.jsx'
 
-const PER = 24
+const PER = 48
 
 export default function HalamanStreamku() {
   useReveal()

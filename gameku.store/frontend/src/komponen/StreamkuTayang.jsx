@@ -1,5 +1,5 @@
-// Komponen presentasi Streamku (katalog anime). Semua field dirender hanya bila
-// benar-benar ada di data backend — tidak ada poster/judul/episode karangan.
+﻿// Komponen presentasi Streamku (katalog anime). Semua field dirender hanya bila
+// benar-benar ada di data backend â€” tidak ada poster/judul/episode karangan.
 import { Link } from 'react-router-dom'
 import Ikon from './Ikon.jsx'
 import KeadaanKosong from './KeadaanKosong.jsx'
@@ -10,7 +10,7 @@ export function MuatKerangka({ jumlah = 8 }) {
     <div className="sk-grid" aria-hidden="true">
       {Array.from({ length: jumlah }).map((_, i) => (
         <div key={i} className="sk-kartu sk-kerangka">
-          <div className="sk-thumb sk-thumb-video" />
+          <div className="sk-thumb sk-thumb-portrait" />
           <div className="sk-badan">
             <span className="sk-garis-teks" />
             <span className="sk-garis-teks sk-garis-pendek" />
@@ -21,21 +21,36 @@ export function MuatKerangka({ jumlah = 8 }) {
   )
 }
 
-// Kartu anime: poster asli + judul + jumlah episode; menuju halaman detail.
+// Kartu anime: poster portrait asli (2:3) + badge + judul; menuju halaman detail.
 export function KartuAnime({ seri }) {
   const poster = String(seri?.gambar || '').trim()
   const judul = String(seri?.judul || '').trim()
   const jumlahEps = Number(seri?.jumlahEpisode || 0)
+  const slug = String(seri?.slug || '').trim()
+
   return (
-    <Link className="sk-kartu" to={`/streamku/${encodeURIComponent(seri.slug)}`} aria-label={judul || 'Detail anime'}>
-      <div className="sk-thumb sk-thumb-video">
+    <Link
+      className="sk-kartu"
+      to={`/streamku/${encodeURIComponent(slug)}`}
+      aria-label={judul || 'Detail anime'}
+    >
+      <div className="sk-thumb sk-thumb-portrait">
         {poster ? (
-          <img src={poster} alt="" loading="lazy" decoding="async"
-            onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          <img
+            src={poster}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
+          />
         ) : (
           <span className="sk-thumb-ikon"><Ikon nama="siaran" ukuran={30} /></span>
         )}
-        {jumlahEps > 0 && <span className="sk-durasi">{jumlahEps} eps</span>}
+        {jumlahEps > 0 && (
+          <span className="sk-badge">
+            <Ikon nama="siaran" ukuran={10} /> {jumlahEps} eps
+          </span>
+        )}
       </div>
       <div className="sk-badan">
         {judul && <h3 className="sk-judul">{judul}</h3>}
@@ -71,7 +86,7 @@ export function BarisEpisode({ episode }) {
   const aman = /^https?:\/\//.test(tautan)
   return (
     <li className="sk-eps">
-      <span className="sk-eps-no">{no ? `Eps ${no}` : '—'}</span>
+      <span className="sk-eps-no">{no ? `Eps ${no}` : 'â€”'}</span>
       <span className="sk-eps-judul">
         {judul || `Episode ${no}`}
         {tanggal && <span className="sk-eps-tanggal">{tanggal}</span>}
@@ -88,7 +103,7 @@ export function BarisEpisode({ episode }) {
 }
 
 // Tanggal episode dalam format id-ID; kosong bila data tidak ada/tak valid.
-export function formatTanggal(iso) {
+function formatTanggal(iso) {
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
@@ -103,7 +118,7 @@ export function StatusPemutaran() {
       <strong>Sumber pemutaran belum tersedia</strong>
       <p>
         Katalog ini menyediakan metadata &amp; tautan halaman episode resmi.
-        Pemutar video internal akan aktif setelah ada sumber streaming yang sah dan teruji —
+        Pemutar video internal akan aktif setelah ada sumber streaming yang sah dan teruji â€”
         tanpa URL video karangan.
       </p>
     </div>
@@ -127,3 +142,7 @@ export function GalatStreamku({ pesan, onCobaLagi }) {
     </div>
   )
 }
+
+
+
+

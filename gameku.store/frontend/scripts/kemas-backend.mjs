@@ -66,7 +66,7 @@ if (existsSync(configSumber)) {
 
 // Database: skema + installer.
 mkdirSync(join(dist, 'database'), { recursive: true })
-for (const berkas of ['skema.sql', 'instal.php']) {
+for (const berkas of ['schema.sql', 'instal.php']) {
   const sumber = join(backend, 'database', berkas)
   if (existsSync(sumber)) cpSync(sumber, join(dist, 'database', berkas))
 }
@@ -138,7 +138,7 @@ const wajib = [
   'api/index.php',
   'src/bootstrap.php',
   'src/Database.php',
-  'database/skema.sql',
+  'database/schema.sql',
   'uploads',
   '.htaccess',
 ]

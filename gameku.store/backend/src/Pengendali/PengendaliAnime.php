@@ -36,13 +36,13 @@ class PengendaliAnime extends PengendaliDasar
     // GET /api/anime — katalog + pencarian + pagination.
     private function katalog(array $data): void
     {
-        $q = mb_strtolower($this->qTeks('q'));
-        $semua = $data['anime'];
+        $q = strtolower($this->qTeks('q'));
+        $semua = $data['anime'] ?? [];
 
         if ($q !== '') {
             $semua = array_values(array_filter($semua, function ($s) use ($q) {
-                $hay = mb_strtolower(((string) ($s['judul'] ?? '')) . ' ' . ((string) ($s['slug'] ?? '')));
-                return $hay !== '' && mb_stripos($hay, $q) !== false;
+                $hay = strtolower(((string) ($s['judul'] ?? '')) . ' ' . ((string) ($s['slug'] ?? '')));
+                return $hay !== '' && stripos($hay, $q) !== false;
             }));
         }
 
