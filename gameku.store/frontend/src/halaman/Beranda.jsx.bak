@@ -1,0 +1,230 @@
+// Beranda Gamesku — hero slider + shortcut + 9 kategori + flash sale + katalog dari API.
+import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import BannerUtama from '../komponen/BannerUtama.jsx'
+import Kategori from '../komponen/Kategori.jsx'
+import BagianProduk from '../komponen/BagianProduk.jsx'
+import FlashSale from '../komponen/FlashSale.jsx'
+import Streamku from '../komponen/Streamku.jsx'
+import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
+import Ikon from '../komponen/Ikon.jsx'
+import useReveal from '../layanan/gunakanReveal.js'
+import { produkTerbaru } from '../layanan/layananProduk.js'
+import { daftarProdukDariApi } from '../layanan/layananProdukApi.js'
+import { GalatAnime } from '../layanan/layananAnime.js'
+
+const SHORTCUT = [
+  { nama: 'Top Up', ikon: 'unduhCepat', ke: '/store' },
+  { nama: 'Promo', ikon: 'promo', ke: '/promo' },
+  { nama: 'Gratis', ikon: 'gratis', ke: '/gratis' },
+  { nama: 'Bantuan', ikon: 'perisai', ke: '/bantuan' },
+]
+
+const keunggulan = [
+  { ikon: 'unduhCepat', judul: 'Proses Instan', deskripsi: 'Pesanan diproses otomatis setelah bayar.' },
+  { ikon: 'perisai', judul: 'Bayar Aman', deskripsi: 'Transaksi terenkripsi & mudah dilacak.' },
+  { ikon: 'kreator', judul: 'Kreator Kurasi', deskripsi: 'Produk dipilih manual oleh tim.' },
+  { ikon: 'promo', judul: 'Promo Mingguan', deskripsi: 'Diskon top-up & voucher favorit.' },
+]
+
+export default function Beranda() {
+  const navigasi = useNavigate()
+  const [cari, setCari] = useState('')
+  const [katalog, setKatalog] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let dibatalkan = false
+    async function muatKatalog() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await daftarProdukDariApi()
+        if (!dibatalkan) setKatalog(data)
+      } catch (e) {
+        if (!dibatalkan) setError(e instanceof GalatAnime ? e.message : 'Tidak dapat memuat katalog.')
+      } finally {
+        if (!dibatalkan) setLoading(false)
+      }
+    }
+    muatKatalog()
+    return () => { dibatalkan = true }
+  }, [])
+
+  // Data katalog dari API (bukan localStorage). Produk only tampil bila statusnya Aktif.
+  const semua = katalog
+  const promo = semua.filter((p) => p.hargaDiskon > 0 && p.hargaDiskon > p.harga)
+  const terbaru = [...semua]
+    .sort((a, b) => String(b.dibuatPada || '').localeCompare(String(a.dibuatPada || '')))
+    .slice(0, 6)
+  // Populer = produk diskon dulu, lalu produk biasa.
+  const populer = [...promo, ...semua.filter((p) => !(p.hargaDiskon > 0 && p.hargaDiskon > p.harga))].slice(0, 6)
+  useReveal()
+
+  const kirimCari = (e) => {
+    e.preventDefault()
+    const rapi = cari.trim()
+    navigasi(rapi ? '/store?cari=' + encodeURIComponent(rapi) : '/store')
+  }
+
+  const cobaLagi = () => {
+
+  return (
+    <>
+      <BannerUtama />
+      <div className="wadah" style={{ paddingTop: 12 }}>
+        <form className="cari-mobile" onSubmit={kirimCari} role="search" style={{ border: '1.5px solid #263663' }}>
+          <Ikon nama="cari" ukuran={16} />
+          <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari diamond, Robux, voucher..." aria-label="Cari produk Gamesku" />
+        </form>
+      </div>
+      <nav className="gk-short reveal" aria-label="Layanan Gamesku">
+        {SHORTCUT.map((s) => (
+          <Link key={s.nama} to={s.ke}><span className="ic"><Ikon nama={s.ikon} ukuran={19} /></span>{s.nama}</Link>
+        ))}
+      </nav>
+      <Kategori />
+      {semua.length === 0 && (
+        <section className="bagian"><div className="wadah">
+          <KeadaanKosong
+            ikon="toko"
+            judul="Katalog belum terisi"
+            deskripsi="Produk Gamesku akan muncul di sini sekali admin menerbitkannya. Sementara itu, jelajeci kategori di atas."
+            teksTombol="Lihat Kategori"
+            tautanTombol="/kategori"
+          />
+        </div></section>
+      )}
+      <FlashSale daftar={promo} />
+      <div className="reveal">
+        {populer.length > 0 ? (
+          <BagianProduk judul="Produk Populer" subjudul="Paling diburu pemain minggu ini." daftar={populer} tautan="/store" />
+        ) : (
+          <div className="wadah" style={{ padding: 14 }}>
+            <KeadaanKosong ikon="toko" judul="Belum ada produk populer" deskripsi="Produk populer akan muncul setelah ada penjualan di katalog." />
+          </div>
+        )}
+      </div>
+      <Streamku />
+      <div className="wadah">
+        <a className="gk-chat-nyata" href="https://discord.gg/gamesku" target="_blank" rel="noreferrer" aria-label="Buka Discord komunitas Gameku.store">
+          <Ikon nama="chat" ukuran={22} />
+          <span>Chat Komunitas</span>
+        </a>
+      </div>
+      <div className="reveal">
+        {terbaru.length > 0 ? (
+          <BagianProduk judul="Rekomendasi Untukmu" subjudul="Rilisan terbaru dari kreator." daftar={terbaru} tautan="/store?urut=terbaru" />
+        ) : (
+          <div className="wadah" style={{ padding: 14 }}>
+            <KeadaanKosong ikon="dongkrak" judul="Belum ada rilisan terbaru" deskripsi="Daftar rekomendasi akan muncul sesegera mungkin." />
+          </div>
+        )}
+      </div>
+      <section className="bagian reveal"><div className="wadah">
+        <div className="judul-bagian"><div><h2>Kenapa Gamesku?</h2>
+        </div>
+      </div></section>
+    </>
+  )
+}
+
+  if (loading) {
+    return (
+      <>
+        <BannerUtama />
+        <div className="wadah" style={{ paddingTop: 12 }}>
+          <form className="cari-mobile" onSubmit={kirimCari} role="search" style={{ border: '1.5px solid #263663' }}>
+            <Ikon nama="cari" ukuran={16} />
+            <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari diamond, Robux, voucher..." aria-label="Cari produk Gamesku" />
+          </form>
+        </div>
+        <nav className="gk-short reveal" aria-label="Layanan Gamesku">
+          {SHORTCUT.map((s) => (
+            <Link key={s.nama} to={s.ke}><span className="ic"><Ikon nama={s.ikon} ukuran={19} /></span>{s.nama}</Link>
+          ))}
+        </nav>
+        <Kategori />
+        <section className="bagian"><div className="wadah">
+          <KeadaanKosong
+            ikon="loading"
+            judul="Memuat katalog produk"
+            deskripsi="Fotografi kartu dan katalog sedang dimuat dari server Gamesku."
+          />
+        </div></section>
+        <FlashSale daftar={promo} />
+        <div className="reveal">
+          <BagianProduk judul="Produk Populer" subjudul="Paling diburu pemain minggu ini." daftar={populer} tautan="/store" />
+        </div>
+        <Streamku />
+        <div className="wadah">
+          <a className="gk-chat-nyata" href="https://discord.gg/gamesku" target="_blank" rel="noreferrer" aria-label="Buka Discord komunitas Gameku.store">
+            <Ikon nama="chat" ukuran={22} />
+            <span>Chat Komunitas</span>
+          </a>
+        </div>
+        <div className="reveal">
+          <BagianProduk judul="Rekomendasi Untukmu" subjudul="Rilisan terbaru dari kreator." daftar={terbaru} tautan="/store?urut=terbaru" />
+        </div>
+        <section className="bagian reveal"><div className="wadah">
+          <div className="judul-bagian"><div><h2>Kenapa Gamesku?</h2>
+        </div>
+      </div></section>
+    </>
+  )
+  }
+
+  if (error) {
+    return (
+      <>
+        <BannerUtama />
+        <div className="wadah" style={{ paddingTop: 12 }}>
+          <form className="cari-mobile" onSubmit={kirimCari} role="search" style={{ border: '1.5px solid #263663' }}>
+            <Ikon nama="cari" ukuran={16} />
+            <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari diamond, Robux, voucher..." aria-label="Cari produk Gamesku" />
+          </form>
+        </div>
+        <nav className="gk-short reveal" aria-label="Layanan Gamesku">
+          {SHORTCUT.map((s) => (
+            <Link key={s.nama} to={s.ke}><span className="ic"><Ikon nama={s.ikon} ukuran={19} /></span>{s.nama}</Link>
+          ))}
+        </nav>
+        <Kategori />
+        <section className="bagian"><div className="wadah">
+          <KeadaanKosong
+            ikon="info"
+            judul="Tidak dapat memuat katalog"
+            deskripsi={error}
+            aksi={<button type="button" className="tombol tombol-utama tombol-kecil" onClick={cobaLagi}>Coba lagi</button>}
+          />
+        </div></section>
+        <FlashSale daftar={promo} />
+        <div className="reveal">
+          <BagianProduk judul="Produk Populer" subjudul="Paling diburu pemain minggu ini." daftar={populer} tautan="/store" />
+        </div>
+        <Streamku />
+        <div className="wadah">
+          <a className="gk-chat-nyata" href="https://discord.gg/gamesku" target="_blank" rel="noreferrer" aria-label="Buka Discord komunitas Gameku.store">
+            <Ikon nama="chat" ukuran={22} />
+            <span>Chat Komunitas</span>
+          </a>
+        </div>
+        <div className="reveal">
+          <BagianProduk judul="Rekomendasi Untukmu" subjudul="Rilisan terbaru dari kreator." daftar={terbaru} tautan="/store?urut=terbaru" />
+        </div>
+        <section className="bagian reveal"><div className="wadah">
+          <div className="judul-bagian"><div><h2>Kenapa Gamesku?</h2>
+        </div>
+      </div></section>
+    </>
+  )
+  }
+
+    setLoading(true)
+    setError('')
+    daftarProdukDariApi()
+      .then((data) => setKatalog(data))
+      .catch((e) => setError(e instanceof GalatAnime ? e.message : 'Tidak dapat memuat katalog.'))
+      .finally(() => setLoading(false))
+  }

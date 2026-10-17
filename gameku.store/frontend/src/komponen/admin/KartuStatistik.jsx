@@ -17,7 +17,7 @@ function Sparkline({ data, hijau = true }) {
       return `${x.toFixed(1)},${y.toFixed(1)}`
     })
     .join(' ')
-  const warna = hijau ? '#62B34A' : '#B08355'
+  const warna = hijau ? '#43DDF5' : '#BD54F5'
 
   return (
     <svg

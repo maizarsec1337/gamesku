@@ -29,7 +29,7 @@ export default function FlashSale({ daftar = [] }) {
           <h2>Flash Sale</h2>
           <span className="flash-timer" aria-label="Berakhir dalam"><b>{waktu[0]}</b>:<b>{waktu[1]}</b>:<b>{waktu[2]}</b></span>
         </div>
-        <p style={{ fontSize: 12.5, color: '#BFDBFE', marginTop: 4 }}>Diskon asli dari katalog · berakhir tengah malam.</p>
+        <p style={{ fontSize: 12.5, color: '#A7B2D0', marginTop: 4 }}>Diskon asli dari katalog · berakhir tengah malam.</p>
         <div className="flash-row">
           {isi.map((p) => (<KartuProduk key={p.id} produk={p} modeFlash />))}
         </div>

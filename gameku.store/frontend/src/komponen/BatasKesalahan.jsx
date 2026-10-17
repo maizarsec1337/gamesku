@@ -34,26 +34,26 @@ export class BatasKesalahan extends Component {
           display: 'grid',
           placeItems: 'center',
           padding: 24,
-          background: '#0f172a',
-          color: '#e2e8f0',
+          background: '#0B0D1E',
+          color: '#F4F7FF',
           fontFamily: 'system-ui, sans-serif',
         }}
       >
         <div style={{ maxWidth: 720 }}>
           <h1 style={{ fontSize: 22, margin: '0 0 8px' }}>Halaman gagal ditampilkan</h1>
-          <p style={{ margin: '0 0 16px', color: '#94a3b8' }}>
+          <p style={{ margin: '0 0 16px', color: '#A7B2D0' }}>
             Ada kesalahan saat merender. Buka DevTools → Console untuk melihat
             detail lengkap.
           </p>
           <pre
             style={{
-              background: '#111c33',
-              border: '1px solid #24324d',
+              background: '#0D1530',
+              border: '1px solid #263663',
               borderRadius: 10,
               padding: 14,
               overflow: 'auto',
               fontSize: 12.5,
-              color: '#fca5a5',
+              color: '#FFA9BA',
             }}
           >
             {galat?.message || String(galat)}
@@ -66,8 +66,8 @@ export class BatasKesalahan extends Component {
               padding: '10px 18px',
               border: 0,
               borderRadius: 10,
-              background: '#62B34A',
-              color: '#0b130a',
+              background: '#43DDF5',
+              color: '#0B0D1E',
               fontWeight: 700,
               cursor: 'pointer',
             }}

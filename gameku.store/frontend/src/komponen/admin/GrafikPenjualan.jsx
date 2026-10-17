@@ -122,8 +122,8 @@ export default function GrafikPenjualan() {
         >
           <defs>
             <linearGradient id="gradPenjualan" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(98,179,74,.34)" />
-              <stop offset="100%" stopColor="rgba(98,179,74,0)" />
+              <stop offset="0%" stopColor="rgba(67,221,245,.34)" />
+              <stop offset="100%" stopColor="rgba(67,221,245,0)" />
             </linearGradient>
           </defs>
 
@@ -157,7 +157,7 @@ export default function GrafikPenjualan() {
           )}
 
           <path d={area} fill="url(#gradPenjualan)" />
-          <path d={jalur} fill="none" stroke="#62B34A" strokeWidth="2.6" strokeLinecap="round" />
+          <path d={jalur} fill="none" stroke="#43DDF5" strokeWidth="2.6" strokeLinecap="round" />
 
           {fokus && (
             <g>
@@ -177,7 +177,7 @@ export default function GrafikPenjualan() {
           <div className="grafik-info" style={{ left: `${posisiTooltip}%`, top: 4 }}>
             <strong>{fokus.label}</strong>
             <span className="legenda-info">
-              <span className="titik-legenda" style={{ background: '#62B34A' }} />
+              <span className="titik-legenda" style={{ background: '#43DDF5' }} />
               Penjualan
               <b>{formatRupiah(fokus.total)}</b>
             </span>

@@ -61,17 +61,17 @@ export const IKON_KATEGORI = [
 // Palet gradasi thumbnail; urutan dipilih otomatis, tidak terikat kategori.
 
 export const PALET_GRADASI = [
-  ['#2563EB', '#1D4ED8'],
-  ['#3B82F6', '#172554'],
-  ['#0EA5E9', '#1D4ED8'],
-  ['#FACC15', '#B45309'],
-  ['#60A5FA', '#1E40AF'],
-  ['#93C5FD', '#2563EB'],
-  ['#FDE047', '#CA8A04'],
-  ['#1D4ED8', '#0F172A'],
+  ['#43DDF5', '#BD54F5'],
+  ['#BD54F5', '#F044D8'],
+  ['#43DDF5', '#2A6BD6'],
+  ['#F044D8', '#8A2BB8'],
+  ['#5FE0F7', '#8A3FC4'],
+  ['#43DDF5', '#F044D8'],
+  ['#C77BF7', '#F044D8'],
+  ['#16224A', '#43DDF5'],
 ]
 
-const WARNA_CADANGAN = ['#2563EB', '#1D4ED8']
+const WARNA_CADANGAN = ['#43DDF5', '#BD54F5']
 
 // Mengambil pasangan warna gradasi berdasarkan urutan (0 = warna pertama).
 export function gradasiOtomatis(urutan = 0) {

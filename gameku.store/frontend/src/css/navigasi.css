@@ -1,28 +1,30 @@
-/* Header mobile-only — full-width app shell, biru, teks putih. */
-.kepala{position:sticky;top:0;z-index:50;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;border-bottom:1px solid rgba(255,255,255,.18);width:100%;max-width:430px;margin-inline:auto}
+/* Header — full-width app shell, tema dark neon Gameku, teks terang. */
+.kepala{position:sticky;top:0;z-index:50;background:linear-gradient(135deg,#101A35,#0B0D1E);color:#fff;border-bottom:1px solid #263663;width:100%;max-width:430px;margin-inline:auto}
 .kepala-isi{min-height:var(--tinggi-kepala);display:flex;align-items:center;gap:10px;padding-block:8px}
 .logo{display:flex;align-items:center;gap:9px;flex-shrink:0;color:#fff}
-.logo-gameku{background:#fff!important;color:#1D4ED8!important;box-shadow:none!important}
+.logo-gameku{background:linear-gradient(135deg,#43DDF5,#BD54F5)!important;color:#0B0D1E!important;box-shadow:none!important}
 .logo-teks{font-weight:900;font-size:16px;line-height:1.1;display:flex;flex-direction:column;color:#fff!important}
-.logo-teks small{font-size:9px;font-weight:700;color:#DBEAFE!important;letter-spacing:.1em;text-transform:uppercase}
+.logo-teks small{font-size:9px;font-weight:700;color:#43DDF5!important;letter-spacing:.1em;text-transform:uppercase}
 .navigasi-atas{display:none}
 .aksi-kepala{display:flex;align-items:center;gap:7px;margin-left:auto;flex:0 0 auto}
 .cari-kepala{display:none}
-.tombol-ikon{position:relative;width:38px;height:38px;display:grid;place-items:center;border-radius:12px;border:1px solid rgba(255,255,255,.35)!important;background:rgba(255,255,255,.14)!important;color:#fff!important;transition:background var(--trans),transform 120ms ease}
-.tombol-ikon:active{transform:scale(.93);background:rgba(255,255,255,.28)!important}
-.gelembung{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;display:grid;place-items:center;border-radius:999px;background:var(--kuning)!important;color:#422006!important;font-size:10.5px;font-weight:800}
-.tombol-profil{width:38px;height:38px;border-radius:12px;background:var(--kuning)!important;color:#422006!important;display:grid;place-items:center;font-weight:800}
+.tombol-ikon{position:relative;width:38px;height:38px;display:grid;place-items:center;border-radius:12px;border:1px solid #263663!important;background:rgba(67,221,245,.08)!important;color:#F4F7FF!important;transition:background var(--trans),transform 120ms ease}
+.tombol-ikon:hover{background:rgba(67,221,245,.16)!important}
+.tombol-ikon:active{transform:scale(.93);background:rgba(67,221,245,.24)!important}
+.gelembung{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;display:grid;place-items:center;border-radius:999px;background:var(--kuning)!important;color:#0B0D1E!important;font-size:10.5px;font-weight:800}
+.tombol-profil{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#BD54F5,#F044D8)!important;color:#0B0D1E!important;display:grid;place-items:center;font-weight:800}
 .baris-cari-mobile{padding-bottom:10px}
-.cari-mobile{display:flex;align-items:center;gap:8px;background:#fff!important;border:none!important;border-radius:12px;padding:0 12px;color:#64748B!important;box-shadow:0 6px 16px -10px rgba(0,0,0,.35)}
+.cari-mobile{display:flex;align-items:center;gap:8px;background:#0D1530!important;border:1.5px solid #263663!important;border-radius:12px;padding:0 12px;color:#A7B2D0!important;box-shadow:0 6px 16px -10px rgba(0,0,0,.5)}
 .cari-mobile input{flex:1;background:none;border:none;outline:none;color:var(--teks)!important;padding:11px 0;font-size:14px}
+.cari-mobile input::placeholder{color:#7F8CAD}
 /* Navigasi bawah mobile — fixed dalam shell 430px */
-.navigasi-bawah{position:fixed;left:50%;transform:translateX(-50%);right:auto;width:100%;max-width:430px;bottom:0;z-index:50;display:flex;background:rgba(255,255,255,.98);border-top:1px solid var(--garis);min-height:var(--tinggi-bawah);padding:6px 6px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -10px 26px -22px rgba(15,23,42,.35)}
-.menu-bawah{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#94A3B8;font-size:10.5px;font-weight:700;min-height:52px;border-radius:12px;transition:color var(--trans),background var(--trans)}
+.navigasi-bawah{position:fixed;left:50%;transform:translateX(-50%);right:auto;width:100%;max-width:430px;bottom:0;z-index:50;display:flex;background:rgba(16,26,53,.98);border-top:1px solid var(--garis);min-height:var(--tinggi-bawah);padding:6px 6px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -10px 26px -22px rgba(0,0,0,.6)}
+.menu-bawah{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#A7B2D0;font-size:10.5px;font-weight:700;min-height:52px;border-radius:12px;transition:color var(--trans),background var(--trans)}
 .menu-bawah-ikon{display:grid;place-items:center;width:44px;height:26px;border-radius:999px;transition:background var(--trans),color var(--trans),transform var(--trans)}
 .menu-bawah:active .menu-bawah-ikon{transform:scale(.9)}
-.menu-bawah-aktif{color:var(--biru-tua)}
-.menu-bawah-aktif .menu-bawah-ikon{background:var(--kuning);color:#422006}
-.gelembung-bawah{position:absolute;top:4px;margin-left:28px;min-width:17px;height:17px;padding:0 4px;display:grid;place-items:center;border-radius:999px;background:var(--biru);color:#fff;font-size:10px;font-weight:800}
+.menu-bawah-aktif{color:var(--biru)}
+.menu-bawah-aktif .menu-bawah-ikon{background:linear-gradient(135deg,#43DDF5,#BD54F5);color:#0B0D1E}
+.gelembung-bawah{position:absolute;top:4px;margin-left:28px;min-width:17px;height:17px;padding:0 4px;display:grid;place-items:center;border-radius:999px;background:var(--kuning);color:#0B0D1E;font-size:10px;font-weight:800}
 
 /* Responsif header: shell lebar penuh; desktop pakai navigasi atas. */
 @media (min-width:768px){
@@ -32,12 +34,12 @@
 @media (min-width:1024px){
   .kepala-isi{min-height:70px;gap:12px}
   .navigasi-atas{display:flex;align-items:center;gap:2px;margin-left:10px;min-width:0;flex:0 1 auto}
-  .navigasi-atas .tautan-atas{padding:9px 11px;border-radius:10px;font-size:13.5px;font-weight:700;color:#DBEAFE;white-space:nowrap;transition:background var(--trans),color var(--trans)}
-  .navigasi-atas .tautan-atas:hover{background:rgba(255,255,255,.14);color:#fff}
-  .navigasi-atas .tautan-atas.aktif{background:#fff;color:#1D4ED8}
-  .cari-kepala{display:flex;align-items:center;gap:8px;flex:1 1 180px;min-width:0;max-width:400px;margin-left:auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:12px;padding:0 12px;color:#fff}
-  .cari-kepala input{flex:1;min-width:0;background:none;border:none;outline:none;color:#fff;padding:10px 0;font-size:14px}
-  .cari-kepala input::placeholder{color:#DBEAFE}
+  .navigasi-atas .tautan-atas{padding:9px 11px;border-radius:10px;font-size:13.5px;font-weight:700;color:#A7B2D0;white-space:nowrap;transition:background var(--trans),color var(--trans)}
+  .navigasi-atas .tautan-atas:hover{background:rgba(67,221,245,.12);color:#F4F7FF}
+  .navigasi-atas .tautan-atas.aktif{background:linear-gradient(135deg,#43DDF5,#BD54F5);color:#0B0D1E}
+  .cari-kepala{display:flex;align-items:center;gap:8px;flex:1 1 180px;min-width:0;max-width:400px;margin-left:auto;background:#0D1530;border:1px solid #263663;border-radius:12px;padding:0 12px;color:#F4F7FF}
+  .cari-kepala input{flex:1;min-width:0;background:none;border:none;outline:none;color:#F4F7FF;padding:10px 0;font-size:14px}
+  .cari-kepala input::placeholder{color:#7F8CAD}
   .aksi-kepala{margin-left:10px;gap:8px}
   .tombol-ikon,.tombol-profil{width:42px;height:42px}
   .baris-cari-mobile{display:none}

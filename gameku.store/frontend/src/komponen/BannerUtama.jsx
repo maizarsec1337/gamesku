@@ -1,5 +1,6 @@
 // Banner Home — carousel otomatis dari DATA ASLI.
-// Sumber: produkTersedia() + namaKategori(). Diskon asli dulu, maks 6.
+// Sumber utama: daftar API produk dari Home (prop opsional `daftar`);
+// fallback ke produkTersedia() bila dipakai tanpa prop. Diskon asli dulu, maks 6.
 // Katalog kosong = empty state jujur, BUKAN promo karangan.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSyncExternalStore } from 'react'
@@ -12,12 +13,12 @@ import { formatAngka, formatRupiah } from '../utilitas/format.js'
 const DURASI = 5000
 const TEMA = ['sale', 'skin', 'map', 'stream']
 
-export default function BannerUtama() {
+export default function BannerUtama({ daftar }) {
   useSyncExternalStore(subscribeProduk, produkTersedia, produkTersedia)
   const [aktif, setAktif] = useState(0)
   const [jeda, setJeda] = useState(false)
   const sentuhX = useRef(null)
-  const semua = produkTersedia()
+  const semua = Array.isArray(daftar) ? daftar : produkTersedia()
   const diskon = semua.filter((p) => p.hargaDiskon > 0 && p.hargaDiskon > p.harga)
   const biasa = semua.filter((p) => !(p.hargaDiskon > 0 && p.hargaDiskon > p.harga))
   const slide = [...diskon, ...biasa].slice(0, 6)
@@ -69,7 +70,7 @@ export default function BannerUtama() {
           <div className="gk-banner-track">
             {slide.map((p, i) => {
               const persen = p.hargaDiskon > p.harga ? Math.round((1 - p.harga / p.hargaDiskon) * 100) : 0
-              const kat = namaKategori(p.kategoriId)
+              const kat = p.kategoriNama || namaKategori(p.kategoriId)
               const tema = TEMA[i % TEMA.length]
               return (
                 <article key={p.id} className={`gk-slide tema-${tema}${i === aktif ? ' aktif' : ''}`} aria-hidden={i !== aktif} aria-roledescription="slide" aria-label={`${i + 1} dari ${jumlah}: ${p.nama}`}>

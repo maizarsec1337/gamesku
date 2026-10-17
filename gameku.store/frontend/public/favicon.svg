@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <!-- Favicon gameku: gamepad biru-putih modern -->
-  <rect x="4" y="4" width="56" height="56" rx="16" fill="#2563eb" />
-  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#g)" opacity=".55" />
-  <path d="M20 26h24a8 8 0 0 1 8 8v4a8 8 0 0 1-14 5l-3-3h-6l-3 3a8 8 0 0 1-14-5v-4a8 8 0 0 1 8-8z" fill="#fff" />
-  <circle cx="25" cy="33" r="2.4" fill="#2563eb" /><circle cx="39" cy="33" r="2.4" fill="#38bdf8" />
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>
-</svg>
