@@ -39,7 +39,7 @@ echo "[1/3] Database '{$nama}' siap.\n";
 $pdo->exec("USE `{$nama}`");
 
 // Jalankan skema.sql.
-$skema = file_get_contents(__DIR__ . '/skema.sql');
+$skema = file_get_contents(__DIR__ . '/schema.sql');
 if ($skema === false) {
     fwrite(STDERR, "Berkas skema.sql tidak dapat dibaca.\n");
     exit(1);

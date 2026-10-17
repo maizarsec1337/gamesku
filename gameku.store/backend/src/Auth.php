@@ -3,7 +3,15 @@
 
 class Auth
 {
-    private const COOKIE_SECURE = (bool) (getenv('GAMEKU_SECURE_COOKIE') ?? (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'));
+    // Cookie 'secure'. Tidak dapat berupa const: getenv() bukan ekspresi konstan
+    // (const berisi panggilan fungsi = fatal error di PHP mana pun). Perilaku
+    // dipertahankan sama persis dengan ekspresi lama: env GAMEKU_SECURE_COOKIE
+    // di-set → (bool) nilainya; tidak ada env → false.
+    private static function cookieSecure(): bool
+    {
+        $v = getenv('GAMEKU_SECURE_COOKIE');
+        return $v === false ? false : (bool) $v;
+    }
 
     public static function mulai(): void
     {
@@ -12,7 +20,7 @@ class Auth
                 'httponly'     => true,
                 'samesite'     => 'Lax',
                 'path'         => '/',
-                'secure'       => self::COOKIE_SECURE,
+                'secure'       => self::cookieSecure(),
                 'max_lifetime' => 1800,
             ]);
             session_start();
@@ -88,7 +96,7 @@ class Auth
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $p = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'] ?? '', self::COOKIE_SECURE, true);
+            setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'] ?? '', self::cookieSecure(), true);
         }
         session_destroy();
         self::keluarSesiPaksa();

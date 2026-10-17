@@ -65,6 +65,15 @@ if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
 }
 
 // Rate limiting middleware.
+// $jalur dipakai di bawah ini tetapi baru dihitung oleh api/index.php SETELAH
+// bootstrap ini selesai — hitung dulu di sini (dengan normalisasi yang sama)
+// agar rate limiting memakai jalur sesungguhnya dan tidak memunculkan warning.
+if (!isset($jalur)) {
+    $jalur = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    $jalur = preg_replace('#^/api#', '', $jalur) ?? '/';
+    $jalur = preg_replace('#\.php$#', '', $jalur) ?? '/';
+    $jalur = '/' . trim($jalur, '/');
+}
 $rateLimiterCfg = $cfg['rate_limiting'] ?? [];
 $rateLimitEnabled = $rateLimiterCfg['enabled'] ?? false;
 $rateLimitPaths = $rateLimiterCfg['paths'] ?? [];

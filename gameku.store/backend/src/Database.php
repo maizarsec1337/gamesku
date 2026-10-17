@@ -25,9 +25,14 @@ class Database
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
+                // MYSQL_OPT_CONNECT_TIMEOUT: jangan hang lama bila host DB
+                // tidak terjangkau (mis. diblokir jaringan/kebijakan hosting).
+                PDO::ATTR_TIMEOUT            => 8,
             ]);
         } catch (PDOException $e) {
-            // Jangan bocorkan detail koneksi ke klien.
+            // Detail asli HANYA ke log server (pesan PDO tidak memuat password);
+            // ke klien cukup pesan generik tanpa detail koneksi.
+            error_log('[gameku] Koneksi database gagal: ' . $e->getMessage());
             Bantu::gagal('Koneksi database gagal. Periksa konfigurasi server.', 500);
         }
 
