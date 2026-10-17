@@ -30,11 +30,14 @@
 .streamku .cta{margin-top:10px;display:inline-flex;background:#F044D8;color:#0B0D1E;font-weight:800;font-size:12.5px;border-radius:10px;padding:10px 14px;min-height:40px;align-items:center;gap:6px;flex:none}
 .streamku-ringkas{padding:14px}
 .streamku-atas{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.streamku-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
-.streamku-mini-kartu{background:#0D1530;border:1px solid #263663;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-.streamku-mini-thumb{aspect-ratio:16/9;display:grid;place-items:center;background:#0B0D1E;color:#43DDF5;overflow:hidden}
-.streamku-mini-thumb img{width:100%;height:100%;object-fit:cover}
-.streamku-mini-judul{font-size:11.5px;font-weight:700;color:#F4F7FF;padding:8px 9px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:44px}
+/* Grid kartu teaser: memakai kartu Streamku (.sk-kartu) yang portrait 2:3.
+   2 kolom selama shell masih sempit (HP, <768px) agar poster tetap besar & judul
+   terbaca; 3 kolom setelah shell melebar. Lebar dibatasi supaya poster tidak
+   membesar berlebihan di desktop. */
+.streamku-mini{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+@media (min-width:768px){
+  .streamku-mini{grid-template-columns:repeat(3,minmax(0,1fr));max-width:720px}
+}
 .gk-pil-kategori .pil{padding:8px 14px;border-radius:999px;border:1.5px solid #263663;background:#101A35;font-weight:700;font-size:12.5px;color:#A7B2D0;min-height:36px}
 .gk-pil-kategori .pil-aktif{background:linear-gradient(135deg,#43DDF5,#BD54F5);color:#0B0D1E;border-color:#43DDF5}
 .gk-kenapa{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}

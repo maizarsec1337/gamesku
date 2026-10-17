@@ -1,8 +1,11 @@
 // Teaser Streamku di Home — ringkas + 3 kartu anime asli (tanpa data contoh).
+// Kartu memakai komponen yang sama dengan halaman /streamku (KartuAnime) supaya
+// poster portrait, judul, badge, border, dan hover-nya konsisten tanpa duplikasi.
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Ikon from './Ikon.jsx'
 import { katalogAnime } from '../layanan/layananAnime.js'
+import { KartuAnime } from './StreamkuTayang.jsx'
 
 export default function Streamku() {
   const [daftar, setDaftar] = useState([])
@@ -33,18 +36,7 @@ export default function Streamku() {
         </div>
         {daftar.length > 0 && (
           <div className="streamku-mini">
-            {daftar.map((s) => {
-              const poster = String(s?.gambar || '').trim()
-              const judul = String(s?.judul || '').trim() || 'Tanpa judul'
-              return (
-                <Link key={s.slug} className="streamku-mini-kartu" to={`/streamku/${encodeURIComponent(s.slug)}`}>
-                  <span className="streamku-mini-thumb" aria-hidden="true">
-                    {poster ? <img src={poster} alt="" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none' }} /> : <Ikon nama="siaran" ukuran={20} />}
-                  </span>
-                  <span className="streamku-mini-judul">{judul}</span>
-                </Link>
-              )
-            })}
+            {daftar.map((s) => (<KartuAnime key={s.slug} seri={s} />))}
           </div>
         )}
       </div>
