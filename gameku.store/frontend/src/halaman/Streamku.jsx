@@ -68,7 +68,6 @@ export default function HalamanStreamku() {
   }
 
   const totalHalaman = data?.totalHalaman || 1
-  const total = data?.total || 0
 
   return (
     <>
@@ -90,17 +89,6 @@ export default function HalamanStreamku() {
       </div></section>
 
       <section className="bagian reveal"><div className="wadah">
-        <div className="judul-bagian">
-          <div>
-            <h2>{kueri ? `Hasil untuk “${kueri}”` : 'Katalog Anime'}</h2>
-            <p>
-              {status === 'siap'
-                ? `${total} seri ditemukan.`
-                : status === 'memuat' ? 'Memuat katalog…' : 'Gagal memuat katalog.'}
-            </p>
-          </div>
-        </div>
-
         {status === 'memuat' && <MuatKerangka jumlah={PER} />}
         {status === 'galat' && <GalatStreamku pesan={galat} onCobaLagi={cobaLagi} />}
         {status === 'siap' && (
