@@ -14,6 +14,7 @@ class PengendaliAktivitas extends PengendaliDasar
             case 'DELETE':
                 $this->validateCsrf();
                 Aktivitas::kosongkan();
+                Aktivitas::audit('kosongkan_aktivitas', 'aktivitas', '', 'Berhasil', [], 'Semua jejak aktivitas dikosongkan.');
                 Bantu::sukses(null, 'Aktivitas dikosongkan.');
                 break;
             default:

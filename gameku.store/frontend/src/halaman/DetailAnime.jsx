@@ -4,8 +4,8 @@ import { Link, useParams } from 'react-router-dom'
 import Ikon from '../komponen/Ikon.jsx'
 import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
 import useReveal from '../layanan/gunakanReveal.js'
-import { detailAnime, GalatAnime } from '../layanan/layananAnime.js'
-import { BarisEpisode, StatusPemutaran, GalatStreamku, MuatKerangka } from '../komponen/StreamkuTayang.jsx'
+import { detailAnime, episodeAnime, GalatAnime } from '../layanan/layananAnime.js'
+import { BarisEpisode, PemutarVideo, GalatStreamku, MuatKerangka } from '../komponen/StreamkuTayang.jsx'
 
 export default function HalamanDetailAnime() {
   const { slug } = useParams()
@@ -15,6 +15,45 @@ export default function HalamanDetailAnime() {
   const [kodeGalat, setKodeGalat] = useState(0)
   const [data, setData] = useState(null)
   const [muatUlang, setMuatUlang] = useState(0)
+  const [pilihanEps, setPilihanEps] = useState(null)
+  const [videoUrl, setVideoUrl] = useState(null)
+  const [videoEmbed, setVideoEmbed] = useState(null)
+  const [videoMemuat, setVideoMemuat] = useState(false)
+  const [videoGalat, setVideoGalat] = useState('')
+
+  const pilihEpisode = async (no) => {
+    const eps = Array.isArray(data?.episode) ? data.episode.find((e) => Number(e.no) === no) : null
+    if (!eps) return
+    setPilihanEps(eps)
+    setVideoMemuat(true)
+    setVideoGalat('')
+    setVideoUrl(null)
+    setVideoEmbed(null)
+    try {
+      const epData = await episodeAnime(slug, no)
+      const ep = epData && epData.episode
+      // Kontrak backend: sumberPemutaran ('mp4'|'hls'|'belum-tersedia'),
+      // urlPemutaran (URL video langsung), embedPemutaran (iframe resmi).
+      // `link` episode adalah URL HALAMAN — bukan URL video; jangan dipakai
+      // sebagai sumber pemutaran.
+      const langsung = ep && ep.urlPemutaran && /^https?:\/\//.test(String(ep.urlPemutaran))
+        ? String(ep.urlPemutaran) : null
+      const embed = ep && ep.embedPemutaran && /^https?:\/\//.test(String(ep.embedPemutaran))
+        ? String(ep.embedPemutaran) : null
+      if (ep && String(ep.sumberPemutaran || '') === 'mp4' && langsung) {
+        setVideoUrl(langsung)
+      } else if (embed) {
+        // HLS butuh pemutar khusus; embed resmi menanganinya di sisi mereka.
+        setVideoEmbed(embed)
+      } else {
+        setVideoGalat('Sumber pemutaran untuk episode ini belum tersedia di sumber resmi. Buka tautan halaman episode resmi untuk menonton.')
+      }
+    } catch (e) {
+      setVideoGalat(e instanceof GalatAnime ? e.message : 'Gagal memuat sumber episode.')
+    } finally {
+      setVideoMemuat(false)
+    }
+  }
 
   useEffect(() => {
     let batal = false
@@ -36,6 +75,7 @@ export default function HalamanDetailAnime() {
   const seri = data?.seri
   const daftarEps = Array.isArray(data?.episode) ? data.episode : []
   const poster = String(seri?.gambar || '').trim()
+  const episodeAktif = pilihanEps ? Number(pilihanEps.no) : null
 
   return (
     <>
@@ -86,7 +126,25 @@ export default function HalamanDetailAnime() {
               )}
             </div>
             <div className="sk-detail-isi">
-              <StatusPemutaran />
+              <PemutarVideo
+                videoUrl={videoUrl}
+                embedUrl={videoEmbed}
+                judulEpisode={pilihanEps ? pilihanEps.judul : null}
+                onError={(kode, pesan) => setVideoGalat(pesan)}
+              />
+              {videoMemuat && !videoUrl && !videoEmbed && !videoGalat && (
+                <div className="sk-pemutar sk-pemutar-muat" role="status" aria-label="Memuat sumber episode…">
+                  <span className="sk-pemutar-ikon" aria-hidden="true"><Ikon nama="muat" ukuran={32} /></span>
+                  <strong>Mencari sumber episode…</strong>
+                </div>
+              )}
+              {videoGalat && !videoUrl && !videoEmbed && (
+                <div className="sk-pemutar sk-pemutar-galat" role="alert">
+                  <span className="sk-pemutar-ikon" aria-hidden="true"><Ikon nama="peringatan" ukuran={32} /></span>
+                  <strong>Sumber video tidak tersedia</strong>
+                  <p>{videoGalat}</p>
+                </div>
+              )}
               <div className="judul-bagian" style={{ marginTop: 18 }}>
                 <div><h2>Daftar Episode</h2><p>{daftarEps.length} episode.</p></div>
               </div>
@@ -94,7 +152,14 @@ export default function HalamanDetailAnime() {
                 <KeadaanKosong ikon="siaran" judul="Belum ada episode" deskripsi="Daftar episode untuk seri ini belum tersedia." />
               ) : (
                 <ul className="sk-eps-daftar">
-                  {daftarEps.map((e) => (<BarisEpisode key={e.no} episode={e} />))}
+                  {daftarEps.map((e) => (
+                    <BarisEpisode
+                      key={e.no}
+                      episode={e}
+                      aktif={episodeAktif}
+                      onPilih={pilihEpisode}
+                    />
+                  ))}
                 </ul>
               )}
             </div>

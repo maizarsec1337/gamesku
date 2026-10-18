@@ -54,12 +54,16 @@ BACKEND_HEALTH_URL = f"http://localhost:{BACKEND_PORT}/api/sehat"
 
 # shutil.which ikut mendeteksi skrip .cmd di Windows (lewat PATHEXT).
 NPM_CMD = shutil.which("npm")
+NODE_CMD = shutil.which("node")       # dipakai jembatan-dev bila PHP absen
 PHP_CMD = shutil.which("php")          # None bila PHP tidak terpasang
 
 # --strictPort: bila port 5173 tidak tersedia, Vite langsung GAGAL (terbaca
 # jelas di log) alih-alih diam-diam pindah ke port lain.
 FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--strictPort"]
 BACKEND_CMD = [PHP_CMD or "php", "-S", f"localhost:{BACKEND_PORT}", "-t", ".", "api/index.php"]
+# Jembatan-dev: Node http server kontrak-sama (hanya /api/sehat + /api/anime),
+# dipakai HANYA bila PHP absen di PATH. Sumber data tetap berkas JSON asli.
+JEMBATAN_CMD = [NODE_CMD or "node", "jembatan-dev.mjs"]
 
 # CREATE_NO_WINDOW mencegah munculnya jendela CMD baru saat menjalankan
 # npm.cmd / node.exe / php.exe di Windows. Di POSIX dipakai sesi baru agar
@@ -308,8 +312,21 @@ def jalankan_frontend():
     return proc
 
 def jalankan_backend():
-    """php -S localhost:8000 -t . api/index.php di backend/ -> port 8000."""
+    """php -S localhost:8000 -t . api/index.php di backend/ -> port 8000.
+
+    Fallback: bila PHP absen di PATH tetapi Node ada, jalankan jembatan-dev
+    (kontrak-sama, data JSON asli) agar /streamku tetap tampil. Di hosting
+    tetap PHP — jembatan ini dev-only dan tidak ikut ke dist/.
+    """
     log = buka_log("backend.log")
+    if PHP_CMD is None and NODE_CMD:
+        log.write(f"\n===== {datetime.now():%Y-%m-%d %H:%M:%S} | "
+                  f"{' '.join(JEMBATAN_CMD)} (cwd: {ROOT_DIR}) [jembatan-dev: PHP absen] =====\n")
+        log.flush()
+        proc = subprocess.Popen(JEMBATAN_CMD, cwd=ROOT_DIR,
+                                stdout=log, stderr=subprocess.STDOUT, **FLAG_POPEN)
+        proses_anak.append({"nama": "backend", "proc": proc, "log": log})
+        return proc
     log.write(f"\n===== {datetime.now():%Y-%m-%d %H:%M:%S} | "
               f"{' '.join(BACKEND_CMD)} (cwd: {BACKEND_DIR}) =====\n")
     log.flush()
@@ -382,7 +399,10 @@ def tampilkan_status_dependensi(deps):
     if not node_npm_ok:
         print(f"\n  {RED}{SYMBOL_ERROR} Node.js / npm tidak tersedia. Frontend tidak dapat dijalankan.{RESET}")
     if not php_ada:
-        print(f"\n  {YELLOW}{SYMBOL_WARN} PHP tidak ditemukan di PATH. Backend TIDAK akan dijalankan.{RESET}")
+        if NODE_CMD:
+            print(f"\n  {YELLOW}{SYMBOL_WARN} PHP tidak ditemukan di PATH. Backend memakai jembatan-dev Node (kontrak-sama, dev-only).{RESET}")
+        else:
+            print(f"\n  {RED}{SYMBOL_ERROR} PHP dan Node tidak ditemukan. Backend TIDAK akan dijalankan.{RESET}")
 
     print(f"  {DIM}────────────────────────────────────────{RESET}")
     print()
@@ -408,8 +428,11 @@ def tampilkan_status_backend(php_ada, port_digunakan):
     print(f"  {DIM}Port:{RESET} {BACKEND_PORT}")
     print(f"  {DIM}Log:{RESET} logs/backend.log")
     if not php_ada:
-        print(f"  {RED}{SYMBOL_ERROR}{RESET} PHP tidak terinstall — backend tidak bisa dijalankan.")
-        print(f"    {DIM}Contoh instalasi: winget install PHP.PHP{RESET}")
+        if NODE_CMD:
+            print(f"  {YELLOW}{SYMBOL_WARN}{RESET} PHP tidak terinstall — memakai jembatan-dev Node (kontrak-sama, dev-only).")
+        else:
+            print(f"  {RED}{SYMBOL_ERROR}{RESET} PHP tidak terinstall — backend tidak bisa dijalankan.")
+            print(f"    {DIM}Contoh instalasi: winget install PHP.PHP{RESET}")
     if port_digunakan:
         print(f"  {YELLOW}{SYMBOL_WARN}{RESET} Port {BACKEND_PORT} sudah dipakai proses lain (akan dilewati).")
     print(f"  {DIM}────────────────────────────────────────{RESET}")
@@ -478,12 +501,13 @@ def main():
         print(f"  {CYAN}{SYMBOL_INFO}{RESET} Memulai frontend: npm run dev  {DIM}(log: logs/frontend.log){RESET}")
         frontend_proc = jalankan_frontend()
 
-    if not php_ada:
-        print(f"  {RED}{SYMBOL_ERROR}{RESET} Backend TIDAK dijalankan: PHP tidak ditemukan di PATH.")
+    if not php_ada and not NODE_CMD:
+        print(f"  {RED}{SYMBOL_ERROR}{RESET} Backend TIDAK dijalankan: PHP maupun Node tidak ditemukan di PATH.")
     elif be_dipakai:
         print(f"  {YELLOW}{SYMBOL_WARN}{RESET} Backend dilewati: port {BACKEND_PORT} sudah dipakai proses lain.")
     else:
-        print(f"  {CYAN}{SYMBOL_INFO}{RESET} Memulai backend: php -S localhost:{BACKEND_PORT}  "
+        label = "php -S localhost" if php_ada else "jembatan-dev Node"
+        print(f"  {CYAN}{SYMBOL_INFO}{RESET} Memulai backend: {label}:{BACKEND_PORT}  "
               f"{DIM}(log: logs/backend.log){RESET}")
         backend_proc = jalankan_backend()
 
@@ -513,9 +537,9 @@ def main():
         hasil["backend"] = (ok, ket)
         simbol = f"{GREEN}{SYMBOL_OK}{RESET}" if ok else f"{RED}{SYMBOL_ERROR}{RESET}"
         print(f"\r  {DIM}Backend :{RESET} {simbol} {ket}" + " " * 40)
-    elif not php_ada:
-        hasil["backend"] = (False, "PHP tidak ditemukan di PATH")
-        print(f"  {DIM}Backend :{RESET} {RED}{SYMBOL_ERROR}{RESET} tidak aktif (PHP tidak ditemukan)")
+    elif not php_ada and not NODE_CMD:
+        hasil["backend"] = (False, "PHP maupun Node tidak ditemukan di PATH")
+        print(f"  {DIM}Backend :{RESET} {RED}{SYMBOL_ERROR}{RESET} tidak aktif (runtime tidak ditemukan)")
     elif be_dipakai:
         siap = cek_http(BACKEND_HEALTH_URL)
         hasil["backend"] = (siap, "dijalankan proses lain")

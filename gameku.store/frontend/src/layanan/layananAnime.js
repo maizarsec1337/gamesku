@@ -25,6 +25,21 @@ async function minta(jalur) {
     // Gagal jaringan / server mati — jangan diam-diam pakai data contoh.
     throw new GalatAnime('Tidak dapat menghubungi server. Periksa koneksi Anda.', 0)
   }
+  // Backend mati / proxy Vite tanpa target mengembalikan 502 dgn badan KOSONG
+  // (bukan JSON). Bedakan secara jujur agar pesan tidak menyesatkan.
+  if (respons.status === 502) {
+    throw new GalatAnime('Server backend tidak aktif (port 8000). Jalankan `python jalan.py` lalu tekan Coba lagi.', 502)
+  }
+  const tipe = String(respons.headers.get('content-type') || '')
+  if (!tipe.includes('application/json')) {
+    const mentah = await respons.text().catch(() => '')
+    // Potong cuplikan mentah agar teknisi bisa lihat penyebab (HTML error dsb).
+    const cuplik = mentah.trim().slice(0, 120)
+    throw new GalatAnime(
+      `Server membalas ${respons.status} bukan JSON${cuplik ? `: ${cuplik}` : '.'} Periksa backend lalu tekan Coba lagi.`,
+      respons.status,
+    )
+  }
   let isi = null
   try {
     isi = await respons.json()

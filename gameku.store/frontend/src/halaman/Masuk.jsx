@@ -1,4 +1,4 @@
-// Halaman /masuk — login/daftar pembeli Gameku.store (di luar TataLetak).
+﻿// Halaman /masuk â€” login/daftar pembeli Gameku.store (di luar TataLetak).
 // Mode daftar memakai tambahPelanggan() nyata; mode masuk hanya validasi bentuk
 // (endpoint sesi pembeli belum ada di backend).
 import { useState } from 'react'
@@ -43,7 +43,7 @@ export default function HalamanMasuk() {
         return
       }
       setJenisPesan('ok')
-      setPesan(`Pendaftaran tersimpan di browser ini (${hasil.data.email}). Masuk sesi pembeli membutuhkan endpoint backend yang belum tersedia — lihat catatan di bawah.`)
+      setPesan(`Pendaftaran tersimpan di browser ini (${hasil.data.email}). Masuk sesi pembeli membutuhkan endpoint backend yang belum tersedia â€” lihat catatan di bawah.`)
       return
     }
     // Mode masuk: tanpa endpoint sesi pembeli, jadi tidak ada verifikasi.
@@ -60,8 +60,8 @@ export default function HalamanMasuk() {
 
   const judul = mode === 'masuk' ? 'Selamat datang kembali' : 'Buat akun gamermu'
   const subjudul = mode === 'masuk'
-    ? 'Halaman masuk pembeli — sesi server belum tersedia, baca catatan sebelum mengisi.'
-    : 'Daftar pembeli memakai fungsi asli tambahPelanggan() — tersimpan di browser ini.'
+    ? 'Halaman masuk pembeli â€” sesi server belum tersedia, baca catatan sebelum mengisi.'
+    : 'Daftar pembeli memakai fungsi asli tambahPelanggan() â€” tersimpan di browser ini.'
 
   return (
     <div className="gk-masuk">
@@ -70,7 +70,7 @@ export default function HalamanMasuk() {
           <span className="logo-gameku gk-logo" aria-hidden="true">G</span>
           <span className="logo-teks">Gameku.store<small>gaming store</small></span>
         </Link>
-        <Link className="gk-kembali" to="/">← Beranda</Link>
+        <Link className="gk-kembali" to="/">â† Beranda</Link>
       </div></header>
 
       <main className="wadah gk-masuk-utama">
@@ -82,7 +82,7 @@ export default function HalamanMasuk() {
             <ul className="gk-brand-poin">
               <li><Ikon nama="pengguna" ukuran={16} /> Mode Daftar memakai fungsi asli tambahPelanggan() dari layananPelanggan.</li>
               <li><Ikon nama="sandi" ukuran={16} /> Validasi bentuk email + kata sandi dipertahankan dari kode lama.</li>
-              <li><Ikon nama="info" ukuran={16} /> Mode Masuk belum memverifikasi — endpoint sesi pembeli belum ada.</li>
+              <li><Ikon nama="info" ukuran={16} /> Mode Masuk belum memverifikasi â€” endpoint sesi pembeli belum ada.</li>
             </ul>
             <div className="gk-brand-stat">
               {STATUS_SISTEM.map((s) => (
@@ -97,7 +97,7 @@ export default function HalamanMasuk() {
               <button type="button" role="tab" aria-selected={mode === 'daftar'} className={mode === 'daftar' ? 'aktif' : ''} onClick={() => gantiMode('daftar')}>Daftar</button>
             </div>
             <h2 className="gk-masuk-judul">{mode === 'masuk' ? 'Masuk ke Gameku.store' : 'Daftar akun baru'}</h2>
-            <p className="gk-masuk-sub">{mode === 'masuk' ? 'Belum ada sesi server — isi form untuk cek validasi, bukan untuk masuk sungguhan.' : 'Menyimpan lewat tambahPelanggan() ke koleksi lokal browser ini.'}</p>
+            <p className="gk-masuk-sub">{mode === 'masuk' ? 'Belum ada sesi server â€” isi form untuk cek validasi, bukan untuk masuk sungguhan.' : 'Menyimpan lewat tambahPelanggan() ke koleksi lokal browser ini.'}</p>
 
             <form onSubmit={kirim} noValidate>
               {mode === 'daftar' && (
@@ -114,7 +114,7 @@ export default function HalamanMasuk() {
                 <label className="label-isian" htmlFor="masuk-email">Email</label>
                 <div className={galatBidang.email ? 'gk-input gk-error' : 'gk-input'}>
                   <Ikon nama="surel" ukuran={16} />
-                  <input id="masuk-email" type="email" value={form.email} onChange={ubah('email')} placeholder="kamu@email.com" autoComplete="email" aria-invalid={!!galatBidang.email} />
+                  <input id="masuk-email" type="email" minLength={6} value={form.email} onChange={ubah('email')} placeholder="kamu@email.com" autoComplete="email" aria-invalid={!!galatBidang.email} />
                 </div>
                 {galatBidang.email && <span className="pesan-salah" role="alert">{galatBidang.email}</span>}
               </div>
@@ -123,7 +123,7 @@ export default function HalamanMasuk() {
                 <label className="label-isian" htmlFor="masuk-sandi">Kata sandi</label>
                 <div className={galatBidang.kataSandi ? 'gk-input gk-error' : 'gk-input'}>
                   <Ikon nama="sandi" ukuran={16} />
-                  <input id="masuk-sandi" type={tampilSandi ? 'text' : 'password'} value={form.kataSandi} onChange={ubah('kataSandi')} placeholder="••••••••" autoComplete="current-password" aria-invalid={!!galatBidang.kataSandi} />
+                  <input id="masuk-sandi" type={tampilSandi ? 'text' : 'password'} value={form.kataSandi} onChange={ubah('kataSandi')} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autoComplete="current-password" aria-invalid={!!galatBidang.kataSandi} />
                   <button type="button" className="gk-lihat" onClick={() => setTampilSandi((v) => !v)} aria-label={tampilSandi ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'} aria-pressed={tampilSandi}>
                     <Ikon nama={tampilSandi ? 'mataTutup' : 'lihat'} ukuran={17} />
                   </button>
@@ -132,7 +132,7 @@ export default function HalamanMasuk() {
               </div>
               )}
               {mode === 'daftar' && (
-                <p className="gk-masuk-catatan">Fungsi asli tambahPelanggan() hanya menyimpan nama + email — kolom kata sandi sengaja tidak ditampilkan agar tidak ada input yang diabaikan.</p>
+                <p className="gk-masuk-catatan">Fungsi asli tambahPelanggan() hanya menyimpan nama + email â€” kolom kata sandi sengaja tidak ditampilkan agar tidak ada input yang diabaikan.</p>
               )}
               {pesan && <p className={jenisPesan === 'ok' ? 'gk-pesan gk-pesan-ok' : jenisPesan === 'info' ? 'gk-pesan gk-pesan-info' : 'gk-pesan'} role="alert"><Ikon nama="info" ukuran={15} /> {pesan}</p>}
               <button type="submit" className="tombol tombol-lebar gk-tombol-masuk">
@@ -152,3 +152,4 @@ export default function HalamanMasuk() {
     </div>
   )
 }
+

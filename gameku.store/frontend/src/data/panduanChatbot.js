@@ -106,6 +106,11 @@ export function cariPanduan(teks) {
 }
 
 export function ambilPanduan(id) {
+  if (id === 'akun' || id === 'kontak' || id === 'beli' || id === 'cari' || id === 'promo') {
+    const dariTopik = saranTopik.find((t) => t.id === id)
+    const item = panduan.find((p) => p.id === id) || null
+    if (item) return { ...item, label: dariTopik?.label || item.judul }
+  }
   return panduan.find((p) => p.id === id) || null
 }
 

@@ -86,6 +86,17 @@ class PengendaliUlasan extends PengendaliDasar
 
     private function kirim(): void
     {
+        // Rate limit ulasan publik per IP (cegah spam/flooding).
+        $ip = RateLimiter::ip();
+        $hasilUlasan = RateLimiter::check('ulasan', $ip, 10, 60);
+        if ($hasilUlasan['limited']) {
+            header('Retry-After: ' . (int) ($hasilUlasan['retry_after'] ?? 60));
+            SecurityLog::catat('rate_limit', 'warn', 'Kirim ulasan dibatasi.', [
+                'retryAfter' => $hasilUlasan['retry_after'],
+            ]);
+            Bantu::gagal('Terlalu banyak ulasan. Tunggu sebentar lalu coba lagi.', 429);
+        }
+
         $produkId   = $this->teks('produkId');
         $pelanggan  = Bantu::potong($this->teks('pelanggan'), 120);
         if ($produkId === '' || $pelanggan === '') {
@@ -105,6 +116,12 @@ class PengendaliUlasan extends PengendaliDasar
              VALUES (?,?,?,?,?,?,?)',
             [$id, $produkId, $produkNama, $pelanggan, $rating, $komentar, 'Menunggu']
         );
+        Aktivitas::audit('kirim_ulasan', 'ulasan', $id, 'Berhasil', [
+            'produkId' => $produkId,
+            'produkNama' => $produkNama,
+            'pelanggan' => $pelanggan,
+            'rating' => $rating,
+        ], "Ulasan produk \"{$produkNama}\" dikirim oleh {$pelanggan}");
         Bantu::sukses(['id' => $id, 'status' => 'Menunggu'], 'Ulasan terkirim, menunggu moderasi.', 201);
     }
 
@@ -116,6 +133,9 @@ class PengendaliUlasan extends PengendaliDasar
 
         $status = $this->salahDari($this->teks('status', 'Menunggu'), self::STATUS, 'Menunggu');
         Database::eksekusi('UPDATE ulasan SET status=? WHERE id=?', [$status, $id]);
+        Aktivitas::audit('moderasi_ulasan', 'ulasan', $id, 'Berhasil', [
+            'statusBaru' => $status,
+        ], "Status ulasan {$id} diubah ke {$status}");
         Bantu::sukses(['id' => $id, 'status' => $status], 'Status ulasan diperbarui.');
     }
 
@@ -124,6 +144,7 @@ class PengendaliUlasan extends PengendaliDasar
         if (!$id) Bantu::gagal('ID ulasan wajib ada.', 400);
         $baris = Database::satu('SELECT id FROM ulasan WHERE id = ?', [$id]);
         if (!$baris) Bantu::gagal('Ulasan tidak ditemukan.', 404);
+        Aktivitas::audit('hapus_ulasan', 'ulasan', $id, 'Berhasil', [], "Ulasan {$id} dihapus");
         Database::eksekusi('DELETE FROM ulasan WHERE id = ?', [$id]);
         Bantu::sukses(['id' => $id], 'Ulasan dihapus.');
     }

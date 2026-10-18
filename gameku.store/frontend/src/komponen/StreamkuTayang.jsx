@@ -3,6 +3,7 @@
 import { Link } from 'react-router-dom'
 import Ikon from './Ikon.jsx'
 import KeadaanKosong from './KeadaanKosong.jsx'
+import { useState } from 'react'
 
 // Kerangka muat (skeleton) saat data sedang diambil.
 export function MuatKerangka({ jumlah = 8 }) {
@@ -78,19 +79,29 @@ export function DaftarAnime({ daftar }) {
 }
 
 // Satu baris episode. Data hanya berisi tautan halaman episode (bukan URL video).
-export function BarisEpisode({ episode }) {
+export function BarisEpisode({ episode, aktif, onPilih }) {
   const no = Number(episode?.no || 0)
   const judul = String(episode?.judul || '').trim()
   const tautan = String(episode?.link || '').trim()
   const tanggal = formatTanggal(episode?.tanggal)
   const aman = /^https?:\/\//.test(tautan)
+  const dipilih = aktif === no
   return (
-    <li className="sk-eps">
-      <span className="sk-eps-no">{no ? `Eps ${no}` : 'â€”'}</span>
+    <li className={"sk-eps" + (dipilih ? " sk-eps-aktif" : "")}>
+      <span className="sk-eps-no">{no ? 'Eps ' + no : '—'}</span>
       <span className="sk-eps-judul">
-        {judul || `Episode ${no}`}
+        {judul || 'Episode ' + no}
         {tanggal && <span className="sk-eps-tanggal">{tanggal}</span>}
       </span>
+      <button
+        type="button"
+        className="sk-eps-pilih"
+        onClick={() => onPilih && onPilih(no)}
+        aria-label={dipilih ? 'Episode ' + no + ' sudah dipilih' : 'Putar Episode ' + no}
+        disabled={dipilih}
+      >
+        {dipilih ? 'Dipilih' : 'Putar'}
+      </button>
       {aman ? (
         <a className="sk-eps-tautan" href={tautan} target="_blank" rel="noreferrer noopener">
           Halaman <Ikon nama="panahKanan" ukuran={14} />
@@ -108,6 +119,103 @@ function formatTanggal(iso) {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+// Pemutar video internal: tampil bila ada URL video langsung atau iframe embed resmi.
+// Tangani loading, error, format tidak didukung, dan CORS secara jelas.
+export function PemutarVideo({ videoUrl, embedUrl, judulEpisode, onError }) {
+  const [memuat, setMemuat] = useState(Boolean(videoUrl))
+  const [gagalMemutar, setGagalMemutar] = useState(false)
+  const [pesanGalat, setPesanGalat] = useState('')
+
+  const URL_VIDEO_VALID = videoUrl && /^https?:\/\//.test(String(videoUrl))
+  const EMBED_VALID = !URL_VIDEO_VALID && embedUrl && /^https?:\/\//.test(String(embedUrl))
+
+  const tanganiGalat = (kode, pesan) => {
+    setGagalMemutar(true)
+    setMemuat(false)
+    setPesanGalat(pesan)
+    if (typeof onError === 'function') onError(kode, pesan)
+  }
+
+  const tanganiKesalahanMedia = () => {
+    tanganiGalat('media', 'Format video tidak dapat diputar oleh browser ini.')
+  }
+
+  const tanganiJaringan = () => {
+    tanganiGalat('jaringan', 'Gagal memuat sumber video. Periksa koneksi internet Anda.')
+  }
+
+  if (!URL_VIDEO_VALID && !EMBED_VALID) {
+    return (
+      <div className="sk-pemutar sk-pemutar-kosong" role="status" aria-label="Sumber pemutaran belum tersedia">
+        <span className="sk-pemutar-ikon" aria-hidden="true"><Ikon nama="siaran" ukuran={40} /></span>
+        <strong>Sumber pemutaran belum tersedia</strong>
+        <p>
+          Pemutar mencari sumber resmi otomatis saat kamu memilih episode.
+          Bila kosong, sumber upstream memang belum menyediakan video untuk episode ini —
+          buka tautan halaman episode resmi untuk menonton.
+        </p>
+      </div>
+    )
+  }
+
+  if (EMBED_VALID) {
+    return (
+      <div className="sk-pemutar sk-pemutar-aktif">
+        <iframe
+          className="sk-video sk-video-embed"
+          src={String(embedUrl)}
+          title={judulEpisode || 'Pemutar episode'}
+          allow="autoplay; encrypted-media; fullscreen"
+          allowFullScreen
+        />
+        <p className="sk-pemutar-judul">{judulEpisode || 'Episode'}</p>
+      </div>
+    )
+  }
+
+
+  return (
+    <div className="sk-pemutar sk-pemutar-aktif">
+      {memuat && !gagalMemutar ? (
+        <div className="sk-pemutar-muat">
+          <span className="sk-pemutar-ikon" aria-hidden="true"><Ikon nama="muat" ukuran={32} /></span>
+          <strong>Memuat pemutar…</strong>
+        </div>
+      ) : (
+        <>
+          {gagalMemutar ? (
+            <div className="sk-pemutar sk-pemutar-galat" role="alert">
+              <span className="sk-pemutar-ikon" aria-hidden="true"><Ikon nama="peringatan" ukuran={32} /></span>
+              <strong>Tidak dapat memutar video</strong>
+              <p>{pesanGalat || 'Terjadi kesalahan saat memuat sumber pemutaran.'}</p>
+              <p className="sk-pemutar-catatan">
+                Sumber video ini mungkin tidak tersedia, dibatasi CORS, atau format tidak didukung.
+              </p>
+            </div>
+          ) : (
+            <>
+              <video
+                className="sk-video"
+                src={videoUrl}
+                controls
+                preload="metadata"
+                poster=""
+                onLoadStart={() => setMemuat(true)}
+                onCanPlay={() => setMemuat(false)}
+                onError={tanganiKesalahanMedia}
+                aria-label={judulEpisode || 'Video episode'}
+              >
+                Track pada browser Anda tidak dapat memutar video ini.
+              </video>
+              <p className="sk-pemutar-judul">{judulEpisode || 'Episode'}</p>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  )
 }
 
 // Catatan jujur: sumber pemutaran video belum ada & terverifikasi.
@@ -142,6 +250,10 @@ export function GalatStreamku({ pesan, onCobaLagi }) {
     </div>
   )
 }
+
+
+
+
 
 
 

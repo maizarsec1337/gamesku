@@ -77,7 +77,10 @@ class PengendaliPelanggan extends PengendaliDasar
             [$id, $nama, $username, $email, $hash]
         );
 
-        Aktivitas::catat("Pelanggan \"{$nama}\" mendaftar", 'pelanggan', 'biru');
+        Aktivitas::audit('daftar_pelanggan', 'pelanggan', $id, 'Berhasil', [
+            'nama' => $nama,
+            'email' => $email,
+        ], "Pelanggan \"{$nama}\" mendaftar");
         Bantu::sukses(['id' => $id, 'nama' => $nama, 'email' => $email], 'Pendaftaran berhasil.', 201);
     }
 
@@ -91,7 +94,10 @@ class PengendaliPelanggan extends PengendaliDasar
         $nama   = Bantu::potong($this->teks('nama', $lama['nama']), 120);
 
         Database::eksekusi('UPDATE pelanggan SET nama=?, status=? WHERE id=?', [$nama, $status, $id]);
-        Aktivitas::catat("Pelanggan \"{$nama}\" diperbarui", 'edit', 'biru');
+        Aktivitas::audit('ubah_pelanggan', 'pelanggan', $id, 'Berhasil', [
+            'nama' => $nama,
+            'status' => $status,
+        ], "Pelanggan \"{$nama}\" diperbarui");
         Bantu::sukses(['id' => $id], 'Pelanggan diperbarui.');
     }
 
@@ -101,7 +107,9 @@ class PengendaliPelanggan extends PengendaliDasar
         $baris = Database::satu('SELECT id, nama FROM pelanggan WHERE id = ?', [$id]);
         if (!$baris) Bantu::gagal('Pelanggan tidak ditemukan.', 404);
         Database::eksekusi('DELETE FROM pelanggan WHERE id = ?', [$id]);
-        Aktivitas::catat("Pelanggan \"{$baris['nama']}\" dihapus", 'hapus', 'merah');
+        Aktivitas::audit('hapus_pelanggan', 'pelanggan', $id, 'Berhasil', [
+            'nama' => $baris['nama'],
+        ], "Pelanggan \"{$baris['nama']}\" dihapus");
         Bantu::sukses(['id' => $id], 'Pelanggan dihapus.');
     }
 }

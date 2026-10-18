@@ -101,7 +101,8 @@ class PengendaliPesanan extends PengendaliDasar
     }
 
     // Checkout publik: hitung ulang dari harga di DB (bukan dari klien).
-    // Terima: item[{produkId?,nama?,harga?,jumlah}], kodePromo?, pembeli{}, metode?.
+    // Terima: item[{produkId,nama?,jumlah}], kodePromo?, pembeli{}, metode?,
+    //          idempotencyKey? (opsional, cegah pesanan ganda saat retry).
     private function checkout(): void
     {
         $badan = $this->badan();
@@ -110,7 +111,31 @@ class PengendaliPesanan extends PengendaliDasar
             Bantu::gagal('Keranjang kosong.');
         }
 
-        // Bangun ulang baris item dari harga produk di DB.
+        // ===== Idempotensi: bila klien mengirim key yang sama dalam jendela
+        // pendek, kembalikan pesanan yang sudah ada (retry aman, tanpa dobel). =====
+        $idempotencyKey = trim((string) ($badan['idempotencyKey'] ?? ''));
+        if ($idempotencyKey !== '') {
+            if (!preg_match('/^[A-Za-z0-9\-_]{8,64}$/', $idempotencyKey)) {
+                Bantu::gagal('Kunci idempotensi tidak valid.', 400);
+            }
+            $lama = Database::satu(
+                'SELECT id, subtotal, biaya_layanan, potongan, total, status
+                 FROM pesanan WHERE idempotency_key = ? LIMIT 1',
+                [$idempotencyKey]
+            );
+            if ($lama) {
+                Bantu::sukses([
+                    'id' => $lama['id'], 'subtotal' => (int) $lama['subtotal'],
+                    'biayaLayanan' => (int) $lama['biaya_layanan'], 'potongan' => (int) $lama['potongan'],
+                    'total' => (int) $lama['total'], 'status' => $lama['status'],
+                ], 'Pesanan sudah tercatat.', 200);
+                return;
+            }
+        }
+
+        // Bangun ulang baris item HANYA dari harga produk di DB.
+        // Harga dari klien TIDAK PERNAH dipakai — meski produkId kosong pun
+        // item tanpa produkId valid ditolak (cegah price manipulation).
         $barisItem = [];
         $subtotal = 0;
         $namaRingkas = [];
@@ -119,29 +144,42 @@ class PengendaliPesanan extends PengendaliDasar
         foreach ($itemMasuk as $it) {
             if (!is_array($it)) continue;
             $jumlah = max(1, min(10, (int) round((float) ($it['jumlah'] ?? 1))));
-            $produkId = isset($it['produkId']) ? (string) $it['produkId'] : '';
-            $nama = Bantu::potong((string) ($it['nama'] ?? ''), 160);
+            $produkId = trim((string) ($it['produkId'] ?? ''));
 
-            $harga = 0;
-            if ($produkId !== '') {
-                $p = Database::satu('SELECT id, nama, harga, kategori_id FROM produk WHERE id = ?', [$produkId]);
-                if ($p) {
-                    $harga = (int) $p['harga'];
-                    $nama = $p['nama'];
-                    if ($kategoriPertama === '' && $p['kategori_id']) {
-                        $kat = Database::satu('SELECT nama FROM kategori WHERE id = ?', [$p['kategori_id']]);
-                        $kategoriPertama = $kat['nama'] ?? '';
-                    }
-                }
-            } else {
-                $harga = max(0, (int) round((float) ($it['harga'] ?? 0)));
+            // WAJIB punya produkId & produk harus ada & status Aktif.
+            if ($produkId === '') {
+                SecurityLog::catat('checkout_ditolak', 'warn', 'Item tanpa produkId (kemungkinan manipulasi harga).', [
+                    'kunci' => Bantu::potong((string) ($it['nama'] ?? ''), 80),
+                ]);
+                Bantu::gagal('Item keranjang tidak valid: produkId wajib diisi.', 422);
+            }
+            $p = Database::satu(
+                'SELECT id, nama, harga, kategori_id, status FROM produk WHERE id = ?',
+                [$produkId]
+            );
+            if (!$p) {
+                Bantu::gagal('Salah satu produk tidak ditemukan.', 422);
+            }
+            // Hanya produk Aktif yang bisa dibeli (Draft/Nonaktif ditolak).
+            if (($p['status'] ?? '') !== 'Aktif') {
+                SecurityLog::catat('checkout_ditolak', 'warn', 'Item non-Aktif di checkout.', [
+                    'produkId' => $produkId, 'status' => $p['status'] ?? '',
+                ]);
+                Bantu::gagal('Produk "' . $p['nama'] . '" tidak tersedia untuk dibeli.', 422);
+            }
+
+            $harga = (int) $p['harga']; // harga dari DB — bukan dari klien
+            $nama  = $p['nama'];
+            if ($kategoriPertama === '' && $p['kategori_id']) {
+                $kat = Database::satu('SELECT nama FROM kategori WHERE id = ?', [$p['kategori_id']]);
+                $kategoriPertama = $kat['nama'] ?? '';
             }
 
             $subBaris = $harga * $jumlah;
             $subtotal += $subBaris;
             $namaRingkas[] = $nama;
             $barisItem[] = [
-                'produk_id' => $produkId !== '' ? $produkId : null,
+                'produk_id' => $produkId,
                 'nama'      => $nama,
                 'harga'     => $harga,
                 'jumlah'    => $jumlah,
@@ -187,12 +225,45 @@ class PengendaliPesanan extends PengendaliDasar
             $nomor = Bantu::nomorPesanan();
         }
 
-        $hasil = $this->simpanPesanan(
-            $nomor, $namaPembeli, $email, $whatsapp, $metode, $produkRingkas, $kategoriPertama,
-            $subtotal, $biayaLayanan, $potongan, $total, $kodePromo, $barisItem, $promoDipakai
-        );
+        $hasil = null;
+        try {
+            $hasil = $this->simpanPesanan(
+                $nomor, $namaPembeli, $email, $whatsapp, $metode, $produkRingkas, $kategoriPertama,
+                $subtotal, $biayaLayanan, $potongan, $total, $kodePromo, $barisItem, $promoDipakai,
+                $idempotencyKey
+            );
+        } catch (RuntimeException $e) {
+            // Kuota promo habis saat transaksi (race) — pesan jelas, bukan 500.
+            if (strpos($e->getMessage(), 'promo') !== false) {
+                Bantu::gagal('Kuota kode promo sudah habis. Silakan tanpa kode promo.', 409);
+            }
+            throw $e;
+        } catch (PDOException $e) {
+            // Race idempotensi: dua request dengan key sama INSERT bersamaan →
+            // duplicate key. Kembalikan pesanan yang sudah tersimpan.
+            if ($idempotencyKey !== '' && (string) $e->getCode() === '23000') {
+                $ada = Database::satu(
+                    'SELECT id, subtotal, biaya_layanan, potongan, total, status
+                     FROM pesanan WHERE idempotency_key = ? LIMIT 1',
+                    [$idempotencyKey]
+                );
+                if ($ada) {
+                    Bantu::sukses([
+                        'id' => $ada['id'], 'subtotal' => (int) $ada['subtotal'],
+                        'biayaLayanan' => (int) $ada['biaya_layanan'], 'potongan' => (int) $ada['potongan'],
+                        'total' => (int) $ada['total'], 'status' => $ada['status'],
+                    ], 'Pesanan sudah tercatat.', 200);
+                }
+            }
+            throw $e;
+        }
 
-        Aktivitas::catat("Pesanan {$nomor} dibuat" . ($namaPembeli ? " oleh {$namaPembeli}" : ''), 'pesanan', 'hijau');
+        Aktivitas::audit('buat_pesanan', 'pesanan', $nomor, 'Berhasil', [
+            'pelanggan' => $namaPembeli,
+            'email' => $email,
+            'total' => $total,
+            'status' => 'Menunggu',
+        ], "Pesanan {$nomor} dibuat" . ($namaPembeli ? " oleh {$namaPembeli}" : ''));
         Bantu::sukses($hasil, 'Pesanan dibuat.', 201);
     }
 
@@ -200,11 +271,13 @@ class PengendaliPesanan extends PengendaliDasar
     private function simpanPesanan(
         string $nomor, string $namaPembeli, string $email, string $whatsapp, string $metode,
         string $produkRingkas, string $kategori, int $subtotal, int $biayaLayanan, int $potongan,
-        int $total, string $kodePromo, array $barisItem, ?array $promoDipakai
+        int $total, string $kodePromo, array $barisItem, ?array $promoDipakai,
+        string $idempotencyKey = ''
     ): array {
         return Database::transaksi(function () use (
             $nomor, $namaPembeli, $email, $whatsapp, $metode, $produkRingkas, $kategori,
-            $subtotal, $biayaLayanan, $potongan, $total, $kodePromo, $barisItem, $promoDipakai
+            $subtotal, $biayaLayanan, $potongan, $total, $kodePromo, $barisItem, $promoDipakai,
+            $idempotencyKey
         ) {
             // Cari/buat pelanggan berdasarkan email.
             $pelangganId = null;
@@ -213,7 +286,7 @@ class PengendaliPesanan extends PengendaliDasar
                 if ($pel) {
                     $pelangganId = $pel['id'];
                 } else {
-                    $pelangganId = Bantu::idBaru('pel');
+                    $pelangganId = Bantu::idBaruAman('pel');
                     Database::eksekusi('INSERT INTO pelanggan (id, nama, email) VALUES (?,?,?)',
                         [$pelangganId, $namaPembeli, $email]);
                 }
@@ -221,10 +294,11 @@ class PengendaliPesanan extends PengendaliDasar
 
             Database::eksekusi(
                 'INSERT INTO pesanan (id, pelanggan_id, pelanggan_nama, email, whatsapp, produk_ringkas,
-                    kategori, metode, subtotal, biaya_layanan, potongan, total, kode_promo, status)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                    kategori, metode, subtotal, biaya_layanan, potongan, total, kode_promo, status, idempotency_key)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                 [$nomor, $pelangganId, $namaPembeli, $email, $whatsapp, $produkRingkas,
-                 $kategori, $metode, $subtotal, $biayaLayanan, $potongan, $total, $kodePromo, 'Menunggu']
+                 $kategori, $metode, $subtotal, $biayaLayanan, $potongan, $total, $kodePromo, 'Menunggu',
+                 $idempotencyKey !== '' ? $idempotencyKey : null]
             );
 
             foreach ($barisItem as $b) {
@@ -236,7 +310,16 @@ class PengendaliPesanan extends PengendaliDasar
             }
 
             if ($promoDipakai) {
-                Database::eksekusi('UPDATE promo SET terpakai = terpakai + 1 WHERE id = ?', [$promoDipakai['id']]);
+                // ATOMIK: hanya increment bila masih di bawah batas — mencegah
+                // dua checkout bersamaan melebihi kuota promo (TOCTOU race).
+                $terpakaiBaru = Database::eksekusi(
+                    'UPDATE promo SET terpakai = terpakai + 1 WHERE id = ? AND terpakai < batas',
+                    [$promoDipakai['id']]
+                );
+                if ($terpakaiBaru === 0) {
+                    // Kuota habis pada detik ini — batalkan seluruh transaksi.
+                    throw new RuntimeException('Kuota promo sudah habis.');
+                }
             }
             if ($pelangganId) {
                 Database::eksekusi(
@@ -260,7 +343,10 @@ class PengendaliPesanan extends PengendaliDasar
 
         $status = $this->salahDari($this->teks('status', $lama['status']), self::STATUS, $lama['status']);
         Database::eksekusi('UPDATE pesanan SET status=?, diperbarui_pada=NOW() WHERE id=?', [$status, $id]);
-        Aktivitas::catat("Status pesanan {$id} diubah ke {$status}", 'label', 'biru');
+        Aktivitas::audit('ubah_status_pesanan', 'pesanan', $id, 'Berhasil', [
+            'statusLama' => $lama['status'],
+            'statusBaru' => $status,
+        ], "Status pesanan {$id} diubah ke {$status}");
         Bantu::sukses(['id' => $id, 'status' => $status], 'Status pesanan diperbarui.');
     }
 
@@ -271,7 +357,7 @@ class PengendaliPesanan extends PengendaliDasar
         if (!$baris) Bantu::gagal('Pesanan tidak ditemukan.', 404);
         // pesanan_item ikut terhapus (ON DELETE CASCADE).
         Database::eksekusi('DELETE FROM pesanan WHERE id = ?', [$id]);
-        Aktivitas::catat("Pesanan {$id} dihapus", 'hapus', 'merah');
+        Aktivitas::audit('hapus_pesanan', 'pesanan', $id, 'Berhasil', [], "Pesanan {$id} dihapus");
         Bantu::sukses(['id' => $id], 'Pesanan dihapus.');
     }
 }

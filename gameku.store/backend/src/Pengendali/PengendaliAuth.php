@@ -38,7 +38,7 @@ class PengendaliAuth extends PengendaliDasar
         }
     }
 
-    // Login dengan rate limiting per IP.
+    // Login dengan rate limiting per IP (file-based, bukan session).
     private function validasiMasuk(): void
     {
         $pengguna = $this->teks('pengguna');
@@ -46,19 +46,21 @@ class PengendaliAuth extends PengendaliDasar
 
         $limiter = AuthRateLimiter::check($pengguna);
         if ($limiter['limited']) {
-            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-            $store = &$_SESSION['_auth_rate'] ?? null;
-            if (is_array($store) && isset($store['ips'][$ip])) {
-                $entry = &$store['ips'][$ip];
-                if (time() - $entry['window_start'] > 60) {
-                    $entry['count'] = 0;
-                }
-            }
+            // 429 + Retry-After; pesan samar agar tidak membocorkan status akun.
+            header('Retry-After: ' . (int) ($limiter['retry_after'] ?? 60));
             Bantu::gagal('Layanan sibuk. Coba lagi nanti.', 429);
         }
 
         if ($pengguna === '' || $sandi === '') {
             Bantu::gagal('Pengguna dan sandi wajib diisi.');
+        }
+
+        // Batas panjang masuk akal (cegah payload besar memicu bcrypt lambat).
+        if (strlen($pengguna) > 60 || strlen($sandi) > 72) {
+            // bcrypt hanya memproses 72 byte pertama; tolak yang lebih panjang
+            // agar tidak ada perbedaan perilaku tak terduga.
+            SecurityLog::catat('login_gagal', 'info', 'Login ditolak: panjang kredensial tidak wajar.');
+            Bantu::gagal('Pengguna atau sandi salah.', 401);
         }
 
         // password_verify() sudah aman terhadap timing attack.
@@ -70,11 +72,16 @@ class PengendaliAuth extends PengendaliDasar
             Bantu::gagal($hasil['pesan'], 401);
         }
 
+        // Login sukses — reset counter percobaan agar user sah tidak terkunci.
+        AuthRateLimiter::reset();
+
         try {
             Database::eksekusi('UPDATE admin SET masuk_terakhir = NOW() WHERE pengguna = ?', [$pengguna]);
         } catch (Throwable $e) { /* abaikan */ }
 
-        Aktivitas::catat("Admin '{$pengguna}' masuk", 'kunci', 'biru', $pengguna);
+        Aktivitas::audit('masuk_admin', 'admin', (string) ($hasil['data']['id'] ?? ''), 'Berhasil', [
+            'pengguna' => $pengguna,
+        ], "Admin '{$pengguna}' masuk");
         Bantu::sukses($hasil['data'], 'Berhasil masuk.');
     }
 
@@ -88,8 +95,16 @@ class PengendaliAuth extends PengendaliDasar
         if ($pengguna === '' || $sandi === '') {
             Bantu::gagal('Pengguna dan sandi wajib diisi.');
         }
-        if (strlen($sandi) < 6) {
-            Bantu::gagal('Sandi minimal 6 karakter.');
+        // Kebijakan sandi: minimal 8 karakter (naik dari 6).
+        if (strlen($sandi) < 8) {
+            Bantu::gagal('Sandi minimal 8 karakter.');
+        }
+        if (strlen($sandi) > 72) {
+            Bantu::gagal('Sandi maksimal 72 karakter.');
+        }
+        // Nama pengguna: huruf, angka, strip, underscore; 3-60 karakter.
+        if (!preg_match('/^[A-Za-z0-9_\-.]{3,60}$/', $pengguna)) {
+            Bantu::gagal('Nama pengguna hanya boleh berisi huruf, angka, strip, underscore (3-60 karakter).');
         }
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Bantu::gagal('Format email tidak valid.');
@@ -107,7 +122,11 @@ class PengendaliAuth extends PengendaliDasar
             [$pengguna, $nama, $email, $hash, 'Aktif']
         );
 
-        Aktivitas::catat("Admin '{$pengguna}' dibuat", 'kreator', 'hijau');
+        SecurityLog::catat('admin_dibuat', 'info', 'Admin baru dibuat.', ['pengguna' => $pengguna]);
+        Aktivitas::audit('buat_admin', 'admin', '', 'Berhasil', [
+            'pengguna' => $pengguna,
+            'email' => $email,
+        ], "Admin '{$pengguna}' dibuat");
         Bantu::sukses(['pengguna' => $pengguna], 'Admin dibuat.', 201);
     }
 }

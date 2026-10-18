@@ -16,12 +16,14 @@ class Auth
     public static function mulai(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
+            // 'lifetime' (bukan 'max_lifetime'): kunci lama hanya memicu warning
+            // session_set_cookie_params() pada PHP 7.3+ tanpa efek.
             session_set_cookie_params([
+                'lifetime'     => 1800,
+                'path'         => '/',
                 'httponly'     => true,
                 'samesite'     => 'Lax',
-                'path'         => '/',
                 'secure'       => self::cookieSecure(),
-                'lifetime' => 1800,
             ]);
             session_start();
         }
@@ -35,6 +37,10 @@ class Auth
             [(int) $sesi['id'], 'Aktif']
         );
         if (!$baris) {
+            SecurityLog::catat('admin_nonaktif', 'warn', 'Sesi admin dihentikan karena akun tidak aktif/dihapus.', [
+                'adminId' => (int) ($sesi['id'] ?? 0),
+                'pengguna' => (string) ($sesi['pengguna'] ?? ''),
+            ]);
             self::keluarSesiPaksa();
             return;
         }
@@ -70,9 +76,17 @@ class Auth
 
         // Pesan samar agar akun yang ada tidak bocor.
         if (!$baris || !password_verify($sandi, $baris['sandi_hash'])) {
+            // Log kegagalan login (tanpa sandi) — memantau brute force.
+            SecurityLog::catat('login_gagal', 'warn', 'Percobaan login gagal.', [
+                'penggunaDiketik' => Bantu::potong($pengguna, 60),
+                'akunAda' => $baris !== null,
+            ]);
             return ['berhasil' => false, 'pesan' => 'Pengguna atau sandi salah.'];
         }
         if (($baris['status'] ?? 'Aktif') !== 'Aktif') {
+            SecurityLog::catat('login_gagal', 'warn', 'Login ditolak: akun admin tidak aktif.', [
+                'pengguna' => $baris['pengguna'] ?? '',
+            ]);
             return ['berhasil' => false, 'pesan' => 'Akun admin tidak aktif.'];
         }
 
@@ -83,6 +97,11 @@ class Auth
             'pengguna'=> $baris['pengguna'],
             'nama'    => $baris['nama'],
         ];
+
+        SecurityLog::catat('login_sukses', 'info', 'Admin berhasil masuk.', [
+            'adminId' => (int) $baris['id'],
+            'pengguna' => $baris['pengguna'],
+        ]);
 
         return [
             'berhasil' => true,
@@ -113,11 +132,30 @@ class Auth
     }
 
     // Menghentikan request dengan 401 bila belum masuk.
+    // Percobaan akses ke endpoint terproteksi dicatat sebagai insiden.
     public static function wajib(): array
+    {
+        return self::wajibPeran(null);
+    }
+
+    // Menghentikan request dengan 401 bila belum masuk, atau 403 bila
+    // peran sesi tidak cocok dengan $peran yang diharapkan (null = semua role).
+    public static function wajibPeran(?string $peran = null): array
     {
         $sesi = self::sesi();
         if (!$sesi) {
+            SecurityLog::catat('akses_ditolak', 'warn', 'Endpoint terproteksi diakses tanpa sesi admin valid.', [
+                'path' => (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH),
+            ]);
             Bantu::gagal('Perlu masuk sebagai admin.', 401);
+        }
+        if ($peran !== null && (string) ($sesi['peran'] ?? '') !== $peran) {
+            SecurityLog::catat('akses_ditolak', 'warn', 'Role tidak mencukupi untuk endpoint ini.', [
+                'path'    => (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH),
+                'roleSesi' => (string) ($sesi['peran'] ?? ''),
+                'roleDiperlukan' => $peran,
+            ]);
+            Bantu::gagal('Akses ditolak: role tidak cukup.', 403);
         }
         return $sesi;
     }
@@ -145,7 +183,8 @@ class Auth
     }
 }
 
-// Rate limiter login: hitungan per IP dalam session (window 60 detik, maks 10).
+// Rate limiter login: hitungan per IP di FILE (bukan session) — window 60 detik, maks 10.
+// Session-based dapat dibobol dengan membawa session baru; file-based mengikat ke IP.
 class AuthRateLimiter
 {
     private const WINDOW = 60;
@@ -153,41 +192,27 @@ class AuthRateLimiter
 
     public static function check(?string $key = null): array
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            Auth::mulai();
+        $ip = RateLimiter::ip();
+        $hasil = RateLimiter::check('login', $ip, self::MAX_REQUESTS, self::WINDOW);
+        if ($hasil['limited']) {
+            SecurityLog::catat('rate_limit', 'warn', 'Login dibatasi: melebihi percobaan maksimal.', [
+                'bucket' => 'login',
+                'retryAfter' => $hasil['retry_after'],
+            ]);
         }
-        $ip      = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $window  = self::WINDOW;
-        $max     = self::MAX_REQUESTS;
-        $now     = time();
-        $store   = &$_SESSION['_auth_rate'] ?? null;
-        if (!is_array($store)) {
-            $store = [];
-        }
+        return $hasil;
+    }
 
-        $ips = $store['ips'] ?? [];
-        if (!is_array($ips)) {
-            $ips = [];
-            $store['ips'] = $ips;
+    // Reset counter setelah login sukses (agar user sah tidak terkunci
+    // oleh percobaan salah sebelumnya dari IP sama).
+    public static function reset(): void
+    {
+        try {
+            $file = __DIR__ . '/../logs/ratelimit/login_' . hash('sha256', 'login|' . RateLimiter::ip()) . '.json';
+            if (is_file($file)) {
+                @unlink($file);
+            }
+        } catch (Throwable $e) {
         }
-
-        if (!isset($ips[$ip])) {
-            $ips[$ip] = ['count' => 0, 'window_start' => $now];
-        }
-        $entry = &$ips[$ip];
-
-        if ($now - $entry['window_start'] > $window) {
-            $entry = ['count' => 0, 'window_start' => $now];
-        }
-
-        $entry['count']++;
-        $store['ips'] = $ips;
-        $_SESSION['_auth_rate'] = $store;
-
-        $remaining = $max - $entry['count'];
-        if ($entry['count'] > $max) {
-            return ['limited' => true, 'retry_after' => $window - (time() - $entry['window_start'])];
-        }
-        return ['limited' => false, 'remaining' => max(0, $remaining)];
     }
 }
