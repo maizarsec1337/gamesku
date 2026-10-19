@@ -101,10 +101,16 @@ img{max-width:100%;display:block}
 }
 @media (min-width:1024px){
   .wadah{max-width:1200px;padding-inline:28px}
-  .bagian{padding-block:24px}
+  .bagian{padding-block:26px}
   .kepala-bagian{padding:26px 0 6px}
   .isi-halaman{padding-bottom:40px}
   .judul-halaman{font-size:26px}
+  /* Judul bagian ikut naik di desktop — 16,5px terbaca terlalu kecil pada
+     kontainer 1200px dan membuat hierarki hero → kategori → produk kabur. */
+  .judul-bagian{margin-bottom:16px}
+  .judul-bagian h2{font-size:20px}
+  .judul-bagian p{font-size:13.5px}
+  .tautan-lihat{font-size:13.5px}
   .kisi-produk{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
 }
 @media (min-width:1440px){

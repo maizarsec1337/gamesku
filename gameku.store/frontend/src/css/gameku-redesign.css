@@ -45,36 +45,103 @@
 .gk-input:focus-within svg{color:#43DDF5}
 .gk-input.gk-error{border-color:#F0447A;box-shadow:0 0 0 3px rgba(240,68,122,.14)}
 
-/* ===== 2. BANNER CAROUSEL HOME ===== */
-.gk-banner-wrap{padding-top:14px}
-.gk-banner-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
-.gk-banner-count{font-size:12.5px;color:#A7B2D0}
-.gk-banner{position:relative;border-radius:20px;overflow:hidden;background:#101A35;border:1px solid #263663;min-height:210px;box-shadow:0 18px 40px -22px rgba(0,0,0,.6)}
-.gk-banner-track{position:relative;min-height:210px}
-.gk-slide{position:absolute;inset:0;display:flex;align-items:center;gap:12px;padding:20px 56px 46px 20px;color:#F4F7FF;opacity:0;transform:scale(1.015);transition:opacity 450ms ease,transform 450ms ease;pointer-events:none;overflow:hidden}
-.gk-slide.aktif{opacity:1;transform:none;pointer-events:auto;position:relative;min-height:210px}
-.gk-slide::after{content:"";position:absolute;right:-60px;top:-60px;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%)}
-.gk-slide.tema-skin{background:linear-gradient(120deg,#16224A 0%,#2A3A6E 60%,#43DDF5 130%)}
-.gk-slide.tema-map{background:linear-gradient(120deg,#101A35 0%,#2A3A6E 60%,#BD54F5 130%)}
-.gk-slide.tema-sale{background:linear-gradient(120deg,#101A35 0%,#7A2A9E 60%,#F044D8 130%)}
-.gk-slide.tema-stream{background:linear-gradient(120deg,#101A35 0%,#3A2A6E 60%,#8C4BE0 130%)}
-.gk-slide-isi{position:relative;z-index:1;flex:1;min-width:0}
-.gk-slide-label{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:4px 10px}
-.gk-slide h2{font-size:19px;font-weight:800;letter-spacing:-.01em;margin-top:9px;line-height:1.3}
-.gk-slide p{font-size:12.5px;color:rgba(244,247,255,.88);margin-top:5px;line-height:1.55;max-width:44ch}
-.gk-slide-cta{display:inline-flex;align-items:center;gap:7px;margin-top:12px;background:#0B0D1E;color:#F4F7FF;font-weight:800;font-size:13px;border-radius:11px;padding:10px 16px;min-height:42px;transition:transform 160ms ease,background 160ms ease}
-.gk-slide-cta:hover{background:#F044D8;color:#0B0D1E;transform:translateY(-1px)}
-.gk-slide-visual{position:relative;z-index:1;display:none}
-.gk-slide-ikon{width:112px;height:112px;border-radius:28px;display:grid;place-items:center;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff}
-.gk-banner-nav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(11,13,30,.5);border:1px solid rgba(255,255,255,.3);color:#fff;z-index:2;transition:background 160ms ease,transform 120ms ease}
-.gk-banner-nav:hover{background:#43DDF5;border-color:#43DDF5;color:#0B0D1E}
-.gk-banner-nav:active{transform:translateY(-50%) scale(.93)}
-.gk-banner-nav.sebelum{left:10px}
-.gk-banner-nav.berikut{right:10px}
-.gk-banner-titik{position:absolute;left:0;right:0;bottom:12px;display:flex;gap:7px;justify-content:center;z-index:2}
-.gk-banner-titik button{width:20px;height:7px;border-radius:999px;background:rgba(255,255,255,.35);transition:all 200ms ease;min-height:0;padding:0}
-.gk-banner-titik button.on{width:32px;background:#43DDF5}
-.gk-banner-nomor{position:absolute;right:12px;bottom:10px;font-size:11px;font-weight:800;color:rgba(244,247,255,.9);background:rgba(11,13,30,.4);border-radius:999px;padding:3px 9px;z-index:2}
+/* ===== 2. HERO BANNER HOME (carousel editorial) =====
+   Satu-satunya elemen yang "berani" di Beranda. Teks di kiri, visual di kanan
+   pada layar lebar. Di HP kolom visual DILEPAS, bukan dikecilkan: pada lebar
+   320-430px tidak ada ruang untuk CTA dan ilustrasi sekaligus, dan ilustrasi
+   yang dipaksa muat akan bertabrakan dengan tombol serta kendali slide.
+   Sebagai gantinya, gradasi bertema + chip kategori yang jadi jangkar visual.
+   Slide ditumpuk pada satu sel grid supaya tinggi bingkai tidak pernah berubah
+   saat slide berganti (tanpa layout shift). */
+.gk-hero{padding-top:16px}
+.gk-hero-bingkai{position:relative;border-radius:22px;overflow:hidden;background:#0B1027;border:1px solid #263663;box-shadow:0 24px 52px -28px rgba(0,0,0,.8)}
+.gk-hero-lintasan{display:grid}
+.gk-hero-slide{
+  grid-area:1/1;
+  position:relative;isolation:isolate;
+  display:flex;align-items:center;
+  min-height:290px;
+  padding:22px 20px 58px;
+  opacity:0;visibility:hidden;
+  transition:opacity 440ms ease,visibility 440ms;
+}
+.gk-hero-slide.aktif{opacity:1;visibility:visible}
+/* Tekstur kisi tipis: memberi kedalaman & nuansa teknis, hanya di area hero. */
+.gk-hero-slide::before{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background-image:linear-gradient(rgba(244,247,255,.05) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(244,247,255,.05) 1px,transparent 1px);
+  background-size:34px 34px;
+  -webkit-mask-image:radial-gradient(125% 115% at 80% 4%,#000 0%,transparent 72%);
+  mask-image:radial-gradient(125% 115% at 80% 4%,#000 0%,transparent 72%);
+}
+.gk-hero-slide.tema-topup{background:radial-gradient(115% 130% at 92% 2%,rgba(67,221,245,.30),transparent 64%),radial-gradient(95% 115% at 0% 108%,rgba(189,84,245,.28),transparent 68%),linear-gradient(140deg,#13214A 0%,#0B1027 68%)}
+.gk-hero-slide.tema-promo{background:radial-gradient(115% 130% at 92% 2%,rgba(240,68,216,.28),transparent 64%),radial-gradient(95% 115% at 0% 108%,rgba(189,84,245,.26),transparent 68%),linear-gradient(140deg,#2A1145 0%,#0B1027 68%)}
+.gk-hero-slide.tema-digital{background:radial-gradient(115% 130% at 92% 2%,rgba(189,84,245,.32),transparent 64%),radial-gradient(95% 115% at 0% 108%,rgba(67,221,245,.22),transparent 68%),linear-gradient(140deg,#1B1A4E 0%,#0B1027 68%)}
+.gk-hero-slide.tema-streamku{background:radial-gradient(115% 130% at 92% 2%,rgba(138,79,224,.34),transparent 64%),radial-gradient(95% 115% at 0% 108%,rgba(67,221,245,.20),transparent 68%),linear-gradient(140deg,#141C4E 0%,#0B1027 68%)}
+.gk-hero-isi{position:relative;z-index:1;flex:1 1 0;min-width:0}
+.gk-hero-label{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.01em;color:#0B0D1E;background:linear-gradient(135deg,#43DDF5,#BD54F5);border-radius:999px;padding:5px 12px}
+.gk-hero-judul{margin-top:14px;max-width:14em;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.22;color:#F4F7FF}
+.gk-hero-desk{margin-top:10px;max-width:56ch;font-size:13.5px;line-height:1.65;color:#B9C3DE}
+/* Tombol terang: kontras tertinggi di atas latar bergradasi, dan sengaja
+   berbeda dari tombol gradasi supaya hero terasa sebagai fokus utama. */
+.gk-hero-cta{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:0 18px;min-height:46px;border-radius:12px;background:#F4F7FF;color:#0B0D1E;font-weight:800;font-size:13.5px;transition:transform 160ms ease,box-shadow 160ms ease,background 160ms ease}
+.gk-hero-cta:hover{background:#fff;transform:translateY(-1px);box-shadow:0 14px 26px -14px rgba(244,247,255,.55)}
+.gk-hero-cta:active{transform:translateY(0) scale(.98)}
+.gk-hero-visual{display:none}
+
+/* Kendali slide — di dalam bingkai agar tidak menggeser tata letak. */
+.gk-hero-kendali{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px 16px}
+.gk-hero-titik{display:flex;align-items:center;gap:4px}
+.gk-hero-titik button{display:grid;place-items:center;min-width:24px;height:26px;padding:0 2px;border-radius:999px}
+.gk-hero-titik button::before{content:"";width:18px;height:6px;border-radius:999px;background:rgba(244,247,255,.28);transition:width 220ms ease,background 220ms ease}
+.gk-hero-titik button:hover::before{background:rgba(244,247,255,.5)}
+.gk-hero-titik button.on::before{width:34px;background:#43DDF5}
+.gk-hero-panah{display:flex;align-items:center;gap:8px}
+.gk-hero-nomor{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;color:#B9C3DE}
+.gk-hero-panah button{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:rgba(8,11,26,.5);border:1px solid rgba(244,247,255,.24);color:#F4F7FF;transition:background 160ms ease,border-color 160ms ease,color 160ms ease,transform 120ms ease}
+.gk-hero-panah button:hover{background:#43DDF5;border-color:#43DDF5;color:#0B0D1E}
+.gk-hero-panah button:active{transform:scale(.93)}
+
+/* --- Vignette visual tiap slide (murni dekoratif) --- */
+.gk-vis{position:relative;width:100%;color:#F4F7FF}
+.gk-vis-tanda{font-size:11px;font-weight:800;color:#9FB0D4}
+.gk-vis-garis{display:block;height:7px;border-radius:4px;background:rgba(244,247,255,.22)}
+.gk-vis-garis.pendek{width:56%}
+
+.gk-vis-nominal{display:flex;flex-direction:column;gap:9px;padding:14px;border-radius:16px;background:rgba(8,11,26,.62);border:1px solid rgba(244,247,255,.16);box-shadow:0 26px 46px -26px rgba(0,0,0,.85)}
+.gk-vis-nominal ul{display:grid;gap:7px}
+.gk-vis-nominal li{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;background:rgba(244,247,255,.05);border:1px solid rgba(244,247,255,.1)}
+.gk-vis-nominal li.on{background:rgba(67,221,245,.16);border-color:rgba(67,221,245,.6)}
+.gk-vis-koin{flex:none;width:20px;height:20px;border-radius:7px;background:linear-gradient(135deg,#43DDF5,#BD54F5)}
+.gk-vis-teks{flex:1;font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.gk-vis-pilih{flex:none;width:15px;height:15px;border-radius:50%;border:1.5px solid rgba(244,247,255,.35)}
+.gk-vis-nominal li.on .gk-vis-pilih{background:#43DDF5;border-color:#43DDF5;box-shadow:inset 0 0 0 3.5px #0B1027}
+
+.gk-vis-tiket{display:flex;flex-direction:column;align-items:flex-start;padding:16px 18px;border-radius:16px;background:linear-gradient(150deg,rgba(240,68,216,.24),rgba(8,11,26,.72));border:1px solid rgba(244,247,255,.18);box-shadow:0 26px 46px -26px rgba(0,0,0,.85)}
+.gk-vis-besar{margin-top:8px;font-size:46px;font-weight:900;line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums;background:linear-gradient(135deg,#43DDF5,#F044D8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gk-vis-harga{display:flex;align-items:baseline;gap:9px;margin-top:8px;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.gk-vis-harga s{font-weight:600;color:#8E9BBD}
+.gk-vis-catatan{width:100%;margin-top:12px;padding-top:9px;border-top:1px dashed rgba(244,247,255,.22);font-size:11px;color:#9FB0D4}
+
+.gk-vis-produk{display:flex;align-items:center;justify-content:center;gap:12px}
+.gk-vis-kartu{display:block;width:112px;padding-bottom:12px;border-radius:14px;background:#101A35;border:1px solid rgba(244,247,255,.16);overflow:hidden;box-shadow:0 22px 38px -24px rgba(0,0,0,.85)}
+.gk-vis-kartu.naik{transform:translateY(-16px)}
+.gk-vis-muka{display:block;height:70px;background:linear-gradient(135deg,#43DDF5,#BD54F5)}
+.gk-vis-kartu.naik .gk-vis-muka{background:linear-gradient(135deg,#BD54F5,#F044D8)}
+.gk-vis-kartu .gk-vis-garis{margin:9px 11px 0}
+.gk-vis-kartu .gk-vis-garis.pendek{width:52%}
+.gk-vis-harga-kartu{display:block;margin:8px 11px 0;font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;color:#43DDF5}
+
+.gk-vis-poster{padding-bottom:2px}
+.gk-vis-bingkai{position:relative;display:block;width:136px;height:180px;border-radius:14px;background:radial-gradient(95% 72% at 76% 14%,rgba(240,68,216,.52),transparent 62%),radial-gradient(85% 62% at 18% 90%,rgba(67,221,245,.38),transparent 66%),linear-gradient(160deg,#2C1D63,#0E1230 74%);border:1px solid rgba(244,247,255,.24);overflow:hidden;box-shadow:0 26px 44px -24px rgba(0,0,0,.88)}
+.gk-vis-bingkai::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 46%,rgba(8,11,26,.88))}
+.gk-vis-putar{position:absolute;left:50%;top:50%;z-index:2;width:46px;height:46px;border-radius:50%;background:rgba(244,247,255,.94);transform:translate(-50%,-50%)}
+.gk-vis-putar::after{content:"";position:absolute;left:55%;top:50%;transform:translate(-50%,-50%);border-left:13px solid #0B0D1E;border-top:8px solid transparent;border-bottom:8px solid transparent}
+.gk-vis-episode{position:absolute;left:10px;bottom:10px;z-index:2;font-size:10.5px;font-weight:800;color:#F4F7FF;background:rgba(8,11,26,.82);border:1px solid rgba(244,247,255,.22);border-radius:7px;padding:3px 8px}
+/* Judul seri di bawah poster: baris pendek, bukan batang selebar kolom. */
+.gk-vis-poster .gk-vis-garis{width:76%;margin-top:11px}
+.gk-vis-poster .gk-vis-garis.pendek{width:44%;margin-top:7px}
 
 .gk-lihat{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;color:#A7B2D0;transition:background var(--trans),color var(--trans)}
 .gk-lihat:hover{background:rgba(67,221,245,.12);color:#43DDF5}
@@ -125,18 +192,21 @@
   .gk-masuk-brand{padding:28px 26px;display:flex;flex-direction:column;justify-content:center}
   .gk-masuk-brand h1{font-size:28px}
   .gk-masuk-kartu{padding:26px 24px}
-  .gk-banner{min-height:230px}
-  .gk-banner-track{min-height:230px}
-  .gk-slide.aktif{min-height:230px}
-  .gk-slide{padding:24px 64px 48px 26px}
-  .gk-slide-visual{display:block}
+  .gk-hero-slide{min-height:320px;gap:28px;padding:32px 32px 76px}
+  .gk-hero-isi{display:flex;flex-direction:column;align-items:flex-start}
+  .gk-hero-visual{display:block;flex:0 0 auto;width:268px}
+  .gk-hero-kendali{padding:0 32px 18px}
+  .gk-hero-judul{font-size:30px;max-width:15em;letter-spacing:-.025em}
+  .gk-hero-desk{font-size:14px}
   .sk-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 }
 @media (min-width:1024px){
   .gk-masuk-grid{max-width:960px}
-  .gk-slide h2{font-size:24px}
-  .gk-slide p{font-size:13.5px}
-  .gk-slide-ikon{width:132px;height:132px}
+  .gk-hero-slide{min-height:352px;padding:36px 40px 80px}
+  .gk-hero-kendali{padding:0 40px 20px}
+  .gk-hero-judul{font-size:34px;letter-spacing:-.03em}
+  .gk-hero-desk{font-size:14.5px}
+  .gk-hero-visual{width:288px}
   .sk-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
   .sk-judul{font-size:13.5px}
 }
@@ -187,7 +257,7 @@
 /* Hormati prefers-reduced-motion: matikan transisi carousel & kartu. */
 @media (prefers-reduced-motion:reduce){
   .sk-kartu{transition:none}
-  .gk-slide{transition:none;transform:none}
+  .gk-hero-slide{transition:none}
 }
 
 .sk-cta-bawah{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}

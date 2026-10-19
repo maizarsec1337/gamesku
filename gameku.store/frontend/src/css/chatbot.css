@@ -8,10 +8,10 @@
   position:fixed;z-index:70;right:14px;
   bottom:calc(var(--tinggi-bawah) + 16px + env(safe-area-inset-bottom));
   display:inline-flex;align-items:center;gap:8px;
-  background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;
+  background:linear-gradient(135deg,#43DDF5,#BD54F5);color:#0B0D1E;
   font-weight:800;font-size:13.5px;border-radius:999px;
   padding:13px;min-height:52px;min-width:52px;justify-content:center;
-  box-shadow:0 16px 32px -14px rgba(37,99,235,.85);
+  box-shadow:0 16px 32px -14px rgba(67,221,245,.7);
   transition:transform 160ms ease,box-shadow 160ms ease;
 }
 .cb-fab:hover{transform:translateY(-2px)}
@@ -36,13 +36,13 @@
 .cb-panel-buka{opacity:1;visibility:visible;pointer-events:auto;transform:none}
 
 /* ---------- Kepala panel ---------- */
-.cb-kepala{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff}
-.cb-avatar{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.2);flex-shrink:0}
+.cb-kepala{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg,#43DDF5,#BD54F5);color:#0B0D1E}
+.cb-avatar{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(11,13,30,.16);flex-shrink:0}
 .cb-kepala-teks{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
 .cb-kepala-teks strong{font-size:14.5px;font-weight:800}
-.cb-kepala-teks span{font-size:11px;color:#DBEAFE}
-.cb-tutup{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;flex-shrink:0;transition:background 160ms ease}
-.cb-tutup:hover{background:rgba(255,255,255,.18)}
+.cb-kepala-teks span{font-size:11px;color:rgba(11,13,30,.72)}
+.cb-tutup{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#0B0D1E;flex-shrink:0;transition:background 160ms ease}
+.cb-tutup:hover{background:rgba(11,13,30,.14)}
 
 /* ---------- Daftar pesan ---------- */
 .cb-pesan{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:14px;display:flex;flex-direction:column;gap:10px;background:#F8FAFF;scrollbar-width:thin}
@@ -94,6 +94,12 @@
 @media (min-width:1024px){
   .cb-fab{right:24px;bottom:24px}
   .cb-panel{left:auto;right:24px;bottom:96px;width:384px;max-height:min(72vh,560px)}
+}
+/* Mulai 1440px ada margin cukup di sisi kontainer 1320px, jadi tombol bisa
+   duduk di selokan dan tidak lagi menutupi kolom konten paling kanan. */
+@media (min-width:1440px){
+  .cb-fab{right:12px;bottom:20px}
+  .cb-panel{right:12px}
 }
 
 /* Hormati prefers-reduced-motion. */

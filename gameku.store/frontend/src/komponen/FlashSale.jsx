@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import KartuProduk from './KartuProduk.jsx'
+import Ikon from './Ikon.jsx'
 
 function sisaHariIni() {
   const now = new Date()
@@ -24,16 +25,18 @@ export default function FlashSale({ daftar = [] }) {
   if (!isi.length) return null
   return (
     <section className="reveal" aria-label="Flash Sale">
-      <div className="flash">
-        <div className="flash-head">
-          <h2>Flash Sale</h2>
-          <span className="flash-timer" aria-label="Berakhir dalam"><b>{waktu[0]}</b>:<b>{waktu[1]}</b>:<b>{waktu[2]}</b></span>
+      <div className="wadah">
+        <div className="flash">
+          <div className="flash-head">
+            <h2>Flash Sale</h2>
+            <span className="flash-timer" aria-label="Berakhir dalam"><b>{waktu[0]}</b>:<b>{waktu[1]}</b>:<b>{waktu[2]}</b></span>
+          </div>
+          <p className="flash-sub">Diskon asli dari katalog · berakhir tengah malam.</p>
+          <div className="flash-row">
+            {isi.map((p) => (<KartuProduk key={p.id} produk={p} modeFlash />))}
+          </div>
+          <Link to="/promo" className="tombol tombol-kuning tombol-kecil flash-cta">Lihat Semua Promo<Ikon nama="panahKanan" ukuran={14} /></Link>
         </div>
-        <p style={{ fontSize: 12.5, color: '#A7B2D0', marginTop: 4 }}>Diskon asli dari katalog · berakhir tengah malam.</p>
-        <div className="flash-row">
-          {isi.map((p) => (<KartuProduk key={p.id} produk={p} modeFlash />))}
-        </div>
-        <Link to="/promo" className="tombol tombol-kuning tombol-kecil" style={{ marginTop: 10 }}>Lihat Semua Promo →</Link>
       </div>
     </section>
   )

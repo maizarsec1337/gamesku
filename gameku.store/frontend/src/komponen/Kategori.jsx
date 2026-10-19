@@ -1,4 +1,4 @@
-// Kategori Gamesku — grid 3x3 seragam. Data asli dari layanan;
+// Kategori Gamesku — grid seragam. Data asli dari layanan;
 // bila kosong, tampilkan 9 shortcut kurasi menuju rute yang memang ada.
 import { Link } from 'react-router-dom'
 import { useSyncExternalStore } from 'react'
@@ -24,39 +24,37 @@ export default function Kategori({ ringkas = false }) {
 
   const kategori = daftarKategori()
   const produk = daftarProduk()
+  const isi = kategori.length > 0
+    ? kategori.slice(0, 9).map((k) => ({
+      kunci: k.id,
+      nama: k.nama,
+      ikon: k.ikon,
+      ke: `/kategori/${k.slug}`,
+      jumlah: produk.filter((p) => p.kategoriId === k.id).length,
+    }))
+    : KURASI.map((k) => ({ kunci: k.nama, nama: k.nama, ikon: k.ikon, ke: k.ke, jumlah: null }))
 
   return (
-    <section className="bagian" style={{ paddingTop: 14 }}>
+    <section className="bagian" aria-label="Kategori">
       <div className="wadah">
         {!ringkas && (
           <div className="judul-bagian">
             <div><h2>Jelajahi Kategori</h2><p>9 layanan terpopuler Gamesku.</p></div>
-            <Link className="tautan-lihat" to="/kategori">Semua →</Link>
+            <Link className="tautan-lihat" to="/kategori">Semua<Ikon nama="panahKanan" ukuran={14} /></Link>
           </div>
         )}
-        {kategori.length > 0 ? (
-          <div className="rel-kategori">
-            {kategori.slice(0, 9).map((k) => (
-              <Link key={k.id} className="kartu-kategori" to={`/kategori/${k.slug}`}>
-                <span className="kategori-ikon" aria-hidden="true"><Ikon nama={k.ikon} ukuran={20} /></span>
+        <div className="rel-kategori">
+          {isi.map((k) => (
+            <Link key={k.kunci} className="kartu-jelajah" to={k.ke}>
+              <span className="kategori-ikon" aria-hidden="true"><Ikon nama={k.ikon} ukuran={20} /></span>
+              <span className="kategori-teks">
                 <strong>{k.nama}</strong>
-                <small>{produk.filter((p) => p.kategoriId === k.id).length} produk</small>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="rel-kategori">
-            {KURASI.map((k) => (
-              <Link key={k.nama} className="kartu-kategori" to={k.ke}>
-                <span className="kategori-ikon" aria-hidden="true"><Ikon nama={k.ikon} ukuran={20} /></span>
-                <strong>{k.nama}</strong>
-                <small>Gamesku</small>
-              </Link>
-            ))}
-          </div>
-        )}
+                <small>{k.jumlah === null ? 'Gamesku' : `${k.jumlah} produk`}</small>
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   )
 }
-
