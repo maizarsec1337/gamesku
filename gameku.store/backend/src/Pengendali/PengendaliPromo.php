@@ -114,7 +114,12 @@ class PengendaliPromo extends PengendaliDasar
                 'UPDATE promo SET kode=?, nama=?, diskon=?, mulai=?, berakhir=?, batas=?, status=? WHERE id=?',
                 [$kode, $nama, $diskon, $mulai, $berakhir, $batas, $status, $id]
             );
-            Aktivitas::catat("Promo \"{$nama}\" diperbarui", 'promo', 'biru');
+            Aktivitas::audit('ubah_promo', 'promo', $id, 'Berhasil', [
+                'kode' => $kode,
+                'nama' => $nama,
+                'diskon' => $diskon,
+                'status' => $status,
+            ], "Promo \"{$nama}\" diperbarui");
             Bantu::sukses(['id' => $id, 'kode' => $kode, 'nama' => $nama], 'Promo diperbarui.');
         }
 
@@ -126,7 +131,12 @@ class PengendaliPromo extends PengendaliDasar
             'INSERT INTO promo (id, kode, nama, diskon, mulai, berakhir, batas, status) VALUES (?,?,?,?,?,?,?,?)',
             [$idBaru, $kode, $nama, $diskon, $mulai, $berakhir, $batas, $status]
         );
-        Aktivitas::catat("Promo \"{$nama}\" dibuat", 'promo', 'hijau');
+        Aktivitas::audit('buat_promo', 'promo', $idBaru, 'Berhasil', [
+            'kode' => $kode,
+            'nama' => $nama,
+            'diskon' => $diskon,
+            'status' => $status,
+        ], "Promo \"{$nama}\" dibuat");
         Bantu::sukses(['id' => $idBaru, 'kode' => $kode, 'nama' => $nama], 'Promo dibuat.', 201);
     }
 
@@ -136,7 +146,9 @@ class PengendaliPromo extends PengendaliDasar
         $baris = Database::satu('SELECT id, nama FROM promo WHERE id = ?', [$id]);
         if (!$baris) Bantu::gagal('Promo tidak ditemukan.', 404);
         Database::eksekusi('DELETE FROM promo WHERE id = ?', [$id]);
-        Aktivitas::catat("Promo \"{$baris['nama']}\" dihapus", 'hapus', 'merah');
+        Aktivitas::audit('hapus_promo', 'promo', $id, 'Berhasil', [
+            'nama' => $baris['nama'],
+        ], "Promo \"{$baris['nama']}\" dihapus");
         Bantu::sukses(['id' => $id], 'Promo dihapus.');
     }
 }

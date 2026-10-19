@@ -212,7 +212,6 @@ export default function AdminProduk() {
         </>
       )}
 
-      {/* Modal detail produk */}
       <JendelaModal
         judul="Detail Produk"
         padaTutup={dipilih ? () => setDipilih(null) : null}
@@ -317,7 +316,6 @@ export default function AdminProduk() {
         )}
       </JendelaModal>
 
-      {/* Modal konfirmasi hapus */}
       <JendelaModal
         judul="Hapus Produk?"
         padaTutup={dihapus ? () => setDihapus(null) : null}

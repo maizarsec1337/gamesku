@@ -62,6 +62,7 @@ $kelasPeta = [
     'media'     => 'PengendaliMedia',
     'aktivitas' => 'PengendaliAktivitas',
     'anime'     => 'PengendaliAnime',
+    'chat'      => 'PengendaliChat',
 ];
 
 if (!isset($kelasPeta[$sumber])) {

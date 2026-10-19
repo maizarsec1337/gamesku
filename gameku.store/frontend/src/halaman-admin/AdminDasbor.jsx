@@ -30,7 +30,7 @@ export default function AdminDasbor() {
     <>
       <div className="sambutan-admin">
         <div>
-          <h2>Selamat datang di Dasbor gamesku</h2>
+          <h2>Selamat datang di Dasbor Gamesku</h2>
           <p>Pantau katalog, kategori, dan transaksi toko.</p>
         </div>
         <span className="sambutan-periode">
@@ -68,7 +68,7 @@ export default function AdminDasbor() {
               <p className="panel-sub">Transaksi terakhir masuk</p>
             </div>
             <Link className="panel-tautan" to="/admin/pesanan">
-              Lihat semua
+              Lihat Semua
               <Ikon nama="panahKanan" ukuran={14} />
             </Link>
           </div>

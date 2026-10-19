@@ -39,7 +39,7 @@ export default function Kategori({ ringkas = false }) {
       <div className="wadah">
         {!ringkas && (
           <div className="judul-bagian">
-            <div><h2>Jelajahi Kategori</h2><p>9 layanan terpopuler Gamesku.</p></div>
+            <div><h2>Jelajahi Kategori</h2><p>{isi.length} layanan terpopuler Gamesku.</p></div>
             <Link className="tautan-lihat" to="/kategori">Semua<Ikon nama="panahKanan" ukuran={14} /></Link>
           </div>
         )}

@@ -1,5 +1,5 @@
 // Layanan produk API: baca katalog produk dari backend PHP (GET /api/produk).
-// Read-only. Data asli dari database MySQL â€” bukan contoh.
+// Read-only. Data asli dari database MySQL — bukan contoh.
 // Endpoint ini dipakai oleh tamu (tidak login) karena produk hanya tetap
 // tampil bila statusnya Aktif.
 
@@ -16,7 +16,7 @@ async function minta(jalur) {
       headers: { Accept: 'application/json' },
     })
   } catch {
-    // Gagal jaringan / server mati â€” jangan diam-diam pakai data contoh.
+    // Gagal jaringan / server mati — jangan diam-diam pakai data contoh.
     throw new GalatAnime('Tidak dapat menghubungi server. Periksa koneksi Anda.', 0)
   }
   let isi = null
@@ -46,9 +46,9 @@ function normalisasiProduk(p) {
   }
 }
 // Parameter:
-//   kataKunci  â€” pencarian di nama / creator / slug (opsional)
-//   filterKategori â€” filter berdasarkan nama kategori (opsional)
-//   filterJenis  â€” filter berdasarkan jenis produk (opsional)
+//   kataKunci  — pencarian di nama / creator / slug (opsional)
+//   filterKategori — filter berdasarkan nama kategori (opsional)
+//   filterJenis  — filter berdasarkan jenis produk (opsional)
 export async function daftarProdukDariApi({ kataKunci = '', filterKategori = '', filterJenis = '' } = {}) {
   const params = new URLSearchParams()
   if (kataKunci !== '') params.set('cari', kataKunci)

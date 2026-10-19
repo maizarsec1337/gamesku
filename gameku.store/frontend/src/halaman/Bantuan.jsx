@@ -7,7 +7,7 @@ const faqBantuan = [
   { t: 'Bagaimana cara membeli produk?', j: 'Pilih produk → klik Beli → ikuti checkout. File produk bisa diunduh dari halaman pesanan setelah pembayaran berhasil.' },
   { t: 'File tidak bisa dibuka, kenapa?', j: 'Pastikan versi Minecraft sesuai deskripsi produk (Java/Bedrock). File .schem butuh WorldEdit, .mcaddon dibuka lewat Minecraft Bedrock.' },
   { t: 'Bisakah refund?', j: 'Konten digital yang sudah diunduh tidak bisa dikembalikan. Jika file rusak, hubungi kreator lewat halaman produk.' },
-  { t: 'Bagaimana jadi kreator?', j: 'Hubungi tim Gamesku lewat halamanhubungi. Tim kurasi meninjau maksimal 7 hari.' },
+  { t: 'Bagaimana jadi kreator?', j: 'Hubungi tim Gamesku lewat halaman Komunitas. Tim kurasi meninjau maksimal 7 hari.' },
 ]
 
 const kontenHalaman = {
@@ -30,7 +30,7 @@ const kontenHalaman = {
     lencana: 'Legal', judul: 'Syarat & Ketentuan',
     sub: 'Berlaku untuk semua pembelian di Gamesku.',
     bagian: [
-      { judul: '1. Lisensi penggunaan', isi: ['Pembelian memberi lisensi pribadi, non-eksklusif untuk pemakaian di akun Minecraft sendiri.', 'Dilarang menjual ulang, membagikan publik, atau mememasukkan ke paket lain tanpa izin kreator.'] },
+      { judul: '1. Lisensi penggunaan', isi: ['Pembelian memberi lisensi pribadi, non-eksklusif untuk pemakaian di akun Minecraft sendiri.', 'Dilarang menjual ulang, membagikannya ke publik, atau memasukkannya ke paket lain tanpa izin kreator.'] },
       { judul: '2. Transaksi', isi: ['Harga dapat berubah sewaktu-waktu tanpa pemberitahuan.', 'Pembayaran diproses lewat payment gateway setelah backend PHP terhubung.'] },
       { judul: '3. Pengembalian dana', isi: ['Konten digital yang sudah diunduh tidak dapat dikembalikan, kecuali file terbukti rusak saat pembelian pertama.'] },
     ],

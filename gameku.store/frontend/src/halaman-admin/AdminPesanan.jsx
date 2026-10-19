@@ -66,7 +66,7 @@ export default function AdminPesanan() {
           <p>
             {daftar.length === 0
               ? 'Belum ada pesanan'
-              : 'Kelola seluruh transaksi masuk gamesku'}
+              : 'Kelola seluruh transaksi masuk Gamesku'}
           </p>
         </div>
       </div>

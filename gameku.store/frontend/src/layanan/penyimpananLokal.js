@@ -52,7 +52,6 @@ export function hapus(nama) {
   try {
     window.localStorage.removeItem(kunciLokal(nama))
   } catch {
-    // abaikan
   }
   invalidasi()
   siarkan(nama)

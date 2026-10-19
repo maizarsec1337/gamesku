@@ -3,6 +3,9 @@
 
 class Bantu
 {
+    // Nama header request ID.
+    private const HEADER_REQUEST_ID = 'X-Request-Id';
+
     public static function json($data, int $status = 200): void
     {
         http_response_code($status);
@@ -16,6 +19,23 @@ class Bantu
         header('X-XSS-Protection: 0');
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
+    }
+
+    // Mengembalikan request ID saat ini (dari header atau di-generate).
+    public static function requestId(): string
+    {
+        static $reqId = null;
+        if ($reqId !== null) {
+            return $reqId;
+        }
+        $dariHeader = $_SERVER['HTTP_X_REQUEST_ID'] ?? '';
+        if (is_string($dariHeader) && $dariHeader !== '' && preg_match('/^[A-Za-z0-9\-_:]{1,128}$/', $dariHeader)) {
+            $reqId = $dariHeader;
+        } else {
+            $reqId = 'req-' . bin2hex(random_bytes(8));
+        }
+        header(self::HEADER_REQUEST_ID . ': ' . $reqId, true);
+        return $reqId;
     }
 
     public static function sukses($data = null, string $pesan = '', int $status = 200): void
@@ -58,17 +78,25 @@ class Bantu
         return [];
     }
 
-    public static function teks(string $kunci, string $bawaan = ''): string
+    public static function teks(string $kunci, string $bawaan = '', int $maks = 500): string
     {
         $nilai = $_GET[$kunci] ?? $_POST[$kunci] ?? null;
         if ($nilai === null) {
             $badan = self::badan();
             $nilai = $badan[$kunci] ?? null;
         }
-        return trim((string) ($nilai ?? $bawaan));
+        return self::potong(trim((string) ($nilai ?? $bawaan)), $maks);
     }
 
-    public static function angka(string $kunci, int $bawaan = 0): int
+    // Teks untuk kolom ID/path parameter (hanya alfanumerik, strip, underscore, titik dua, titik).
+    public static function teksAman(string $kunci, string $bawaan = '', int $maks = 120): string
+    {
+        $nilai = self::teks($kunci, $bawaan, $maks);
+        $nilai = preg_replace('/[^A-Za-z0-9\-_:.]/', '', $nilai);
+        return $nilai;
+    }
+
+    public static function angka(string $kunci, int $bawaan = 0, int $min = 0, int $max = PHP_INT_MAX): int
     {
         $nilai = $_GET[$kunci] ?? $_POST[$kunci] ?? null;
         if ($nilai === null) {
@@ -78,7 +106,14 @@ class Bantu
         if ($nilai === null || $nilai === '') {
             return $bawaan;
         }
-        return (int) round((float) str_replace(',', '.', (string) $nilai));
+        $hasil = (int) round((float) str_replace(',', '.', (string) $nilai));
+        if ($hasil < $min) {
+            return $min;
+        }
+        if ($hasil > $max) {
+            return $max;
+        }
+        return $hasil;
     }
 
     public static function slug(string $teks): string
@@ -113,15 +148,49 @@ class Bantu
 
     public static function potong(string $teks, int $maks): string
     {
-        return mb_substr($teks, 0, $maks);
+        if ($maks < 0) {
+            $maks = 0;
+        }
+        // Fallback bila ekstensi mbstring tidak tersedia di server/PHP lokal.
+        if (function_exists('mb_substr')) {
+            return mb_substr($teks, 0, $maks, 'UTF-8');
+        }
+        if (function_exists('iconv_substr')) {
+            $ubah = @iconv_substr($teks, 0, $maks, 'UTF-8');
+            if (is_string($ubah)) {
+                return $ubah;
+            }
+        }
+        return substr($teks, 0, $maks);
     }
 
     // ID acak berawalan, contoh: kat-lf3k2-9x1ab.
+    // Menggunakan random_bytes (kriptografis) bukan str_shuffle (tidak aman).
     public static function idBaru(string $awalan = 'id'): string
     {
         $waktu = substr(base_convert((string) time(), 10, 36), 0, 8);
-        $acak  = substr(str_shuffle('abcdefghijklmnopqrstuvwxyz0123456789'), 0, 5);
+        $acak  = bin2hex(random_bytes(3)); // 6 hex char, 24 bit entropi
         return $awalan . '-' . $waktu . '-' . $acak;
+    }
+
+    // ID acak versi aman (lebih panjang) untuk resource sensitif (pesanan, pelanggan).
+    public static function idBaruAman(string $awalan = 'id'): string
+    {
+        $waktu = substr(base_convert((string) time(), 10, 36), 0, 8);
+        $acak  = bin2hex(random_bytes(6)); // 12 hex char, 48 bit entropi
+        return $awalan . '-' . $waktu . '-' . $acak;
+    }
+
+    // Validasi email sederhana.
+    public static function emailValid(string $email): bool
+    {
+        return $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
+    // Validasi panjang sandi minimal.
+    public static function sandiValid(string $sandi, int $min = 8): bool
+    {
+        return (string) $sandi !== '' && strlen((string) $sandi) >= $min;
     }
 
     // Nomor pesanan format GK-YYMM-XXXX.

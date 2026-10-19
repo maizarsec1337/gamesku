@@ -4,19 +4,27 @@
    ===================================================================== */
 
 /* ---------- Tombol melayang (FAB) ---------- */
+/* Tema gelap navy dengan aksen cyan: menyatu dengan latar Gamesku, tidak
+   mencolok, tetapi tetap terbaca di atas konten terang maupun gelap. */
 .cb-fab{
   position:fixed;z-index:70;right:14px;
   bottom:calc(var(--tinggi-bawah) + 16px + env(safe-area-inset-bottom));
-  display:inline-flex;align-items:center;gap:8px;
-  background:linear-gradient(135deg,#43DDF5,#BD54F5);color:#0B0D1E;
-  font-weight:800;font-size:13.5px;border-radius:999px;
-  padding:13px;min-height:52px;min-width:52px;justify-content:center;
-  box-shadow:0 16px 32px -14px rgba(67,221,245,.7);
-  transition:transform 160ms ease,box-shadow 160ms ease;
+  display:grid;place-items:center;
+  width:54px;height:54px;border-radius:999px;
+  background:linear-gradient(145deg,#16224A,#0B0D1E);
+  color:#8CECFA;border:1px solid rgba(67,221,245,.34);
+  box-shadow:0 14px 32px -14px rgba(0,0,0,.85),inset 0 1px 0 rgba(140,236,250,.16);
+  transition:transform 180ms ease,box-shadow 180ms ease,border-color 180ms ease,color 180ms ease,background 180ms ease;
 }
-.cb-fab:hover{transform:translateY(-2px)}
-.cb-fab:active{transform:scale(.95)}
-.cb-fab-teks{display:none}
+.cb-fab:hover{
+  color:#43DDF5;border-color:rgba(67,221,245,.6);
+  background:linear-gradient(145deg,#1B2A5C,#101A35);
+  box-shadow:0 18px 36px -16px rgba(67,221,245,.5),inset 0 1px 0 rgba(140,236,250,.24);
+  transform:translateY(-2px);
+}
+.cb-fab:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(67,221,245,.55),0 14px 32px -14px rgba(0,0,0,.85)}
+.cb-fab:active{transform:scale(.94)}
+.cb-fab-aktif{color:#D9B4FA;border-color:rgba(189,84,245,.5);background:linear-gradient(145deg,#241A4A,#0B0D1E)}
 
 /* ---------- Panel ---------- */
 .cb-panel{
@@ -87,10 +95,6 @@
 @keyframes cbPutar{to{transform:rotate(360deg)}}
 
 /* ---------- Tablet / desktop ---------- */
-@media (min-width:768px){
-  .cb-fab-teks{display:inline}
-  .cb-fab{padding:13px 18px}
-}
 @media (min-width:1024px){
   .cb-fab{right:24px;bottom:24px}
   .cb-panel{left:auto;right:24px;bottom:96px;width:384px;max-height:min(72vh,560px)}
@@ -104,6 +108,7 @@
 
 /* Hormati prefers-reduced-motion. */
 @media (prefers-reduced-motion:reduce){
-  .cb-panel{transition:none}
+  .cb-panel,.cb-fab{transition:none}
+  .cb-fab:hover,.cb-fab:active{transform:none}
   .cb-balon,.cb-mengetik span,.cb-putar{animation:none}
 }

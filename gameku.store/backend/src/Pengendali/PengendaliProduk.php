@@ -161,7 +161,12 @@ class PengendaliProduk extends PengendaliDasar
                     $data['versi_minecraft'], $data['creator'], $data['status'], $id,
                 ]
             );
-            Aktivitas::catat("Produk \"{$data['nama']}\" diperbarui", 'kotak', 'biru');
+            Aktivitas::audit('ubah_produk', 'produk', $id, 'Berhasil', [
+                'nama' => $data['nama'],
+                'slug' => $data['slug'],
+                'harga' => $data['harga'],
+                'status' => $data['status'],
+            ], "Produk \"{$data['nama']}\" diperbarui");
             Bantu::sukses($this->ambilTerpetakan($id), 'Produk diperbarui.');
         }
 
@@ -180,7 +185,12 @@ class PengendaliProduk extends PengendaliDasar
                 $data['versi_minecraft'], $data['creator'], $data['status'],
             ]
         );
-        Aktivitas::catat("Produk \"{$data['nama']}\" disimpan sebagai {$data['status']}", 'kotak', 'hijau');
+        Aktivitas::audit('buat_produk', 'produk', $idBaru, 'Berhasil', [
+            'nama' => $data['nama'],
+            'slug' => $data['slug'],
+            'harga' => $data['harga'],
+            'status' => $data['status'],
+        ], "Produk \"{$data['nama']}\" disimpan sebagai {$data['status']}");
         Bantu::sukses($this->ambilTerpetakan($idBaru), 'Produk ditambahkan.', 201);
     }
 
@@ -197,7 +207,9 @@ class PengendaliProduk extends PengendaliDasar
         if (!$baris) Bantu::gagal('Produk tidak ditemukan.', 404);
 
         Database::eksekusi('DELETE FROM produk WHERE id = ?', [$id]);
-        Aktivitas::catat("Produk \"{$baris['nama']}\" dihapus", 'hapus', 'merah');
+        Aktivitas::audit('hapus_produk', 'produk', $id, 'Berhasil', [
+            'nama' => $baris['nama'],
+        ], "Produk \"{$baris['nama']}\" dihapus");
         Bantu::sukses(['id' => $id], 'Produk dihapus.');
     }
 }

@@ -34,8 +34,8 @@ export default function AdminLogin() {
         <div className="login-logo">
           <span className="bilah-logo-kubus">g</span>
           <span className="login-logo-teks">
-            <strong>gamesku</strong>
-            <span>Admin Panel</span>
+            <strong>Gamesku</strong>
+            <span>Panel Admin</span>
           </span>
         </div>
 

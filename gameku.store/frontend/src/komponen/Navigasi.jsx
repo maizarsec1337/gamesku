@@ -50,7 +50,7 @@ export default function Navigasi() {
           <input
             value={kataKunci}
             onChange={(e) => setKataKunci(e.target.value)}
-            placeholder="Cari diamond, Robux, voucher..."
+            placeholder="Cari diamond, Robux, voucher…"
             aria-label="Cari produk Gamesku"
           />
         </form>
@@ -80,7 +80,7 @@ export default function Navigasi() {
           <input
             value={kataKunci}
             onChange={(e) => setKataKunci(e.target.value)}
-            placeholder="Cari diamond, Robux, voucher..."
+            placeholder="Cari diamond, Robux, voucher…"
             aria-label="Cari produk Gamesku"
           />
         </form>

@@ -26,6 +26,9 @@ spl_autoload_register(function ($kelas) {
     }
 });
 
+// Request ID: diset di awal agar setiap log & respons dapat ditelusuri.
+Bantu::requestId();
+
 // Header dasar.
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -34,11 +37,42 @@ header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
 header('X-XSS-Protection: 1; mode=block');
-header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+// Header keamanan tambahan: cegah situs lain membuka API di frame/iframe.
+header('Cross-Origin-Opener-Policy: same-origin');
+// HSTS: hanya aktif jika HTTPS terdeteksi.
+if (
+    (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+    || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'HTTPS')
+) {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+};
 header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
 
 // CORS.
 $cfg = require __DIR__ . '/../config/config.php';
+
+// ===== Validasi environment saat startup (fail-fast untuk konfigurasi salah) =====
+$isProduction = getenv('GAMEKU_ENV') === 'production';
+$debugAktif   = getenv('GAMEKU_DEBUG') === '1';
+if ($isProduction && $debugAktif) {
+    // Debug aktif di produksi = kebocoran detail internal. Blokir + log.
+    error_log('[gameku] KRITIS: GAMEKU_DEBUG=1 di mode production — nonaktifkan segera.');
+    $debugAktif = false;
+}
+if ($isProduction) {
+    // CORS produksi tidak boleh wildcard.
+    foreach ($cfg['cors_origins'] ?? [] as $o) {
+        if ($o === '*' || $o === 'null') {
+            error_log('[gameku] KRITIS: cors_origins mengandung wildcard di mode production: ' . $o);
+        }
+    }
+    // Cookie secure harus aktif di produksi.
+    if (getenv('GAMEKU_SECURE_COOKIE') !== '1') {
+        error_log('[gameku] PERINGATAN: GAMEKU_SECURE_COOKIE belum =1 di mode production (cookie bisa terkirim via HTTP).');
+    }
+}
+
 $asal = $_SERVER['HTTP_ORIGIN'] ?? '';
 $izinkan = $cfg['cors_origins'] ?? [];
 if ($asal !== '' && in_array($asal, $izinkan, true)) {
@@ -48,13 +82,16 @@ if ($asal !== '' && in_array($asal, $izinkan, true)) {
     header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-HTTP-Method-Override, X-Requested-With, X-CSRF-Token');
     header('Access-Control-Max-Age: 86400');
-    // Batas ukuran request: 256 KB JSON, 8 MB multipart.
-    $sizeLimit = 262144;
-    if (array_key_exists('CONTENT_LENGTH', $_SERVER)) {
-        $size = (int) $_SERVER['CONTENT_LENGTH'];
-        if ($size > $sizeLimit) {
-            Bantu::gagal('Ukuran request melebihi batas '.$sizeLimit.' bytes.', 413);
-        }
+}
+
+// Batas ukuran request: 256 KB JSON / 8 MB multipart — berlaku untuk SEMUA request
+// (bukan hanya yang Origin-nya cocok agar tidak bisa dibobol tanpa header Origin).
+$sizeLimit = (int) ($cfg['request']['max_json_size'] ?? 262144);
+if (array_key_exists('CONTENT_LENGTH', $_SERVER)) {
+    $size = (int) $_SERVER['CONTENT_LENGTH'];
+    if ($size > max($sizeLimit, (int) ($cfg['request']['max_upload_size'] ?? 8388608))) {
+        SecurityLog::catat('permintaan_terlalu_besar', 'warn', 'Request body melebihi batas.', ['ukuran' => $size]);
+        Bantu::gagal('Ukuran request melebihi batas.', 413);
     }
 }
 
@@ -64,10 +101,8 @@ if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     exit;
 }
 
-// Rate limiting middleware.
-// $jalur dipakai di bawah ini tetapi baru dihitung oleh api/index.php SETELAH
-// bootstrap ini selesai — hitung dulu di sini (dengan normalisasi yang sama)
-// agar rate limiting memakai jalur sesungguhnya dan tidak memunculkan warning.
+// Rate limiting middleware — berbasis FILE per-IP (bukan session) sehingga
+// tetap membatasi meski penyerang tidak membawa cookie atau selalu mengganti session.
 if (!isset($jalur)) {
     $jalur = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
     $jalur = preg_replace('#^/api#', '', $jalur) ?? '/';
@@ -87,52 +122,69 @@ $rateLimits = $rateLimiterCfg['limits'] ?? [
 $rateWindow = $rateLimiterCfg['window_seconds'] ?? 60;
 
 if ($rateLimitEnabled && !in_array($jalur, ['/', '/sehat'], true)) {
-    $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-    $key = $remoteAddr;
-    foreach ($rateLimitKeys as $k) {
-        if ($k === 'ip+path' && $jalur !== '/') {
-            $key .= ':' . $jalur;
-        } elseif ($k === 'session' && session_status() === PHP_SESSION_ACTIVE) {
-            $key = session_id() . ':' . $remoteAddr;
-        }
-    }
-    $store = &$_SESSION['_rate_limit'] ?? null;
-    if (!is_array($store)) {
-        $store = [];
-    }
-    $hits = $store[$key] ?? null;
-    $now = time();
-    if (!is_array($hits) || !isset($hits['window_start']) || $now - $hits['window_start'] > $rateWindow) {
-        $hits = ['count' => 0, 'window_start' => $now];
-    }
-    $hits['count']++;
-    $store[$key] = $hits;
-    $_SESSION['_rate_limit'] = $store;
-
+    $ip = RateLimiter::ip();
     $isSensitive = in_array($jalur, $rateLimitPaths['sensitive'] ?? [], true);
     $isWrite     = in_array($jalur, $rateLimitPaths['write'] ?? [], true);
+
     $limit = $rateLimits['default'];
+    $bucket = 'default';
     if (strpos($jalur, '/auth/masuk') !== false) {
         $limit = $rateLimits['login'];
+        $bucket = 'login';
     } elseif ($isWrite) {
         $limit = $rateLimits['write'];
+        $bucket = 'write';
     } elseif ($isSensitive) {
         $limit = $rateLimits['sensitive'];
+        $bucket = 'sensitive';
     }
-    if ($hits['count'] > $limit) {
+
+    // Kunci: IP saja, atau IP+jalur bila dikonfigurasi (mis. per-endpoint).
+    $kunci = $ip;
+    if (in_array('ip+path', $rateLimitKeys ?? [], true) && $bucket !== 'login') {
+        $kunci = $ip . '|' . $jalur;
+    }
+
+    $hasil = RateLimiter::check($bucket, $kunci, $limit, $rateWindow);
+    if ($hasil['limited']) {
+        header('Retry-After: ' . (int) $hasil['retry_after']);
+        SecurityLog::catat('rate_limit', 'warn', 'Permintaan dibatasi rate limiter.', [
+            'bucket' => $bucket,
+            'limit'  => $limit,
+            'retryAfter' => $hasil['retry_after'],
+        ]);
         Bantu::gagal('Terlalu banyak permintaan. Coba lagi nanti.', 429);
+    }
+
+    // Bersihkan counter kadaluarsa sesekali (setiap ~100 request, probabilistik).
+    if (random_int(1, 100) === 1) {
+        RateLimiter::bersihkan();
     }
 }
 
-// Handler error global -> respons JSON.
+// Handler error global -> respons JSON (tanpa stack trace di respons produksi).
 set_exception_handler(function (Throwable $e) {
     http_response_code(500);
-    error_log('[gameku] ' . $e->getMessage());
-    echo json_encode([
+    // Log lengkap ke server dengan request ID (file, baris) untuk penelusuran.
+    error_log('[gameku][req=' . Bantu::requestId() . '] ' . $e->getMessage()
+        . ' @ ' . $e->getFile() . ':' . $e->getLine());
+    SecurityLog::catat('server_error', 'error', 'Exception tak tertangani.', [
+        'pesan' => Bantu::potong($e->getMessage(), 300),
+        'file'  => basename($e->getFile()),
+        'line'  => $e->getLine(),
+    ]);
+    $balasan = [
         'ok'    => false,
         'pesan' => 'Terjadi kesalahan pada server.',
-        'debug' => getenv('GAMEKU_DEBUG') ? ['message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()] : null,
-    ], JSON_UNESCAPED_UNICODE);
+        'requestId' => Bantu::requestId(),
+    ];
+    // Debug detail HANYA bila GAMEKU_DEBUG=1 DAN bukan mode production
+    // (validasi startup di atas sudah memaksa $debugAktif=false di production).
+    global $debugAktif;
+    if (!empty($debugAktif)) {
+        $balasan['debug'] = ['message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()];
+    }
+    echo json_encode($balasan, JSON_UNESCAPED_UNICODE);
     exit;
 });
 

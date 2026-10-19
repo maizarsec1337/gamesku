@@ -1,7 +1,5 @@
 // Konstanta Gamesku: pilihan nilai (dropdown, warna, label) — tanpa data contoh.
 
-// Produk.
-
 export const JENIS_PRODUK = [
   'Skin',
   'Skin Pack',
@@ -15,23 +13,13 @@ export const JENIS_PRODUK = [
 
 export const STATUS_PRODUK = ['Draft', 'Aktif', 'Nonaktif']
 
-// Kategori.
-
 export const STATUS_KATEGORI = ['Aktif', 'Nonaktif']
-
-// Pesanan.
 
 export const STATUS_PESANAN = ['Menunggu', 'Diproses', 'Berhasil', 'Gagal']
 
-// Promo.
-
 export const STATUS_PROMO = ['Aktif', 'Terjadwal', 'Berakhir']
 
-// Ulasan.
-
 export const STATUS_ULASAN = ['Menunggu', 'Disetujui', 'Disembunyikan']
-
-// Creator / pelanggan.
 
 export const STATUS_CREATOR = ['Aktif', 'Review', 'Ditangguhkan']
 
@@ -95,7 +83,7 @@ export function jadikanSlug(teks) {
     .replace(/(^-|-$)/g, '')
 }
 
-// Format ringkas untuk label metastasis: "3 menit lalu".
+// Format ringkas untuk label waktu relatif: "3 menit lalu".
 export function waktuRelatif(iso) {
   const tanggal = new Date(iso)
   if (Number.isNaN(tanggal.getTime())) return '-'

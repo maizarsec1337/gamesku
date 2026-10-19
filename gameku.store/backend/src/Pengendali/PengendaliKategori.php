@@ -92,7 +92,11 @@ class PengendaliKategori extends PengendaliDasar
                  WHERE id=?',
                 [$data['nama'], $data['slug'], $data['deskripsi'], $data['ikon'], $data['gambar'], $data['status'], $id]
             );
-            Aktivitas::catat("Kategori \"{$data['nama']}\" diperbarui", 'edit', 'biru');
+            Aktivitas::audit('ubah_kategori', 'kategori', $id, 'Berhasil', [
+                'nama' => $data['nama'],
+                'slug' => $data['slug'],
+                'status' => $data['status'],
+            ], "Kategori \"{$data['nama']}\" diperbarui");
             Bantu::sukses($this->ambilTerpetakan($id), 'Kategori diperbarui.');
         }
 
@@ -104,7 +108,11 @@ class PengendaliKategori extends PengendaliDasar
             'INSERT INTO kategori (id, nama, slug, deskripsi, ikon, gambar, status) VALUES (?,?,?,?,?,?,?)',
             [$idBaru, $data['nama'], $data['slug'], $data['deskripsi'], $data['ikon'], $data['gambar'], $data['status']]
         );
-        Aktivitas::catat("Kategori \"{$data['nama']}\" ditambahkan", 'kategori', 'biru');
+        Aktivitas::audit('buat_kategori', 'kategori', $idBaru, 'Berhasil', [
+            'nama' => $data['nama'],
+            'slug' => $data['slug'],
+            'status' => $data['status'],
+        ], "Kategori \"{$data['nama']}\" ditambahkan");
         Bantu::sukses($this->ambilTerpetakan($idBaru), 'Kategori ditambahkan.', 201);
     }
 
@@ -125,7 +133,9 @@ class PengendaliKategori extends PengendaliDasar
 
         // FK produk.kategori_id: ON DELETE SET NULL.
         Database::eksekusi('DELETE FROM kategori WHERE id = ?', [$id]);
-        Aktivitas::catat("Kategori \"{$baris['nama']}\" dihapus", 'hapus', 'merah');
+        Aktivitas::audit('hapus_kategori', 'kategori', $id, 'Berhasil', [
+            'nama' => $baris['nama'],
+        ], "Kategori \"{$baris['nama']}\" dihapus");
         Bantu::sukses(['id' => $id], 'Kategori dihapus.');
     }
 }

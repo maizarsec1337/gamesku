@@ -1,9 +1,10 @@
 // =====================================================================
 // ChatbotAI — asisten Gamesku (panel modular, responsif).
+// Tombol: ikon robot tanpa teks; tooltip + label aksesibilitas "Buka Asisten".
 //
 // Mode:
-//  - "ai"      : VITE_CHAT_ENDPOINT diisi → bertanya ke backend AI.
-//  - "panduan" : endpoint belum ada → jawaban statis JUJUR (bukan AI),
+//  - "ai"      : /api/chat menjawab 200 → bertanya ke backend AI.
+//  - "panduan" : backend 503/belum dikonfigurasi → jawaban statis JUJUR,
 //                hanya mengarahkan ke halaman/fitur Gamesku.
 //
 // Tidak ada API key di sini. Tidak mengarang produk/harga/stok. Panel
@@ -12,7 +13,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Ikon from './Ikon.jsx'
-import { chatbotTersedia, tanyaChatbot } from '../layanan/layananChatbot.js'
+import { tanyaChatbot } from '../layanan/layananChatbot.js'
 import {
   ambilPanduan,
   cariPanduan,
@@ -28,14 +29,15 @@ const idPesan = () => `cb-${Date.now().toString(36)}-${(urutanPesan += 1)}`
 
 export default function ChatbotAI() {
   const [terbuka, setTerbuka] = useState(false)
+  const [aiAktif, setAiAktif] = useState(null)
+  // null = belum tahu; true = AI aktif; false = mode panduan jujur.
   const [pesan, setPesan] = useState(() => [
     {
       id: idPesan(),
       peran: 'asisten',
-      isi: chatbotTersedia
-        ? 'Halo! Saya asisten Gamesku. Tanyakan apa saja tentang produk, kategori, atau cara pakai website ini.'
-        : sapaanPanduan,
-      panduan: !chatbotTersedia,
+      isi: sapaanPanduan,
+      panduan: true,
+      saran: true,
     },
   ])
   const [input, setInput] = useState('')
@@ -43,7 +45,9 @@ export default function ChatbotAI() {
   const [petunjuk, setPetunjuk] = useState('')
   const refPesan = useRef(null)
   const refInput = useRef(null)
+  const refTerakhirKirim = useRef(0)
   const idPanel = useId()
+  const idLabel = `cb-label`
 
   // Gulirkan HANYA area pesan (bukan halaman) saat ada pesan baru.
   useEffect(() => {
@@ -81,22 +85,36 @@ export default function ChatbotAI() {
         setPetunjuk('Tulis pertanyaan dulu ya.')
         return
       }
+      if (isi.length > 2000) {
+        setPetunjuk('Pesan terlalu panjang (maks 2000 karakter).')
+        return
+      }
+      const sekarang = Date.now()
+      if (sekarang - refTerakhirKirim.current < 1500) {
+        setPetunjuk('Tunggu sebentar sebelum mengirim lagi.')
+        return
+      }
+      refTerakhirKirim.current = sekarang
       setPetunjuk('')
       setInput('')
       tambahPesan({ peran: 'pengguna', isi })
 
-      if (chatbotTersedia) {
-        setMemuat(true)
-        const riwayat = pesan.map((p) => ({ peran: p.peran, isi: p.isi }))
-        const hasil = await tanyaChatbot(isi, riwayat)
-        setMemuat(false)
-        if (hasil.berhasil) {
-          tambahPesan({ peran: 'asisten', isi: hasil.balasan })
-        } else {
-          tambahPesan({ peran: 'asisten', isi: hasil.pesan, galat: true })
-        }
+      // Selalu coba backend /api/chat dulu; 503 = AI belum aktif -> panduan.
+      setMemuat(true)
+      const riwayat = pesan.map((p) => ({ peran: p.peran, isi: p.isi }))
+      const hasil = await tanyaChatbot(isi, riwayat)
+      setMemuat(false)
+      if (hasil.berhasil) {
+        setAiAktif(true)
+        tambahPesan({ peran: 'asisten', isi: hasil.balasan })
         return
       }
+      // Galat nyata (429/jaringan): tampil jelas + tawarkan panduan.
+      if (hasil.tersedia !== false) {
+        tambahPesan({ peran: 'asisten', isi: hasil.pesan, galat: true, saran: true })
+        return
+      }
+      setAiAktif(false)
 
       // Mode panduan: jawaban statis jujur, bukan AI.
       const cocok = cariPanduan(isi)
@@ -118,15 +136,19 @@ export default function ChatbotAI() {
   const kirimTopik = (id) => {
     const item = ambilPanduan(id)
     if (!item) return
-    tambahPesan({ peran: 'pengguna', isi: item.judul })
+    tambahPesan({ peran: 'pengguna', isi: item.label })
     tambahPesan({
       peran: 'asisten',
       isi: item.jawab,
       judul: item.judul,
       tautan: item.tautan,
-      panduan: true,
+      panduan: aiAktif !== true,
     })
   }
+
+  const statusTeks = aiAktif === true
+    ? 'Terhubung ke AI'
+    : aiAktif === false ? 'Mode panduan (AI belum aktif)' : 'Asisten Gamesku'
 
   return (
     <>
@@ -134,16 +156,17 @@ export default function ChatbotAI() {
         type="button"
         className={terbuka ? 'cb-fab cb-fab-aktif' : 'cb-fab'}
         onClick={() => setTerbuka((v) => !v)}
-        aria-label={terbuka ? 'Tutup asisten Gamesku' : 'Buka asisten Gamesku'}
+        aria-label={terbuka ? 'Tutup Asisten Gamesku' : 'Buka Asisten Gamesku'}
+        title={terbuka ? 'Tutup Asisten Gamesku' : 'Buka Asisten Gamesku'}
         aria-expanded={terbuka}
         aria-controls={idPanel}
       >
-        <Ikon nama={terbuka ? 'tutup' : 'chat'} ukuran={22} />
-        <span className="cb-fab-teks">Asisten</span>
+        <Ikon nama={terbuka ? 'tutup' : 'robot'} ukuran={24} />
       </button>
 
       <section
         id={idPanel}
+        aria-labelledby={idLabel}
         className={terbuka ? 'cb-panel cb-panel-buka' : 'cb-panel'}
         role="dialog"
         aria-modal="false"
@@ -153,8 +176,8 @@ export default function ChatbotAI() {
         <header className="cb-kepala">
           <span className="cb-avatar" aria-hidden="true"><Ikon nama="chat" ukuran={18} /></span>
           <div className="cb-kepala-teks">
-            <strong>Asisten Gamesku</strong>
-            <span>{chatbotTersedia ? 'Terhubung ke AI' : 'Mode panduan (AI belum aktif)'}</span>
+            <strong id={idLabel}>Asisten Gamesku</strong>
+            <span>{statusTeks}</span>
           </div>
           <button type="button" className="cb-tutup" onClick={() => setTerbuka(false)} aria-label="Tutup asisten">
             <Ikon nama="tutup" ukuran={17} />
@@ -187,7 +210,7 @@ export default function ChatbotAI() {
           )}
         </div>
 
-        {!chatbotTersedia && pesan.length <= 1 && (
+        {!memuat && aiAktif !== true && pesan.length <= 1 && (
           <div className="cb-topik" aria-label="Topik cepat">
             {saranTopik.map((t) => (
               <button key={t.id} type="button" onClick={() => kirimTopik(t.id)}>{t.label}</button>
@@ -206,7 +229,7 @@ export default function ChatbotAI() {
             ref={refInput}
             value={input}
             onChange={(e) => { setInput(e.target.value); if (petunjuk) setPetunjuk('') }}
-            placeholder={chatbotTersedia ? 'Tulis pertanyaan…' : 'Tulis pertanyaan atau pilih topik…'}
+            placeholder={aiAktif === false ? 'Tulis pertanyaan atau pilih topik…' : 'Tulis pertanyaan…'}
             aria-label="Tulis pertanyaan untuk asisten"
             autoComplete="off"
           />
@@ -215,10 +238,10 @@ export default function ChatbotAI() {
           </button>
         </form>
         {petunjuk && <p className="cb-petunjuk" role="alert">{petunjuk}</p>}
-        {!chatbotTersedia && (
+        {aiAktif === false && (
           <p className="cb-catatan">
             Jawaban di atas panduan statis, bukan hasil AI. Integrasi AI menunggu backend
-            (<code>VITE_CHAT_ENDPOINT</code>).
+            (<code>GAMEKU_CHAT_ENDPOINT</code>).
           </p>
         )}
       </section>

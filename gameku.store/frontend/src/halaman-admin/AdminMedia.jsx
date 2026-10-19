@@ -183,7 +183,6 @@ export default function AdminMedia() {
         </>
       )}
 
-      {/* Modal unggah */}
       <JendelaModal
         judul="Unggah Media Baru"
         padaTutup={bukaUnggah ? () => setBukaUnggah(false) : null}
@@ -210,7 +209,6 @@ export default function AdminMedia() {
         </p>
       </JendelaModal>
 
-      {/* Modal pratinjau */}
       <JendelaModal
         judul="Pratinjau Media"
         padaTutup={dipilih ? () => setDipilih(null) : null}
@@ -268,7 +266,6 @@ export default function AdminMedia() {
         )}
       </JendelaModal>
 
-      {/* Modal hapus */}
       <JendelaModal
         judul="Hapus Media?"
         padaTutup={dihapus ? () => setDihapus(null) : null}

@@ -74,7 +74,11 @@ class PengendaliCreator extends PengendaliDasar
             'INSERT INTO creator (id, nama, username, status) VALUES (?,?,?,?)',
             [$id, $nama, $username, 'Review']
         );
-        Aktivitas::catat("Creator \"{$nama}\" mendaftar", 'kreator', 'biru');
+        Aktivitas::audit('daftar_creator', 'creator', $id, 'Berhasil', [
+            'nama' => $nama,
+            'username' => $username,
+            'status' => 'Review',
+        ], "Creator \"{$nama}\" mendaftar");
         Bantu::sukses(['id' => $id, 'nama' => $nama, 'status' => 'Review'], 'Pendaftaran creator berhasil.', 201);
     }
 
@@ -86,7 +90,11 @@ class PengendaliCreator extends PengendaliDasar
 
         $status = $this->salahDari($this->teks('status', 'Review'), self::STATUS, 'Review');
         Database::eksekusi('UPDATE creator SET status=? WHERE id=?', [$status, $id]);
-        Aktivitas::catat("Status creator \"{$lama['nama']}\" diubah ke {$status}", 'label', 'biru');
+        Aktivitas::audit('ubah_status_creator', 'creator', $id, 'Berhasil', [
+            'nama' => $lama['nama'],
+            'statusLama' => $lama['status'] ?? '',
+            'statusBaru' => $status,
+        ], "Status creator \"{$lama['nama']}\" diubah ke {$status}");
         Bantu::sukses(['id' => $id, 'status' => $status], 'Status creator diperbarui.');
     }
 
@@ -96,7 +104,9 @@ class PengendaliCreator extends PengendaliDasar
         $baris = Database::satu('SELECT id, nama FROM creator WHERE id = ?', [$id]);
         if (!$baris) Bantu::gagal('Creator tidak ditemukan.', 404);
         Database::eksekusi('DELETE FROM creator WHERE id = ?', [$id]);
-        Aktivitas::catat("Creator \"{$baris['nama']}\" dihapus", 'hapus', 'merah');
+        Aktivitas::audit('hapus_creator', 'creator', $id, 'Berhasil', [
+            'nama' => $baris['nama'],
+        ], "Creator \"{$baris['nama']}\" dihapus");
         Bantu::sukses(['id' => $id], 'Creator dihapus.');
     }
 }

@@ -1,4 +1,4 @@
-// Halaman /masuk — login/daftar pembeli Gameku.store (di luar TataLetak).
+﻿// Halaman /masuk — login/daftar pembeli Gameku.store (di luar TataLetak).
 // Mode daftar memakai tambahPelanggan() nyata; mode masuk hanya validasi bentuk
 // (endpoint sesi pembeli belum ada di backend).
 import { useState } from 'react'
@@ -114,7 +114,7 @@ export default function HalamanMasuk() {
                 <label className="label-isian" htmlFor="masuk-email">Email</label>
                 <div className={galatBidang.email ? 'gk-input gk-error' : 'gk-input'}>
                   <Ikon nama="surel" ukuran={16} />
-                  <input id="masuk-email" type="email" value={form.email} onChange={ubah('email')} placeholder="kamu@email.com" autoComplete="email" aria-invalid={!!galatBidang.email} />
+                  <input id="masuk-email" type="email" minLength={6} value={form.email} onChange={ubah('email')} placeholder="kamu@email.com" autoComplete="email" aria-invalid={!!galatBidang.email} />
                 </div>
                 {galatBidang.email && <span className="pesan-salah" role="alert">{galatBidang.email}</span>}
               </div>
@@ -152,3 +152,4 @@ export default function HalamanMasuk() {
     </div>
   )
 }
+

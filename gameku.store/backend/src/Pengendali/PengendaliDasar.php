@@ -56,9 +56,15 @@ abstract class PengendaliDasar
         }
         $token = $token ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $this->teks('X-CSRF-Token'));
         if (!$token) {
+            SecurityLog::catat('csrf_ditolak', 'warn', 'Request state-changing tanpa token CSRF.', [
+                'path' => (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH),
+            ]);
             Bantu::gagal('Token keamanan tidak disediakan.', 403);
         }
         if (!Auth::cekCsrf($token)) {
+            SecurityLog::catat('csrf_ditolak', 'warn', 'Token CSRF tidak valid.', [
+                'path' => (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH),
+            ]);
             Bantu::gagal('Token keamanan tidak valid.', 403);
         }
         return true;

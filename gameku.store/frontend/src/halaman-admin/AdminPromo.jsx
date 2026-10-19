@@ -127,7 +127,7 @@ export default function AdminPromo() {
           <KosongAdmin
             ikon="promo"
             judul="Belum ada promo."
-            deskripsi="Buat kode promo pertama untuk mathematkan diskon di toko."
+            deskripsi="Buat kode promo pertama untuk mengaktifkan diskon di toko."
             aksi={{ label: '+ Tambah Promo', onKlik: bukaTambah }}
           />
         </section>

@@ -14,7 +14,7 @@ export default function FilterProduk({ kataKunci, pilihKataKunci, kategoriAktif,
     <div className="bilah-saring">
       <form className="cari-besar" role="search" onSubmit={(e) => e.preventDefault()}>
         <Ikon nama="cari" ukuran={16} />
-        <input value={kataKunci} onChange={(e) => pilihKataKunci(e.target.value)} placeholder="Cari top-up, voucher, skin..." aria-label="Cari produk" />
+        <input value={kataKunci} onChange={(e) => pilihKataKunci(e.target.value)} placeholder="Cari top-up, voucher, skin…" aria-label="Cari produk" />
       </form>
       <div className="pil-kategori" role="tablist" aria-label="Filter kategori">
         <button type="button" className={kategoriAktif === 'semua' ? 'pil pil-aktif' : 'pil'} onClick={() => pilihKategori('semua')}>Semua</button>

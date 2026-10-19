@@ -380,6 +380,35 @@
 }
 .sk-eps-tautan:hover{border-color:#43DDF5;background:rgba(67,221,245,.10)}
 .sk-eps-nonaktif{color:#7F8CAD;border-color:#263663;cursor:default}
+.sk-eps-pilih{
+  flex:none;
+  font-size:11px;
+  font-weight:800;
+  color:#0B0D1E;
+  background:linear-gradient(135deg,#43DDF5,#BD54F5);
+  border:none;
+  border-radius:8px;
+  padding:6px 12px;
+  cursor:pointer;
+  transition:opacity 150ms ease;
+}
+.sk-eps-pilih:hover{opacity:.88}
+.sk-eps-pilih:disabled{opacity:.45;cursor:default}
+.sk-eps-aktif{
+  border-color:#43DDF5;
+  background:rgba(67,221,245,.08);
+}
+
+/* --- Pemutar video --- */
+.sk-pemutar-aktif{display:block;aspect-ratio:auto;background:#0B0D1E;border:1px solid #263663;border-radius:18px;overflow:hidden;padding:0}
+.sk-video-embed{display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
+.sk-pemutar-muat{padding:36px 20px;text-align:center;color:#F4F7FF}
+.sk-pemutar-muat strong{display:block;font-size:15px;margin-top:12px}
+.sk-pemutar-galat{padding:28px 20px;text-align:center;color:#F4F7FF;display:grid;place-items:center;gap:0}
+.sk-pemutar-galat strong{display:block;font-size:15px;color:#FF8A95;margin-top:10px}
+.sk-pemutar-galat p{font-size:12.5px;color:#A7B2D0;margin-top:6px;max-width:50ch;line-height:1.6}
+.sk-pemutar-catatan{font-size:11.5px !important;color:#7F8CAD !important;font-style:italic}
+.sk-pemutar-judul{font-size:14px;font-weight:700;color:#F4F7FF;padding:10px 14px;border-top:1px solid #263663;margin:0}
 
 /* --- Galat --- */
 .sk-galat{

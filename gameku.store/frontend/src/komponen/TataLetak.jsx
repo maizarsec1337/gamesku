@@ -4,7 +4,7 @@ import Footer from './Footer.jsx'
 import NavigasiBawah from './NavigasiBawah.jsx'
 import ChatbotAI from './ChatbotAI.jsx'
 
-// Tata letak utama marketplace (satu project, siap ditambah PHP nanti).
+// Tata letak utama marketplace (navigasi atas + navigasi bawah + footer + chatbot).
 export default function TataLetak() {
   return (
     <>

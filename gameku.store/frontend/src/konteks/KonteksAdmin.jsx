@@ -28,7 +28,6 @@ export function PenyediaAdmin({ children }) {
     try {
       sessionStorage.removeItem(KUNCI_SESI_ADMIN)
     } catch {
-      // abaikan
     }
     setSesiServer(null)
   }, [])
