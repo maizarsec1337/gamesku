@@ -15,7 +15,7 @@ class PengendaliAuth extends PengendaliDasar
 
             case 'keluar':
                 if ($metode !== 'POST') $this->metodeTakDiizinkan();
-                $this->validasiCsrf();
+                $this->validateCsrf();
                 Auth::keluar();
                 Bantu::sukses(null, 'Berhasil keluar.');
                 break;
@@ -28,9 +28,15 @@ class PengendaliAuth extends PengendaliDasar
 
             case 'daftar':
                 Auth::wajib();
-                $this->validasiCsrf();
+                $this->validateCsrf();
                 if ($metode !== 'POST') $this->metodeTakDiizinkan();
                 $this->daftar();
+                break;
+
+            case 'csrf':
+                if ($metode !== 'GET') $this->metodeTakDiizinkan();
+                $token = Auth::buatTokenCsrf();
+                Bantu::sukses(['csrf_token' => $token], 'Token CSRF siap.');
                 break;
 
             default:

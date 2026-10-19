@@ -1,0 +1,19 @@
+{
+  "sumber": "data_pelanggan_dev.json — HANYA untuk pengembangan lokal via jembatan-dev.mjs",
+  "catatan": [
+    "Produksi tetap menggunakan backend PHP (backend/api/index.php) + MySQL (tabel pelanggan, password_verify).",
+    "Berkas ini tidak digunakan di produksi dan tidak boleh berisi data pelanggan asli."
+  ],
+  "diambilPada": "2026-10-19T00:00:00+07:00",
+  "pelanggan": [
+    {
+      "id": "pel-demo-0001",
+      "nama": "Pembeli Demo",
+      "username": "pembeli_demo",
+      "email": "pembeli@gameku.store",
+      "sandi_hash": "e85eb8115d8350b87a45ecedc19bf7e24524a0e1bf11134e3c47e45f30776240",
+      "status": "Aktif",
+      "bergabung": "2026-10-19T00:00:00+07:00"
+    }
+  ]
+}

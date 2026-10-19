@@ -27,6 +27,13 @@ uji-out.txt
 .uji-tmp/
 .uji-visual-tmp.cjs
 
+# Cline: log, dump, checkpoint & artefak sementara (jangan masuk Git)
+__pycache__/
+*.pyc
+*.pyo
+cline/logs/
+cline/artifacts/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

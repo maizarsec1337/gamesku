@@ -181,6 +181,85 @@ class Auth
     {
         return password_hash($sandi, PASSWORD_DEFAULT);
     }
+
+    // ============ SESI PEMBELI (toko depan) — terpisah dari sesi admin. ============
+    // Memakai tabel `pelanggan` yang SUDAH ADA (kolom sandi_hash nullable).
+    // Kunci sesi: $_SESSION['pembeli'] (bukan 'admin') agar peran tidak tercampur:
+    // sesi pembeli TIDAK lolos Auth::wajib()/wajibPeran() admin.
+    public static function masukPembeli(string $email, string $sandi): array
+    {
+        $baris = Database::satu(
+            'SELECT id, nama, username, email, sandi_hash, status FROM pelanggan WHERE email = ? LIMIT 1',
+            [$email]
+        );
+
+        // Pesan samar agar email yang ada tidak bocor; akun tanpa sandi
+        // (daftar cepat lama) juga ditolak dengan pesan yang sama.
+        if (!$baris || !is_string($baris['sandi_hash'] ?? null) || $baris['sandi_hash'] === ''
+            || !password_verify($sandi, $baris['sandi_hash'])) {
+            SecurityLog::catat('login_pembeli_gagal', 'warn', 'Percobaan masuk pembeli gagal.', [
+                'emailAda' => $baris !== null,
+            ]);
+            return ['berhasil' => false, 'pesan' => 'Email atau kata sandi salah.'];
+        }
+        if (($baris['status'] ?? 'Aktif') !== 'Aktif') {
+            SecurityLog::catat('login_pembeli_gagal', 'warn', 'Masuk ditolak: akun pembeli tidak aktif.', [
+                'email' => $baris['email'] ?? '',
+            ]);
+            return ['berhasil' => false, 'pesan' => 'Akun tidak aktif.'];
+        }
+
+        session_regenerate_id(true);
+        $_SESSION['pembeli'] = [
+            'id'       => (string) $baris['id'],
+            'nama'     => (string) ($baris['nama'] ?? ''),
+            'username' => (string) ($baris['username'] ?? ''),
+            'email'    => (string) ($baris['email'] ?? ''),
+        ];
+
+        SecurityLog::catat('login_pembeli_sukses', 'info', 'Pembeli berhasil masuk.', [
+            'pembeliId' => (string) $baris['id'],
+        ]);
+
+        return [
+            'berhasil' => true,
+            'data'     => $_SESSION['pembeli'],
+        ];
+    }
+
+    public static function keluarPembeli(): void
+    {
+        self::mulai();
+        unset($_SESSION['pembeli']);
+    }
+
+    public static function sesiPembeli(): ?array
+    {
+        self::mulai();
+        $sesi = $_SESSION['pembeli'] ?? null;
+        if (!is_array($sesi)) return null;
+        // Cek ulang status akun tiap request: Nonaktif langsung mengakhiri sesi.
+        try {
+            $baris = Database::satu(
+                'SELECT id, nama, username, email FROM pelanggan WHERE id = ? AND status = ? LIMIT 1',
+                [(string) ($sesi['id'] ?? ''), 'Aktif']
+            );
+        } catch (Throwable $e) {
+            return $sesi;
+        }
+        if (!$baris) {
+            unset($_SESSION['pembeli']);
+            return null;
+        }
+        // Segarkan nama/username/email bila berubah di database.
+        $_SESSION['pembeli'] = [
+            'id'       => (string) $baris['id'],
+            'nama'     => (string) ($baris['nama'] ?? ''),
+            'username' => (string) ($baris['username'] ?? ''),
+            'email'    => (string) ($baris['email'] ?? ''),
+        ];
+        return $_SESSION['pembeli'];
+    }
 }
 
 // Rate limiter login: hitungan per IP di FILE (bukan session) — window 60 detik, maks 10.

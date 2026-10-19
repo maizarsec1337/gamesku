@@ -5,12 +5,18 @@
 //   GET /api/sehat            -> { ok:true, data:{ layanan, waktu, database } }
 //   GET /api/anime?...        -> { ok:true, data:{ items, halaman, per, total, totalHalaman, kueri, sumber, diambilPada } }
 //   GET /api/anime/{slug}/episode/{no} -> { ok:true, data:{ seri, episode:{ no, judul, tanggal, link, sumberPemutaran, urlPemutaran, embedPemutaran, diperiksaPada } } }
+//   GET /api/auth/csrf-token   -> { ok:true, data:{ csrf_token } }
+//   POST /api/pelanggan/masuk  -> login pembeli + cookie sesi gk_sesi
+//   GET  /api/pelanggan/saya   -> { ok:true, data:{ pembeli } | null }
+//   POST /api/pelanggan/keluar -> hapus sesi pembeli
+//   POST /api/pelanggan        -> daftar pembeli baru
 // Sumber data: backend/api/data_anime_lengkap.json (ASLI, tanpa dummy).
 // BUKAN bagian deploy — hosting tetap memakai PHP. File ini hanya agar
 // `python jalan.py` / Vite dev tetap bisa menampilkan katalog saat PHP belum
 // terinstal. Jangan commit sebagai pengganti backend.
 import { createServer } from 'node:http';
 import { readFileSync, statSync } from 'node:fs';
+import crypto from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -63,6 +69,227 @@ function kirim(res, status, obj) {
 }
 const ok = (res, data, pesan = '') => kirim(res, 200, { ok: true, data, pesan });
 const gagal = (res, pesan, status = 400) => kirim(res, status, { ok: false, pesan });
+const metodeTakDiizinkan = (res) => gagal(res, 'Metode HTTP tidak diizinkan untuk endpoint ini.', 405);
+
+// ===== Toko data pelanggan untuk pengembangan lokal (jembatan-dev) =====
+// PHP tidak terpasang di mesin ini, jadi jembatan-dev menyimulasi kontrak
+// autentikasi pembeli backend PHP (tabel pelanggan + cookie sesi) dengan
+// berkas data lokal + memori. BUKAN untuk produksi — produksi tetap pakai
+// backend/api/index.php + MySQL.
+const BERKAS_PELANGGAN = join(ROOT, 'backend', 'api', 'data_pelanggan_dev.json');
+let daftarPelanggan = [];
+let indeksEmail = new Map();
+function muatPelanggan() {
+  try {
+    const isi = JSON.parse(readFileSync(BERKAS_PELANGGAN, 'utf8'));
+    daftarPelanggan = Array.isArray(isi.pelanggan) ? isi.pelanggan : [];
+    indeksEmail = new Map(daftarPelanggan.filter((p) => p && p.email).map((p) => [String(p.email).toLowerCase(), p]));
+  } catch {
+    daftarPelanggan = [];
+    indeksEmail = new Map();
+  }
+}
+function cariPelanggan(email) { return indeksEmail.get(String(email ?? '').toLowerCase()) ?? null; }
+muatPelanggan();
+
+// ===== Sesi & CSRF (memori, development) =====
+const SESSION_IDLE = 30 * 60 * 1000; // 30 menit, sama konfigurasi sesi PHP
+const TOKEN_CSRF_IDLE = 10 * 60 * 1000; // 10 menit
+const sesiMap = new Map(); // idSesi -> { pembeli, expiresAt }
+const daftarTokenCsrf = new Map(); // token -> expiresAt
+const batasMasukPerIp = new Map(); // ip -> { hitung, resetAt }
+
+function buatSesi(pembeli) {
+  const id = crypto.randomBytes(24).toString('hex');
+  sesiMap.set(id, { pembeli, expiresAt: Date.now() + SESSION_IDLE });
+  return id;
+}
+function ambilSesi(idSesi) {
+  if (!idSesi) return null;
+  const s = sesiMap.get(idSesi);
+  if (!s) return null;
+  if (Date.now() > s.expiresAt) { sesiMap.delete(idSesi); return null; }
+  return s.pembeli;
+}
+function hapusSesi(idSesi) { if (idSesi) sesiMap.delete(idSesi); }
+function buatTokenCsrf() {
+  const token = crypto.randomBytes(24).toString('hex');
+  daftarTokenCsrf.set(token, Date.now() + TOKEN_CSRF_IDLE);
+  return token;
+}
+function validasiTokenCsrf(token) {
+  if (!token) return false;
+  const exp = daftarTokenCsrf.get(token);
+  if (!exp) return false;
+  if (Date.now() > exp) { daftarTokenCsrf.delete(token); return false; }
+  return true;
+}
+function cookieSesiHeader(idSesi) { return `gk_sesi=${idSesi}; Path=/; HttpOnly; SameSite=Lax`; }
+function cookieHapusHeader() { return 'gk_sesi=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax'; }
+function bacaIdSesiDariCookie(req) {
+  const c = req.headers.cookie ?? '';
+  const m = c.match(/(?:^|;)\s*gk_sesi=([^;]*)/);
+  return m ? m[1] : null;
+}
+function ambilSesiDariCookie(req) { return ambilSesi(bacaIdSesiDariCookie(req)); }
+
+// Rate limit login per IP (mirip AuthRateLimiter PHP; di sini disimpan di memori).
+function cekBatasMasuk(ip) {
+  const now = Date.now();
+  let ent = batasMasukPerIp.get(ip);
+  if (!ent || now > ent.resetAt) {
+    ent = { hitung: 1, resetAt: now + 60000 };
+    batasMasukPerIp.set(ip, ent);
+    return { limited: false };
+  }
+  ent.hitung++;
+  return { limited: ent.hitung > 10, retry_after: Math.ceil((ent.resetAt - now) / 1000) || 1 };
+}
+
+function ipKlien(req) {
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) return String(xff).split(',')[0].trim() || 'unknown';
+  return req.socket.remoteAddress || 'unknown';
+}
+
+// Verifikasi sandi dengan hash SHA-256 (timing-safe, tanpa membandingkan teks asli).
+function cocokkanSandi(sandi, hash) {
+  if (!sandi || typeof hash !== 'string') return false;
+  const komputasi = crypto.createHash('sha256').update(sandi).digest();
+  const simpan = Buffer.from(hash, 'hex');
+  if (komputasi.length !== simpan.length) return false;
+  return crypto.timingSafeEqual(komputasi, simpan);
+}
+
+function bacaBadanJson(req) {
+  return new Promise((resolve) => {
+    const potongan = [];
+    req.on('data', (c) => potongan.push(c));
+    req.on('end', () => {
+      const teks = Buffer.concat(potongan).toString('utf8');
+      try { resolve(teks === '' ? {} : JSON.parse(teks)); } catch { resolve(null); }
+    });
+    req.on('error', () => resolve(null));
+  });
+}
+
+// ===== Handler autentikasi pembeli (mirip PengendaliPelanggan + Auth PHP) =====
+async function handleMasukPembeli(req, res) {
+  const token = req.headers['x-csrf-token'] ?? '';
+  if (!validasiTokenCsrf(token)) {
+    gagal(res, 'Token keamanan tidak valid.', 403);
+    return;
+  }
+  const badan = await bacaBadanJson(req);
+  if (badan === null) {
+    gagal(res, 'Badan permintaan tidak dapat dibaca.', 400);
+    return;
+  }
+  const email = String(badan.email ?? '').trim().toLowerCase();
+  const sandi = String(badan.sandi ?? '');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    gagal(res, 'Email tidak valid.', 400);
+    return;
+  }
+  if (sandi === '') {
+    gagal(res, 'Email atau kata sandi salah.', 401);
+    return;
+  }
+
+  const batas = cekBatasMasuk(ipKlien(req));
+  if (batas.limited) {
+    res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': String(batas.retry_after ?? 60) });
+    res.end(JSON.stringify({ ok: false, pesan: 'Layanan sibuk. Coba lagi nanti.' }));
+    return;
+  }
+
+  // Pesan samar: tidak membedakan email tidak terdaftar dari sandi salah.
+  const pelanggan = cariPelanggan(email);
+  if (!pelanggan || !cocokkanSandi(sandi, pelanggan.sandi_hash)) {
+    gagal(res, 'Email atau kata sandi salah.', 401);
+    return;
+  }
+  if (pelanggan.status !== 'Aktif') {
+    gagal(res, 'Akun tidak aktif.', 401);
+    return;
+  }
+
+  const idSesi = buatSesi({
+    id: pelanggan.id,
+    nama: pelanggan.nama,
+    username: pelanggan.username,
+    email: pelanggan.email,
+  });
+  res.writeHead(200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Set-Cookie': cookieSesiHeader(idSesi),
+  });
+  res.end(JSON.stringify({
+    ok: true,
+    data: { id: pelanggan.id, nama: pelanggan.nama, username: pelanggan.username, email: pelanggan.email },
+    pesan: 'Berhasil masuk.',
+  }));
+}
+
+async function handleKeluarPembeli(req, res) {
+  const token = req.headers['x-csrf-token'] ?? '';
+  if (!validasiTokenCsrf(token)) {
+    gagal(res, 'Token keamanan tidak valid.', 403);
+    return;
+  }
+  hapusSesi(bacaIdSesiDariCookie(req));
+  res.writeHead(200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Set-Cookie': cookieHapusHeader(),
+  });
+  res.end(JSON.stringify({ ok: true, data: null, pesan: 'Berhasil keluar.' }));
+}
+
+async function handleDaftarPembeli(req, res) {
+  const token = req.headers['x-csrf-token'] ?? '';
+  if (!validasiTokenCsrf(token)) {
+    gagal(res, 'Token keamanan tidak valid.', 403);
+    return;
+  }
+  const badan = await bacaBadanJson(req);
+  if (badan === null) {
+    gagal(res, 'Badan permintaan tidak dapat dibaca.', 400);
+    return;
+  }
+  const email = String(badan.email ?? '').trim().toLowerCase();
+  const nama = String(badan.nama ?? '').trim();
+  const sandi = String(badan.sandi ?? '');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    gagal(res, 'Email pelanggan tidak valid.', 400);
+    return;
+  }
+  if (nama === '') {
+    gagal(res, 'Nama wajib diisi.', 400);
+    return;
+  }
+  if (sandi.length < 8) {
+    gagal(res, 'Sandi minimal 8 karakter.', 400);
+    return;
+  }
+  if (cariPelanggan(email)) {
+    gagal(res, 'Email sudah terdaftar.', 409);
+    return;
+  }
+  const id = 'pel-' + crypto.randomBytes(6).toString('hex');
+  const baru = {
+    id,
+    nama,
+    username: nama.toLowerCase().replace(/\s+/g, '_').slice(0, 60) || 'pelanggan',
+    email,
+    sandi_hash: crypto.createHash('sha256').update(sandi).digest('hex'),
+    status: 'Aktif',
+    bergabung: new Date().toISOString(),
+  };
+  daftarPelanggan.push(baru);
+  indeksEmail.set(email, baru);
+  res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify({ ok: true, data: { id, nama, email }, pesan: 'Pendaftaran berhasil.' }));
+}
 
 // ===== Resolusi sumber pemutaran (paritas PengendaliAnime::resolusiPemutaran) =====
 // Rantai diverifikasi live 2026-10-17: halaman episode -> iframe partner atau
@@ -199,15 +426,62 @@ createServer(async (req, res) => {
     const url = new URL(req.url || '/', 'http://localhost');
     let jalur = decodeURIComponent(url.pathname || '/');
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
-    if (req.method !== 'GET') { gagal(res, 'Metode HTTP tidak diizinkan untuk endpoint ini.', 405); return; }
     jalur = (jalur.replace(/^\/api/, '') || '/').replace(/\.php$/, '');
     jalur = '/' + jalur.replace(/^\/+|\/+$/g, '');
     if (jalur === '/' || jalur === '/sehat' || jalur === '') {
+      if (req.method !== 'GET') { gagal(res, 'Metode HTTP tidak diizinkan untuk endpoint ini.', 405); return; }
       ok(res, { layanan: 'gamesku-store (jembatan-dev)', waktu: new Date().toISOString(), database: 'gagal' });
       return;
     }
     const seg = jalur.split('/').filter(Boolean);
-    if (seg[0] !== 'anime') { gagal(res, `Endpoint '${seg[0] || ''}' tidak ditemukan.`, 404); return; }
+    const sumber = seg[0] || '';
+
+    // ===== Kontrak auth pembeli (sama dengan backend PHP: api/index.php + PengendaliPelanggan) =====
+    //   GET    /api/auth/csrf-token   ambil token CSRF
+    //   POST   /api/pelanggan/masuk   login pembeli (email + sandi) + cookie sesi
+    //   GET    /api/pelanggan/saya    cek sesi pembeli saat ini
+    //   POST   /api/pelanggan/keluar  hapus sesi pembeli
+    //   POST   /api/pelanggan         daftar pembeli baru
+    if (sumber === 'auth') {
+      const aksi = seg[1] ?? null;
+      if (aksi === 'csrf-token') {
+        if (req.method !== 'GET') { metodeTakDiizinkan(res); return; }
+        ok(res, { csrf_token: buatTokenCsrf() }, 'Token CSRF siap.');
+        return;
+      }
+      gagal(res, aksi ? `Endpoint '/auth/${aksi}' tidak dikenali.` : "Endpoint 'auth' tidak ditemukan.", 404);
+      return;
+    }
+
+    if (sumber === 'pelanggan') {
+      const aksi = seg[1] ?? null;
+      if (aksi === 'masuk') {
+        if (req.method !== 'POST') { metodeTakDiizinkan(res); return; }
+        await handleMasukPembeli(req, res);
+        return;
+      }
+      if (aksi === 'keluar') {
+        if (req.method !== 'POST') { metodeTakDiizinkan(res); return; }
+        await handleKeluarPembeli(req, res);
+        return;
+      }
+      if (aksi === 'saya') {
+        if (req.method !== 'GET') { metodeTakDiizinkan(res); return; }
+        const sesi = ambilSesiDariCookie(req);
+        ok(res, sesi ? { pembeli: sesi } : null);
+        return;
+      }
+      if (!aksi) {
+        if (req.method !== 'POST') { metodeTakDiizinkan(res); return; }
+        await handleDaftarPembeli(req, res);
+        return;
+      }
+      gagal(res, `Endpoint '/pelanggan/${aksi}' tidak dikenali.`, 404);
+      return;
+    }
+
+    // ===== Anime (tidak berubah) =====
+    if (sumber !== 'anime') { gagal(res, `Endpoint '${sumber}' tidak ditemukan.`, 404); return; }
     const data = muat();
     const slug = seg[1] ?? null;
     const sub = seg[2] ?? null;

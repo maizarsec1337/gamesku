@@ -5,6 +5,26 @@ class PengendaliPelanggan extends PengendaliDasar
 {
     public function tangani(string $metode, ?string $id, ?string $sub): void
     {
+        $aksi = $id ?? 'saya';
+
+        // Sesi pembeli (toko depan) — terpisah dari sesi admin, tidak
+        // memerlukan Auth::wajib() (admin). CSRF berlaku untuk POST state-changing.
+        if ($aksi === 'masuk') {
+            if ($metode !== 'POST') $this->metodeTakDiizinkan();
+            $this->masukPembeli();
+            return;
+        }
+        if ($aksi === 'keluar') {
+            if ($metode !== 'POST') $this->metodeTakDiizinkan();
+            $this->keluarPembeli();
+            return;
+        }
+        if ($aksi === 'saya') {
+            if ($metode !== 'GET') $this->metodeTakDiizinkan();
+            $this->sayaPembeli();
+            return;
+        }
+
         switch ($metode) {
             case 'GET':
                 Auth::wajib();
@@ -28,6 +48,36 @@ class PengendaliPelanggan extends PengendaliDasar
             default:
                 $this->metodeTakDiizinkan();
         }
+    }
+
+    // ---------- Sesi pembeli ----------
+
+    private function masukPembeli(): void
+    {
+        $this->validateCsrf();
+        $email = $this->teks('email');
+        $sandi = (string) ($this->badan()['sandi'] ?? '');
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Bantu::gagal('Email tidak valid.', 400);
+        }
+        $hasil = Auth::masukPembeli($email, $sandi);
+        if (!$hasil['berhasil']) {
+            Bantu::gagal($hasil['pesan'], 401);
+        }
+        Bantu::sukses($hasil['data'], 'Berhasil masuk.');
+    }
+
+    private function keluarPembeli(): void
+    {
+        $this->validateCsrf();
+        Auth::keluarPembeli();
+        Bantu::sukses(null, 'Berhasil keluar.');
+    }
+
+    private function sayaPembeli(): void
+    {
+        $sesi = Auth::sesiPembeli();
+        Bantu::sukses($sesi ? ['pembeli' => $sesi] : null);
     }
 
     private function petakan(array $r): array
