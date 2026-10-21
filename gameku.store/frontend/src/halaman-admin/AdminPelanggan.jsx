@@ -3,26 +3,26 @@ import TabelData from '../komponen/admin/TabelData.jsx'
 import LencanaStatus from '../komponen/admin/LencanaStatus.jsx'
 import KosongAdmin from '../komponen/admin/KosongAdmin.jsx'
 import Ikon from '../komponen/Ikon.jsx'
-import { useDaftar } from '../layanan/gunakanDaftar.js'
-import layananPelanggan, { cariPelanggan } from '../layanan/layananPelanggan.js'
+import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
+import { daftarPelangganApi } from '../layanan/apiAdmin.js'
 import { STATUS_PELANGGAN, waktuRelatif } from '../data/konstanta.js'
 import { formatRupiah, formatAngka } from '../utilitas/format.js'
 import '../css/admin-tabel.css'
 
-// =====================================================================
-// Halaman pelanggan (/admin/pelanggan).
-//
-// MULAI KOSONG. Tidak ada pelanggan contoh, tidak ada email karangan.
-// =====================================================================
+// Halaman pelanggan (/admin/pelanggan) — data dari backend (GET /api/pelanggan).
 export default function AdminPelanggan() {
+  const { data, memuat, galat, muat } = useApi(() => daftarPelangganApi(), [])
+  const pelanggan = Array.isArray(data) ? data : []
   const [kata, setKata] = useState('')
   const [filter, setFilter] = useState('')
-  const pelanggan = useDaftar(layananPelanggan)
 
   const hasil = useMemo(() => {
-    const dasar = cariPelanggan(kata)
+    const k = kata.trim().toLowerCase()
+    const dasar = !k
+      ? pelanggan
+      : pelanggan.filter((p) => `${p.nama} ${p.username} ${p.email}`.toLowerCase().includes(k))
     return filter ? dasar.filter((p) => p.status === filter) : dasar
-  }, [kata, filter])
+  }, [pelanggan, kata, filter])
 
   const kolom = [
     {
@@ -66,6 +66,27 @@ export default function AdminPelanggan() {
     },
     { kunci: 'status', label: 'Status', render: (p) => <LencanaStatus status={p.status} /> },
   ]
+
+  if (memuat) {
+    return (
+      <div className="keadaan-kosong keadaan-kosong-admin" role="status">
+        <span className="cb-putar" aria-hidden="true" />
+        <p>Memuat pelanggan…</p>
+      </div>
+    )
+  }
+
+  if (galat) {
+    return (
+      <div className="pesan-salah-login" role="alert">
+        <Ikon nama="info" ukuran={16} />
+        {pesanGalat(galat)}
+        <button type="button" className="tombol-admin tombol-garis" style={{ marginLeft: 'auto' }} onClick={muat}>
+          Coba lagi
+        </button>
+      </div>
+    )
+  }
 
   return (
     <>

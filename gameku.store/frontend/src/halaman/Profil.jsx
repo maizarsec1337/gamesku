@@ -87,6 +87,13 @@ export default function HalamanProfil() {
           ))}
         </div>
 
+        {status === 'masuk' && (
+          <Link className="kartu" to="/profil/reseller"><div className="kartu-isi" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <Ikon nama="kreator" ukuran={18} />
+            <strong style={{ fontSize: 14, color: '#43DDF5' }}>Daftar Reseller</strong>
+          </div></Link>
+        )}
+
         <p className="subjudul-halaman">Pesanan Gamesku akan muncul di sini setelah kamu checkout.</p>
       </div></section>
     </>

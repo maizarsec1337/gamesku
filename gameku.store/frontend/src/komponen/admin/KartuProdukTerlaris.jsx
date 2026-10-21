@@ -1,23 +1,16 @@
 import KosongAdmin from './KosongAdmin.jsx'
 import ThumbnailProduk from './ThumbnailProduk.jsx'
-import { useSyncExternalStore } from 'react'
-import { produkTerlaris as ambilTerlaris } from '../../layanan/layananDasbor.js'
-import { subscribeProduk } from '../../layanan/layananProduk.js'
 import { formatAngka, formatRupiah } from '../../utilitas/format.js'
 import { gradasiOtomatis } from '../../data/konstanta.js'
 
 // =====================================================================
 // Daftar peringkat produk terlaris.
 //
-// Peringkat dihitung dari pesanan berstatus Berhasil. Tanpa transaksi
-// tidak ada peringkat yang bisa ditampilkan, jadi kartu ini menampilkan
+// "peringkat" datang dari server (GET /api/dasbor → terlaris), dihitung
+// dari pesanan berstatus Berhasil. Tanpa transaksi, kartu ini menampilkan
 // "Belum ada produk." — bukan daftar dengan angka 0.
 // =====================================================================
-export default function KartuProdukTerlaris() {
-  // Berlangganan perubahan produk agar peringkat ikut terbarui.
-  useSyncExternalStore(subscribeProduk, ambilTerlaris, ambilTerlaris)
-  const peringkat = ambilTerlaris(5)
-
+export default function KartuProdukTerlaris({ peringkat = [] }) {
   if (!peringkat.length) {
     return (
       <KosongAdmin

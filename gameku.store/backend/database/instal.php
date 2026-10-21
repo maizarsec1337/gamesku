@@ -5,7 +5,7 @@ require_once __DIR__ . '/../src/Bantu.php';
 
 $cfg = require __DIR__ . '/../config/config.php';
 
-$opsi = ['pengguna' => 'admin', 'sandi' => 'admin123', 'nama' => 'Administrator'];
+$opsi = ['pengguna' => 'admin', 'sandi' => '', 'nama' => 'Administrator', 'email' => ''];
 foreach ($argv ?? [] as $arg) {
     if (strpos($arg, '--') === 0) {
         [$k, $v] = array_pad(explode('=', substr($arg, 2), 2), 2, '');
@@ -73,17 +73,40 @@ if ((int) $ada > 0 && !in_array('--paksa', $argv ?? [], true)) {
     echo "[3/3] Admin sudah ada ({$ada}). Lewati pembuatan admin default.\n";
     echo "       (pakai --paksa untuk menambah admin baru walau sudah ada.)\n";
 } else {
-    $hash = password_hash($opsi['sandi'], PASSWORD_DEFAULT);
+    // Sandi: pakai yang diberikan, atau buat acak kuat (dicetak SEKALI di sini).
+    $sandiDiberikan = trim((string) $opsi['sandi']) !== '';
+    if ($sandiDiberikan && strlen((string) $opsi['sandi']) < 8) {
+        fwrite(STDERR, "[WARNING] Sandi yang diberikan kurang dari 8 karakter.\n");
+    }
+    $sandi = $sandiDiberikan ? (string) $opsi['sandi'] : bin2hex(random_bytes(9)); // 18 karakter
+
+    $email = trim((string) $opsi['email']) !== '' ? trim((string) $opsi['email']) : ($opsi['pengguna'] . '@gamesku.store');
+
+    $hash = password_hash($sandi, PASSWORD_DEFAULT);
     $stmt = $pdo->prepare(
-        "INSERT INTO `admin` (pengguna, nama, email, sandi_hash, status) VALUES (?, ?, ?, ?, 'Aktif')"
+        "INSERT INTO `admin` (pengguna, nama, email, sandi_hash, status, peran)
+         VALUES (?, ?, ?, ?, 'Aktif', 'superadmin')"
     );
-    $stmt->execute([$opsi['pengguna'], $opsi['nama'], $opsi['pengguna'] . '@gamesku.store', $hash]);
-    // Peringatan: password default lemah, harus diganti setelah login pertama.
-    fwrite(STDERR, "\n[WARNING] Password default admin '*********' TERPATENGAN lemah.\n");
-    fwrite(STDERR, "         Ganti password melalui endpoint /api/auth/daftar atau\n");
-    fwrite(STDERR, "         database/instal.php --paksa sesegera mungkin setelah login pertama.\n\n");
+    $stmt->execute([$opsi['pengguna'], $opsi['nama'], $email, $hash]);
+
+    if ($sandiDiberikan) {
+        fwrite(STDERR, "\n[WARNING] Sandi admin dibuat dari nilai yang Anda berikan.\n");
+        fwrite(STDERR, "          Ganti segera setelah login pertama (endpoint /api/auth/admin/{id}).\n\n");
+    } else {
+        // Cetak SEKALI ke stdout agar bisa disalin admin. Tidak disimpan di mana pun.
+        echo "\n";
+        echo "  +--------------------------------------------------------------+\n";
+        echo "  | Akun superadmin dibuat. Salin sandi ini SEKARANG (tidak      |\n";
+        echo "  | ditampilkan lagi):                                           |\n";
+        echo "  +--------------------------------------------------------------+\n";
+        echo "    pengguna : {$opsi['pengguna']}\n";
+        echo "    sandi    : {$sandi}\n";
+        echo "  +--------------------------------------------------------------+\n";
+        echo "  Simpan di pengelola sandi, lalu login dan ganti bila perlu.\n\n";
+    }
 }
 
-echo "\nSelesai. Jalankan server dari folder backend:\n";
-echo "  php -S localhost:8000 -t . api/index.php\n";
+echo "\nSelesai. Untuk menjalankan backend (dari folder project):\n";
+echo "  php -S localhost:8000 -t backend backend/api/index.php\n";
+echo "Atau dari folder backend/:  php -S localhost:8000 -t . api/index.php\n";
 echo "Cek kesehatan:  http://localhost:8000/api/sehat\n";

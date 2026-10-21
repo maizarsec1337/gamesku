@@ -1,51 +1,82 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Ikon from '../komponen/Ikon.jsx'
 import LencanaStatus from '../komponen/admin/LencanaStatus.jsx'
 import KosongAdmin from '../komponen/admin/KosongAdmin.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
-import { useDaftar } from '../layanan/gunakanDaftar.js'
+import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
 import {
-  formKosong,
-  tambahProduk,
-  perbaruiProduk,
-  ambilProdukId,
-} from '../layanan/layananProduk.js'
-import { namaKategori } from '../layanan/layananKategori.js'
-import layananKategori from '../layanan/layananKategori.js'
-import layananCreator from '../layanan/layananCreator.js'
-import {
-  JENIS_PRODUK,
-  STATUS_PRODUK,
-  gradasiOtomatis,
-  jadikanSlug,
-} from '../data/konstanta.js'
+  daftarKategoriApi,
+  daftarCreatorApi,
+  ambilProdukApi,
+  buatProdukApi,
+  ubahProdukApi,
+} from '../layanan/apiAdmin.js'
+import { JENIS_PRODUK, STATUS_PRODUK, gradasiOtomatis, jadikanSlug } from '../data/konstanta.js'
 import { formatRupiah } from '../utilitas/format.js'
 import '../css/admin-form.css'
 import '../css/admin-tabel.css'
 
-// =====================================================================
-// Tambah / Edit produk (/admin/produk/tambah?edit=<id>).
-//
-// Daftar kategori diambil dari layananKategori — kategori yang dibuat
-// admin di /admin/kategori langsung tersedia di sini.
-// =====================================================================
+const formKosong = () => ({
+  nama: '',
+  slug: '',
+  kategoriId: '',
+  jenis: JENIS_PRODUK[0],
+  deskripsiSingkat: '',
+  deskripsiLengkap: '',
+  harga: 0,
+  hargaDiskon: 0,
+  thumbnail: '',
+  preview: [],
+  fileProduk: '',
+  versiMinecraft: '',
+  creator: '',
+  status: 'Draft',
+})
+
+// Tambah / Edit produk (/admin/produk/tambah?edit=<id>) — tersambung ke backend.
 export default function AdminProdukTambah() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const { tampilkanPesan } = useAdmin()
 
   const idEdit = params.get('edit')
-  const asli = idEdit ? ambilProdukId(idEdit) : null
+  const { data: asli, memuat: memuatAsli } = useApi(
+    () => (idEdit ? ambilProdukApi(idEdit) : Promise.resolve(null)),
+    [idEdit],
+  )
+  const { data: dataKategori } = useApi(() => daftarKategoriApi(), [])
+  const { data: dataCreator } = useApi(() => daftarCreatorApi(), [])
+  const kategori = Array.isArray(dataKategori) ? dataKategori : []
+  const daftarCreator = Array.isArray(dataCreator)
+    ? [...new Set(dataCreator.map((c) => c.nama).filter(Boolean))].sort()
+    : []
 
-  const kategori = useDaftar(layananKategori)
-  const daftarCreator = useDaftar(layananCreator, 'namaCreator')
+  const [form, setForm] = useState(formKosong)
+  const [slugDisentuh, setSlugDisentuh] = useState(false)
+  const [menyimpan, setMenyimpan] = useState(false)
 
-  const [form, setForm] = useState(() => ({ ...formKosong(), ...(asli || {}) }))
-  const [slugDisentuh, setSlugDisentuh] = useState(Boolean(asli))
-  const [thumbnail, setThumbnail] = useState(asli?.thumbnail || '')
-  const [preview, setPreview] = useState(asli?.preview || [])
-  const [fileProduk, setFileProduk] = useState(asli?.fileProduk || '')
+  // Isi formulir dari data server saat mode edit.
+  useEffect(() => {
+    if (!asli) return
+    setForm({
+      nama: asli.nama || '',
+      slug: asli.slug || '',
+      kategoriId: asli.kategoriId || '',
+      jenis: asli.jenis || JENIS_PRODUK[0],
+      deskripsiSingkat: asli.deskripsiSingkat || '',
+      deskripsiLengkap: asli.deskripsiLengkap || '',
+      harga: asli.harga || 0,
+      hargaDiskon: asli.hargaDiskon || 0,
+      thumbnail: asli.thumbnail || '',
+      preview: Array.isArray(asli.preview) ? asli.preview : [],
+      fileProduk: asli.fileProduk || '',
+      versiMinecraft: asli.versiMinecraft || '',
+      creator: asli.creator || '',
+      status: asli.status || 'Draft',
+    })
+    setSlugDisentuh(true)
+  }, [asli])
 
   const ubah = (kunci, nilai) => setForm((f) => ({ ...f, [kunci]: nilai }))
 
@@ -53,33 +84,20 @@ export default function AdminProdukTambah() {
     setForm((f) => ({ ...f, nama: nilai, slug: slugDisentuh ? f.slug : jadikanSlug(nilai) }))
   }
 
-  const pilihBerkas = (kunci, e) => {
-    const berkas = e.target.files?.[0]
-    if (!berkas) return
-    if (kunci === 'thumbnail') setThumbnail(berkas.name)
-    else if (kunci === 'preview') setPreview((lama) => [...lama, berkas.name].slice(0, 5))
-    else setFileProduk(berkas.name)
-    tampilkanPesan(`Berkas "${berkas.name}" dipilih.`)
-    e.target.value = ''
-  }
-
-  const simpan = (status) => {
-    const isi = {
-      ...form,
-      status,
-      thumbnail,
-      preview,
-      fileProduk,
+  const simpan = async (status) => {
+    if (menyimpan) return
+    const isi = { ...form, status }
+    setMenyimpan(true)
+    try {
+      if (idEdit) await ubahProdukApi(idEdit, isi)
+      else await buatProdukApi(isi)
+      tampilkanPesan(`Produk "${isi.nama}" ${idEdit ? 'diperbarui' : 'disimpan'} sebagai ${status}.`)
+      navigate('/admin/produk')
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
+    } finally {
+      setMenyimpan(false)
     }
-    const hasil = asli ? perbaruiProduk(asli.id, isi) : tambahProduk(isi)
-    if (!hasil.berhasil) {
-      tampilkanPesan(hasil.pesan)
-      return
-    }
-    tampilkanPesan(
-      `Produk "${hasil.data.nama}" ${asli ? 'diperbarui' : 'disimpan'} sebagai ${status}.`,
-    )
-    navigate('/admin/produk')
   }
 
   // Tanpa kategori, produk tidak bisa disimpan.
@@ -110,14 +128,16 @@ export default function AdminProdukTambah() {
     )
   }
 
+  const namaKategoriTerpilih = kategori.find((k) => k.id === form.kategoriId)?.nama || '—'
+
   return (
     <>
       <div className="judul-halaman">
         <div>
-          <h2>{asli ? 'Edit Produk' : 'Tambah Produk'}</h2>
+          <h2>{idEdit ? 'Edit Produk' : 'Tambah Produk'}</h2>
           <p>
-            {asli
-              ? `Memperbarui "${asli.nama}"`
+            {idEdit
+              ? `Memperbarui "${asli?.nama || ''}"${memuatAsli ? '…' : ''}`
               : 'Lengkapi detail konten Minecraft untuk diterbitkan'}
           </p>
         </div>
@@ -128,7 +148,6 @@ export default function AdminProdukTambah() {
           </Link>
         </div>
       </div>
-
 
       <div className="form-produk">
         <div>
@@ -331,75 +350,44 @@ export default function AdminProdukTambah() {
             <div className="panel-kepala">
               <div>
                 <h3 className="panel-judul">Media &amp; Berkas</h3>
-                <p className="panel-sub">Thumbnail, preview galeri, dan file unduhan</p>
+                <p className="panel-sub">URL thumbnail, preview, dan file unduhan</p>
               </div>
             </div>
             <div className="panel-badan">
-              <div className="blok-upload-ganda">
-                <div className="blok-form">
-                  <span className="label-form">Thumbnail</span>
-                  <label className={`area-unggah ${thumbnail ? 'terisi' : ''}`}>
-                    <Ikon nama="gambar" ukuran={22} />
-                    <strong>{thumbnail ? 'Thumbnail dipilih' : 'Pilih thumbnail'}</strong>
-                    <span>PNG/JPG 1280×720</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      hidden
-                      onChange={(e) => pilihBerkas('thumbnail', e)}
-                    />
-                  </label>
-                  {thumbnail && (
-                    <span className="berkas-pilih">
-                      <Ikon nama="cek" ukuran={15} />
-                      <span>{thumbnail}</span>
-                    </span>
-                  )}
-                </div>
-                <div className="blok-form">
-                  <span className="label-form">Gambar Preview</span>
-                  <label className={`area-unggah ${preview.length ? 'terisi' : ''}`}>
-                    <Ikon nama="media" ukuran={22} />
-                    <strong>
-                      {preview.length ? `${preview.length} gambar dipilih` : 'Pilih gambar preview'}
-                    </strong>
-                    <span>Maksimal 5 gambar</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      hidden
-                      onChange={(e) => pilihBerkas('preview', e)}
-                    />
-                  </label>
-                  {preview.length > 0 && (
-                    <span className="berkas-pilih">
-                      <Ikon nama="cek" ukuran={15} />
-                      <span>{preview.join(', ')}</span>
-                    </span>
-                  )}
-                </div>
+              <div className="blok-form">
+                <label className="label-form" htmlFor="pr-thumb">URL Thumbnail</label>
+                <input
+                  id="pr-thumb"
+                  className="isian-admin"
+                  value={form.thumbnail}
+                  onChange={(e) => ubah('thumbnail', e.target.value)}
+                  placeholder="/uploads/… atau https://…"
+                />
               </div>
-              <div className="blok-form" style={{ marginBottom: 0, marginTop: 4 }}>
-                <span className="label-form">File Produk</span>
-                <label className={`area-unggah ${fileProduk ? 'terisi' : ''}`}>
-                  <Ikon nama="berkas" ukuran={24} />
-                  <strong>{fileProduk ? 'File produk dipilih' : 'Unggah file konten'}</strong>
-                  <span>.zip, .mcaddon, .schem, .jar — maksimal 500 MB</span>
-                  <input
-                    type="file"
-                    accept=".zip,.mcaddon,.schem,.jar"
-                    hidden
-                    onChange={(e) => pilihBerkas('file', e)}
-                  />
-                </label>
-                {fileProduk && (
-                  <span className="berkas-pilih">
-                    <Ikon nama="unduh" ukuran={15} />
-                    <span>{fileProduk}</span>
-                  </span>
-                )}
+              <div className="blok-form">
+                <label className="label-form" htmlFor="pr-preview">URL Gambar Preview (satu per baris)</label>
+                <textarea
+                  id="pr-preview"
+                  className="area-teks-admin"
+                  style={{ minHeight: 90 }}
+                  value={form.preview.join('\n')}
+                  onChange={(e) =>
+                    ubah('preview', e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))
+                  }
+                  placeholder={'https://…/preview-1.jpg\nhttps://…/preview-2.jpg'}
+                />
+              </div>
+              <div className="blok-form" style={{ marginBottom: 0 }}>
+                <label className="label-form" htmlFor="pr-file">URL File Produk</label>
+                <input
+                  id="pr-file"
+                  className="isian-admin"
+                  value={form.fileProduk}
+                  onChange={(e) => ubah('fileProduk', e.target.value)}
+                  placeholder="/uploads/… (zip/mcaddon)"
+                />
                 <p className="bantuan-form">
-                  Penyimpanan file aktif setelah backend PHP tersedia.
+                  Unggah berkas lewat menu Media, lalu tempel URL-nya di sini.
                 </p>
               </div>
             </div>
@@ -428,7 +416,7 @@ export default function AdminProdukTambah() {
               </div>
               <div className="baris-detail">
                 <span className="k">Kategori</span>
-                <span className="v">{namaKategori(form.kategoriId) || '—'}</span>
+                <span className="v">{namaKategoriTerpilih}</span>
               </div>
               <div className="baris-detail">
                 <span className="k">Jenis</span>
@@ -470,6 +458,7 @@ export default function AdminProdukTambah() {
                 type="button"
                 className="tombol-admin tombol-garis"
                 onClick={() => simpan('Draft')}
+                disabled={menyimpan}
               >
                 <Ikon nama="simpan" ukuran={15} />
                 Simpan Draft
@@ -478,13 +467,14 @@ export default function AdminProdukTambah() {
                 type="button"
                 className="tombol-admin tombol-hijau"
                 onClick={() => simpan('Aktif')}
+                disabled={menyimpan}
               >
                 <Ikon nama="cek" ukuran={15} />
-                Simpan Produk
+                {menyimpan ? 'Menyimpan…' : 'Simpan Produk'}
               </button>
             </div>
             <span className="teks-redup teks-kecil" style={{ textAlign: 'center' }}>
-              Data lokal — siap dikirim ke API PHP.
+              Data dikirim ke backend (POST/PUT /api/produk).
             </span>
           </div>
         </aside>

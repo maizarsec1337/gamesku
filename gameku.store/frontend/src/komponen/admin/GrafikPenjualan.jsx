@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { grafikPenjualan as ambilGrafik } from '../../layanan/layananDasbor.js'
 import { formatRupiah } from '../../utilitas/format.js'
 import KosongAdmin from './KosongAdmin.jsx'
 import '../../css/admin-dasbor.css'
@@ -34,30 +33,30 @@ function labelSumbu(v) {
 // berstatus Berhasil. Belum ada transaksi => deret kosong => kartu ini
 // menampilkan empty state, bukan grafik dengan titik karangan.
 // =====================================================================
-export default function GrafikPenjualan() {
-  const [periode] = useState(14)
+// "seri" datang dari server (GET /api/dasbor → grafik), bukan dihitung di browser.
+export default function GrafikPenjualan({ seri = [] }) {
   const [hover, setHover] = useState(null)
 
-  const seri = useMemo(() => ambilGrafik(periode), [periode])
-  const adaData = seri.length > 0 && seri.some((s) => s.total > 0)
-  const total = adaData ? seri.reduce((jumlah, s) => jumlah + s.total, 0) : 0
+  const deret = useMemo(() => (Array.isArray(seri) ? seri : []), [seri])
+  const adaData = deret.length > 0 && deret.some((s) => s.total > 0)
+  const total = adaData ? deret.reduce((jumlah, s) => jumlah + s.total, 0) : 0
 
   const skala = useMemo(() => {
     if (!adaData) return null
-    const maks = Math.max(...seri.map((s) => s.total)) * 1.18
+    const maks = Math.max(...deret.map((s) => s.total)) * 1.18
     const w = LEBAR - PAD.kiri - PAD.kanan
     const h = TINGGI - PAD.atas - PAD.bawah
-    const keX = (i) => (seri.length === 1 ? w / 2 : (i / (seri.length - 1)) * w) + PAD.kiri
+    const keX = (i) => (deret.length === 1 ? w / 2 : (i / (deret.length - 1)) * w) + PAD.kiri
     const keY = (v) => PAD.atas + h - (v / maks) * h
 
-    const titik = seri.map((s, i) => ({ ...s, x: keX(i), y: keY(s.total) }))
+    const titik = deret.map((s, i) => ({ ...s, x: keX(i), y: keY(s.total) }))
     const kisi = []
     for (let g = 4; g >= 0; g -= 1) {
       const nilai = (maks / 4) * g
       kisi.push({ y: keY(nilai), label: labelSumbu(nilai / 1000000) })
     }
     return { titik, kisi, lebar: w, tinggi: h }
-  }, [seri, adaData])
+  }, [deret, adaData])
 
   // Belum ada transaksi → empty state.
   if (!adaData || !skala) {

@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Ikon from '../Ikon.jsx'
 import { useAdmin } from '../../konteks/konteksAdmin.js'
-import { useDaftar } from '../../layanan/gunakanDaftar.js'
-import layananPesanan from '../../layanan/layananPesanan.js'
-import layananUlasan from '../../layanan/layananUlasan.js'
-import layananProduk from '../../layanan/layananProduk.js'
-import { STATUS_ULASAN, STATUS_PRODUK, waktuRelatif } from '../../data/konstanta.js'
+import { useApi } from '../../layanan/gunakanApi.js'
+import { daftarPesananApi, daftarUlasanApi, daftarProdukApi } from '../../layanan/apiAdmin.js'
+import { waktuRelatif } from '../../data/konstanta.js'
 
 const tanggalHariIni = new Date().toLocaleDateString('id-ID', {
   weekday: 'long',
@@ -22,38 +20,32 @@ export default function KepalaDashboard({ judul, padaBukaSidebar = () => {} }) {
   const [kataCari, setKataCari] = useState('')
   const areaKepala = useRef(null)
   const navigate = useNavigate()
-  const { keluar } = useAdmin()
+  const { keluar, sesiServer, isSuperadmin } = useAdmin()
 
-  // Notifikasi disusun dari data nyata, bukan daftar karangan.
-  const pesanan = useDaftar(layananPesanan)
-  const ulasan = useDaftar(layananUlasan)
-  const produk = useDaftar(layananProduk)
+  // Notifikasi disusun dari data server nyata (bukan daftar karangan).
+  const { data: pesanan } = useApi(() => daftarPesananApi({ batas: 3 }), [])
+  const { data: ulasan } = useApi(() => daftarUlasanApi(), [])
+  const { data: produk } = useApi(() => daftarProdukApi({ batas: 200 }), [])
 
   const notifikasi = [
-    ...pesanan.slice(0, 3).map((p) => ({
+    ...(Array.isArray(pesanan) ? pesanan.slice(0, 3) : []).map((p) => ({
       kunci: `pesanan-${p.id}`,
       ikon: 'pesanan',
       teks: `Pesanan ${p.id} — ${p.pelanggan || 'pembeli'}`,
       waktu: waktuRelatif(p.dibuatPada),
     })),
-    ...ulasan
-      .filter((u) => u.status === STATUS_ULASAN[0])
-      .slice(0, 3)
-      .map((u) => ({
-        kunci: `ulasan-${u.id}`,
-        ikon: 'ulasan',
-        teks: `Ulasan "${u.produk}" menunggu moderasi`,
-        waktu: waktuRelatif(u.dibuatPada),
-      })),
-    ...produk
-      .filter((p) => p.status === STATUS_PRODUK[0])
-      .slice(0, 3)
-      .map((p) => ({
-        kunci: `produk-${p.id}`,
-        ikon: 'kotak',
-        teks: `Produk "${p.nama}" masih berstatus Draft`,
-        waktu: waktuRelatif(p.dibuatPada),
-      })),
+    ...(Array.isArray(ulasan) ? ulasan.filter((u) => u.status === 'Menunggu').slice(0, 3) : []).map((u) => ({
+      kunci: `ulasan-${u.id}`,
+      ikon: 'ulasan',
+      teks: `Ulasan "${u.produk}" menunggu moderasi`,
+      waktu: waktuRelatif(u.dibuatPada),
+    })),
+    ...(Array.isArray(produk) ? produk.filter((p) => p.status === 'Draft').slice(0, 3) : []).map((p) => ({
+      kunci: `produk-${p.id}`,
+      ikon: 'kotak',
+      teks: `Produk "${p.nama}" masih berstatus Draft`,
+      waktu: waktuRelatif(p.dibuatPada),
+    })),
   ]
 
   // Klik di luar area kepala menutup semua dropdown.
@@ -76,11 +68,14 @@ export default function KepalaDashboard({ judul, padaBukaSidebar = () => {} }) {
     navigate(q ? `/admin/produk?cari=${encodeURIComponent(q)}` : '/admin/produk')
   }
 
-  const akhiriSesi = () => {
+  const akhiriSesi = async () => {
     setProfilTerbuka(false)
-    keluar()
+    await keluar()
     navigate('/admin/login', { replace: true })
   }
+
+  const namaAdmin = sesiServer?.nama || sesiServer?.pengguna || 'Administrator'
+  const labelPeran = isSuperadmin ? 'Super Admin' : 'Admin'
 
   return (
     <header className="kepala-dashboard">
@@ -161,10 +156,10 @@ export default function KepalaDashboard({ judul, padaBukaSidebar = () => {} }) {
             }}
             aria-expanded={profilTerbuka}
           >
-            <span className="avatar-admin">A</span>
+            <span className="avatar-admin">{(namaAdmin[0] || 'A').toUpperCase()}</span>
             <span className="kepala-profil-teks">
-              <strong>Administrator</strong>
-              <span>Belum terhubung</span>
+              <strong>{namaAdmin}</strong>
+              <span>{labelPeran}</span>
             </span>
             <Ikon nama="panahBawah" ukuran={15} />
           </button>

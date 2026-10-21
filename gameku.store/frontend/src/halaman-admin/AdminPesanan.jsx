@@ -6,15 +6,15 @@ import Paginasi from '../komponen/admin/Paginasi.jsx'
 import KosongAdmin from '../komponen/admin/KosongAdmin.jsx'
 import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
-import { useDaftar } from '../layanan/gunakanDaftar.js'
-import layananPesanan, { hitungPerStatus, ubahStatusPesanan } from '../layanan/layananPesanan.js'
+import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
+import { daftarPesananApi, ubahStatusPesananApi } from '../layanan/apiAdmin.js'
 import { STATUS_PESANAN } from '../data/konstanta.js'
 import { formatRupiah } from '../utilitas/format.js'
 import '../css/admin-tabel.css'
 
 const PER_HALAMAN = 10
 
-// Kartu ringkasan per status (tanpa angka palsu — dihitung dari data).
+// Kartu ringkasan per status (tanpa angka palsu — dihitung dari data server).
 const kartuRingkas = [
   { status: 'Menunggu', ikon: 'jam', warna: 'amber' },
   { status: 'Diproses', ikon: 'muatUlang', warna: 'biru' },
@@ -22,20 +22,21 @@ const kartuRingkas = [
   { status: 'Gagal', ikon: 'silangLingkaran', warna: 'merah' },
 ]
 
-// =====================================================================
-// Halaman kelola pesanan (/admin/pesanan).
-//
-// Belum ada pesanan sama sekali. Statistik pun 0 — bukan angka contoh.
-// =====================================================================
+// Halaman kelola pesanan (/admin/pesanan) — data dari backend (GET/PUT /api/pesanan).
 export default function AdminPesanan() {
   const { tampilkanPesan } = useAdmin()
-  const daftar = useDaftar(layananPesanan)
+  const { data, memuat, galat, muat } = useApi(() => daftarPesananApi(), [])
+  const daftar = Array.isArray(data) ? data : []
   const [filter, setFilter] = useState('')
   const [kata, setKata] = useState('')
   const [halaman, setHalaman] = useState(1)
   const [dipilih, setDipilih] = useState(null)
 
-  const ringkas = hitungPerStatus()
+  const ringkas = useMemo(() => {
+    const hasil = { Menunggu: 0, Diproses: 0, Berhasil: 0, Gagal: 0 }
+    for (const p of daftar) if (p.status in hasil) hasil[p.status] += 1
+    return hasil
+  }, [daftar])
 
   const hasil = useMemo(() => {
     const kunci = kata.trim().toLowerCase()
@@ -50,12 +51,36 @@ export default function AdminPesanan() {
   const halamanAman = Math.min(halaman, totalHalaman)
   const baris = hasil.slice((halamanAman - 1) * PER_HALAMAN, halamanAman * PER_HALAMAN)
 
-  const ubahStatus = (id, status) => {
-    const hasilUbah = ubahStatusPesanan(id, status)
-    if (hasilUbah.berhasil) {
+  const ubahStatus = async (id, status) => {
+    try {
+      await ubahStatusPesananApi(id, status)
+      await muat()
       tampilkanPesan(`Status pesanan ${id} diubah menjadi ${status}.`)
       setDipilih((p) => (p && p.id === id ? { ...p, status } : p))
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
     }
+  }
+
+  if (memuat) {
+    return (
+      <div className="keadaan-kosong keadaan-kosong-admin" role="status">
+        <span className="cb-putar" aria-hidden="true" />
+        <p>Memuat pesanan…</p>
+      </div>
+    )
+  }
+
+  if (galat) {
+    return (
+      <div className="pesan-salah-login" role="alert">
+        <Ikon nama="info" ukuran={16} />
+        {pesanGalat(galat)}
+        <button type="button" className="tombol-admin tombol-garis" style={{ marginLeft: 'auto' }} onClick={muat}>
+          Coba lagi
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -153,14 +178,6 @@ export default function AdminPesanan() {
             >
               Tutup
             </button>
-            <button
-              type="button"
-              className="tombol-admin tombol-hijau"
-              onClick={() => tampilkanPesan(`Nota ${dipilih.id} dikirim ke pelanggan.`)}
-            >
-              <Ikon nama="unduh" ukuran={15} />
-              Kirim Nota
-            </button>
           </>
         }
       >
@@ -173,11 +190,11 @@ export default function AdminPesanan() {
               </div>
               <div className="baris-detail">
                 <span className="k">Tanggal</span>
-                <span className="v">{dipilih.tanggal}</span>
+                <span className="v">{dipilih.dibuatPada || '—'}</span>
               </div>
               <div className="baris-detail">
                 <span className="k">Pelanggan</span>
-                <span className="v">{dipilih.pelanggan}</span>
+                <span className="v">{dipilih.pelanggan || '—'}</span>
               </div>
               <div className="baris-detail">
                 <span className="k">Produk</span>
@@ -185,17 +202,15 @@ export default function AdminPesanan() {
               </div>
               <div className="baris-detail">
                 <span className="k">Kategori</span>
-                <span className="v">{dipilih.kategori}</span>
+                <span className="v">{dipilih.kategori || '—'}</span>
               </div>
               <div className="baris-detail">
                 <span className="k">Metode pembayaran</span>
-                <span className="v">{dipilih.metode}</span>
+                <span className="v">{dipilih.metode || '—'}</span>
               </div>
               <div className="baris-detail">
-                <span className="k">Harga</span>
-                <span className="v">
-                  {dipilih.total === 0 ? 'Gratis' : formatRupiah(dipilih.total)}
-                </span>
+                <span className="k">Email</span>
+                <span className="v">{dipilih.email || '—'}</span>
               </div>
               <div className="baris-detail">
                 <span className="k">Status</span>
@@ -206,7 +221,7 @@ export default function AdminPesanan() {
               <div className="baris-detail">
                 <span className="k">Total bayar</span>
                 <span className="v" style={{ color: '#7FE7F8', fontSize: 15 }}>
-                  {dipilih.total === 0 ? 'Gratis' : formatRupiah(dipilih.total)}
+                  {Number(dipilih.total) === 0 ? 'Gratis' : formatRupiah(dipilih.total)}
                 </span>
               </div>
             </div>

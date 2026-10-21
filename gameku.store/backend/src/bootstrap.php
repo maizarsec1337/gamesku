@@ -36,7 +36,11 @@ header('X-Frame-Options: DENY');
 header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
-header('X-XSS-Protection: 1; mode=block');
+// Samakan dengan Bantu::json(): heuristik XSS lama dinonaktifkan (metode usang,
+// dapat memicu bypass), CSP ketat di bawah adalah kontrol yang sebenarnya.
+header('X-XSS-Protection: 0');
+// API hanya mengembalikan JSON — larang memuat/mengeksekusi sumber apa pun.
+header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
 // Header keamanan tambahan: cegah situs lain membuka API di frame/iframe.
 header('Cross-Origin-Opener-Policy: same-origin');
 // HSTS: hanya aktif jika HTTPS terdeteksi.

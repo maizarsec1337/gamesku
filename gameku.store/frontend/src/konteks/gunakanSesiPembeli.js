@@ -10,7 +10,7 @@
 // Kunci sesi: $_SESSION['pembeli'] (PHP cookie), terpisah dari $_SESSION['admin'].
 // JANGAN mengarang sesi pembeli dari localStorage / koleksi lokal:
 // `buatKoleksi('pelanggan')` hanya menyimpan nama+email pendaftar di browser,
-// tanpa password_verify dan tanpa cookie sesi server — bukan bukti login.
+// tanpa password_verify dan tanpa cookie sesi server — bukan bukti login.8
 import { useCallback, useEffect, useState } from 'react'
 
 import {

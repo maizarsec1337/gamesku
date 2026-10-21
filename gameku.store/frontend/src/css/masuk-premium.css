@@ -109,6 +109,30 @@
   .gk-login-poin{display:none}
   .gk-login-stat{margin-top:12px}
 }
+/* Bar atas: logo Gameku yang sudah ada (dipakai juga di Navigasi). */
+.gk-login-atas .logo{gap:10px}
+.gk-login-atas .logo-gameku{box-shadow:0 0 0 1px rgba(67,221,245,.35)}
+.gk-login-kembali{gap:7px}
+.gk-login-kembali svg{flex-shrink:0}
+/* Isi kartu: jarak antar blok konsisten. */
+.gk-login-kartu form{margin-top:2px}
+.gk-login-kartu .gk-login-pesan{margin-top:12px}
+.gk-login-kartu .bidang:first-child{margin-top:14px}
+.gk-login-brand>p code{background:rgba(67,221,245,.14);border-radius:5px;padding:1px 5px;font-size:12px;color:#9BE9F8}
+/* Fokus keyboard yang jelas untuk semua kontrol. */
+.gk-login-tab button:focus-visible,
+.gk-login-lihat:focus-visible,
+.gk-login-kembali:focus-visible,
+.gk-login-tombol:focus-visible,
+.gk-login-bawah .tautan-lihat:focus-visible,
+.gk-login-atas .logo:focus-visible{outline:2px solid #43DDF5;outline-offset:2px;border-radius:10px}
+/* Mobile: ringkas panel brand agar formulir jadi fokus utama. */
+@media (max-width:639px){
+  .gk-login-brand{padding:18px 20px}
+  .gk-login-poin{display:none}
+  .gk-login-brand-catatan{display:none}
+  .gk-login-brand h1{font-size:clamp(21px,6vw,26px)}
+}
 /* Hormati pengurangan gerak. */
 @media (prefers-reduced-motion:reduce){
   .gk-login-utama,.gk-login-kartu{animation:none}

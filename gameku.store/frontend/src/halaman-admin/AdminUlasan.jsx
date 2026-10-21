@@ -4,8 +4,8 @@ import ThumbnailProduk from '../komponen/admin/ThumbnailProduk.jsx'
 import KosongAdmin from '../komponen/admin/KosongAdmin.jsx'
 import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
-import { useDaftar } from '../layanan/gunakanDaftar.js'
-import layananUlasan, { ubahStatusUlasan, rataRating } from '../layanan/layananUlasan.js'
+import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
+import { daftarUlasanApi, ubahStatusUlasanApi } from '../layanan/apiAdmin.js'
 import { STATUS_ULASAN, gradasiOtomatis, waktuRelatif } from '../data/konstanta.js'
 import '../css/admin-tabel.css'
 import '../css/admin-dasbor.css'
@@ -27,15 +27,11 @@ function Bintang({ nilai }) {
   )
 }
 
-// =====================================================================
-// Halaman moderasi ulasan (/admin/ulasan).
-//
-// MULAI KOSONG. Tidak ada ulasan contoh, tidak ada nama pelanggan
-// karangan, dan tidak ada "rata-rata 4,8" yang dipalsukan.
-// =====================================================================
+// Halaman moderasi ulasan (/admin/ulasan) — data dari backend (GET/PUT /api/ulasan).
 export default function AdminUlasan() {
   const { tampilkanPesan } = useAdmin()
-  const ulasan = useDaftar(layananUlasan)
+  const { data, memuat, galat, muat } = useApi(() => daftarUlasanApi(), [])
+  const ulasan = Array.isArray(data) ? data : []
   const [filter, setFilter] = useState('')
 
   const hasil = useMemo(
@@ -43,16 +39,45 @@ export default function AdminUlasan() {
     [ulasan, filter],
   )
 
-  // Rata-rata hanya ada bila ada ulasan sungguhan.
-  const rata = rataRating()
+  // Rata-rata dihitung dari ulasan Disetujui yang ada (tidak dipalsukan).
+  const rata = useMemo(() => {
+    const disetujui = ulasan.filter((u) => u.status === STATUS_ULASAN[1])
+    if (!disetujui.length) return null
+    return disetujui.reduce((total, u) => total + (Number(u.rating) || 0), 0) / disetujui.length
+  }, [ulasan])
 
-  const ubahStatus = (ulasanItem, status) => {
-    const hasilUbah = ubahStatusUlasan(ulasanItem.id, status)
-    if (!hasilUbah.berhasil) return
-    tampilkanPesan(
-      status === STATUS_ULASAN[1]
-        ? `Ulasan "${ulasanItem.produk}" disetujui.`
-        : `Ulasan "${ulasanItem.produk}" disembunyikan.`,
+  const ubahStatus = async (ulasanItem, status) => {
+    try {
+      await ubahStatusUlasanApi(ulasanItem.id, status)
+      await muat()
+      tampilkanPesan(
+        status === STATUS_ULASAN[1]
+          ? `Ulasan "${ulasanItem.produk}" disetujui.`
+          : `Ulasan "${ulasanItem.produk}" disembunyikan.`,
+      )
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
+    }
+  }
+
+  if (memuat) {
+    return (
+      <div className="keadaan-kosong keadaan-kosong-admin" role="status">
+        <span className="cb-putar" aria-hidden="true" />
+        <p>Memuat ulasan…</p>
+      </div>
+    )
+  }
+
+  if (galat) {
+    return (
+      <div className="pesan-salah-login" role="alert">
+        <Ikon nama="info" ukuran={16} />
+        {pesanGalat(galat)}
+        <button type="button" className="tombol-admin tombol-garis" style={{ marginLeft: 'auto' }} onClick={muat}>
+          Coba lagi
+        </button>
+      </div>
     )
   }
 
@@ -128,7 +153,7 @@ export default function AdminUlasan() {
                       <div className="kaki-ulasan">
                         <span className="teks-redup teks-kecil">
                           <Ikon nama="kalender" ukuran={12} />
-                          {waktuRelatif(u.dibuatPada || u.tanggal)}
+                          {waktuRelatif(u.tanggal)}
                         </span>
                         {u.status !== STATUS_ULASAN[1] && (
                           <button

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { useSyncExternalStore } from 'react'
 import KartuStatistik from '../komponen/admin/KartuStatistik.jsx'
 import GrafikPenjualan from '../komponen/admin/GrafikPenjualan.jsx'
 import TabelPesanan from '../komponen/admin/TabelPesanan.jsx'
@@ -7,7 +6,8 @@ import KartuProdukTerlaris from '../komponen/admin/KartuProdukTerlaris.jsx'
 import AktivitasTerbaru from '../komponen/admin/AktivitasTerbaru.jsx'
 import KosongAdmin from '../komponen/admin/KosongAdmin.jsx'
 import Ikon from '../komponen/Ikon.jsx'
-import { ringkasanDasbor, subscribeDasbor } from '../layanan/layananDasbor.js'
+import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
+import { ambilDasbor, daftarPesananApi } from '../layanan/apiAdmin.js'
 import '../css/admin-dasbor.css'
 import '../css/admin-tabel.css'
 
@@ -17,14 +17,42 @@ const tanggalIni = new Date().toLocaleDateString('id-ID', {
   year: 'numeric',
 })
 
-// Dasbor utama admin (/admin); semua angka dihitung dari data nyata.
+// Ikon/warna kartu bersifat dekoratif (bukan data) — ditentukan dari id statistik.
+const IKON_STAT = { produk: 'kotak', pesanan: 'pesanan', pelanggan: 'pelanggan', pendapatan: 'dompet' }
+const WARNA_STAT = { produk: 'hijau', pesanan: 'hijau', pelanggan: 'biru', pendapatan: 'coklat' }
+
+// Dasbor utama admin (/admin); semua angka berasal dari server (GET /api/dasbor).
 export default function AdminDasbor() {
-  // Semua kartu membaca satu snapshot agar selalu sinkron.
-  const { statistik, terbaru } = useSyncExternalStore(
-    subscribeDasbor,
-    ringkasanDasbor,
-    ringkasanDasbor,
-  )
+  const { data, memuat, galat, muat } = useApi(() => ambilDasbor(), [])
+  const { data: pesanan } = useApi(() => daftarPesananApi(), [])
+
+  if (memuat) {
+    return (
+      <div className="keadaan-kosong keadaan-kosong-admin" role="status">
+        <span className="cb-putar" aria-hidden="true" />
+        <p>Memuat dasbor…</p>
+      </div>
+    )
+  }
+
+  if (galat) {
+    return (
+      <div className="pesan-salah-login" role="alert">
+        <Ikon nama="info" ukuran={16} />
+        {pesanGalat(galat)}
+        <button type="button" className="tombol-admin tombol-garis" style={{ marginLeft: 'auto' }} onClick={muat}>
+          Coba lagi
+        </button>
+      </div>
+    )
+  }
+
+  const statistik = (data?.statistik || []).map((s) => ({
+    ...s,
+    ikon: IKON_STAT[s.id] || 'kotak',
+    warna: WARNA_STAT[s.id] || 'hijau',
+  }))
+  const terbaru = Array.isArray(pesanan) ? pesanan.slice(0, 6) : []
 
   return (
     <>
@@ -47,7 +75,7 @@ export default function AdminDasbor() {
 
       <div className="kisi-dasbor">
         <div className="span-2">
-          <GrafikPenjualan />
+          <GrafikPenjualan seri={data?.grafik || []} />
         </div>
 
         <section className="kartu-panel">
@@ -95,7 +123,7 @@ export default function AdminDasbor() {
               <Ikon nama="panahKanan" ukuran={14} />
             </Link>
           </div>
-          <KartuProdukTerlaris />
+          <KartuProdukTerlaris peringkat={data?.terlaris || []} />
         </section>
       </div>
     </>

@@ -21,6 +21,16 @@ export const STATUS_PROMO = ['Aktif', 'Terjadwal', 'Berakhir']
 
 export const STATUS_ULASAN = ['Menunggu', 'Disetujui', 'Disembunyikan']
 
+// Status pengajuan reseller (lower-case seperti di DB). Label tampilan dipetakan
+// lewat LABEL_RESELLER; badge admin memakai LencanaStatus dengan label ini.
+export const STATUS_RESELLER = ['pending', 'approved', 'rejected']
+export const LABEL_RESELLER = {
+  pending: 'Menunggu',
+  approved: 'Disetujui',
+  rejected: 'Ditolak',
+}
+export const LABEL_STATUS_RESELLER = LABEL_RESELLER
+
 export const STATUS_CREATOR = ['Aktif', 'Review', 'Ditangguhkan']
 
 export const STATUS_PELANGGAN = ['Aktif', 'Nonaktif']

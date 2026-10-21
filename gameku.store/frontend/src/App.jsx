@@ -13,6 +13,7 @@ import HalamanKeranjang from './halaman/Keranjang.jsx'
 import HalamanWishlist from './halaman/Wishlist.jsx'
 import HalamanProfil from './halaman/Profil.jsx'
 import HalamanMasuk from './halaman/Masuk.jsx'
+import HalamanReseller from './halaman/ResellerAjuan.jsx'
 import HalamanBantuan from './halaman/Bantuan.jsx'
 import TidakDitemukan from './halaman/TidakDitemukan.jsx'
 // Rute admin Gamesku (dashboard CMS).
@@ -29,6 +30,7 @@ import AdminPromo from './halaman-admin/AdminPromo.jsx'
 import AdminUlasan from './halaman-admin/AdminUlasan.jsx'
 import AdminMedia from './halaman-admin/AdminMedia.jsx'
 import AdminPengaturan from './halaman-admin/AdminPengaturan.jsx'
+import AdminReseller from './halaman-admin/AdminReseller.jsx'
 
 // Rute aplikasi (admin + toko depan).
 export default function App() {
@@ -49,6 +51,7 @@ export default function App() {
           <Route path="promo" element={<AdminPromo />} />
           <Route path="ulasan" element={<AdminUlasan />} />
           <Route path="media" element={<AdminMedia />} />
+          <Route path="reseller" element={<AdminReseller />} />
           <Route path="pengaturan" element={<AdminPengaturan />} />
         </Route>
 
@@ -67,6 +70,7 @@ export default function App() {
           <Route path="/keranjang" element={<HalamanKeranjang />} />
           <Route path="/wishlist" element={<HalamanWishlist />} />
           <Route path="/profil" element={<HalamanProfil />} />
+          <Route path="/profil/reseller" element={<HalamanReseller />} />
           <Route path="/bantuan" element={<HalamanBantuan />} />
           <Route path="/kreator" element={<HalamanBantuan />} />
           <Route path="/syarat" element={<HalamanBantuan />} />

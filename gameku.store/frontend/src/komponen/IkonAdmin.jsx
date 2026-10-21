@@ -22,7 +22,7 @@ const PETA = {
   palet: Palette, simpan: Save, gembok: Lock, tambahPengguna: UserPlus,
   muatUlang: RefreshCw, titikTiga: Ellipsis,
   sambung: Puzzle, berkas: Package, globe: Globe,
-  kunci: KeyRound, peringatan: CircleAlert,
+   kunci: KeyRound, peringatan: CircleAlert, lihat: Eye,
 }
 
 export default function IkonAdmin({ nama, ukuran = 18, tebal = 2, kelas = '' }) {

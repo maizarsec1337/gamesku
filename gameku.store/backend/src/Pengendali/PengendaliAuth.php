@@ -27,16 +27,23 @@ class PengendaliAuth extends PengendaliDasar
                 break;
 
             case 'daftar':
-                Auth::wajib();
+                // Hanya superadmin yang boleh membuat akun admin baru.
+                Auth::wajibPeran('superadmin');
                 $this->validateCsrf();
                 if ($metode !== 'POST') $this->metodeTakDiizinkan();
                 $this->daftar();
                 break;
 
             case 'csrf':
+            // Alias: frontend toko depan memanggil /api/auth/csrf-token.
+            case 'csrf-token':
                 if ($metode !== 'GET') $this->metodeTakDiizinkan();
                 $token = Auth::buatTokenCsrf();
                 Bantu::sukses(['csrf_token' => $token], 'Token CSRF siap.');
+                break;
+
+            case 'admin':
+                $this->kelolaAdmin($metode, $sub);
                 break;
 
             default:
@@ -62,7 +69,8 @@ class PengendaliAuth extends PengendaliDasar
         }
 
         // Batas panjang masuk akal (cegah payload besar memicu bcrypt lambat).
-        if (strlen($pengguna) > 60 || strlen($sandi) > 72) {
+        // 150 = panjang kolom email (login boleh memakai email).
+        if (strlen($pengguna) > 150 || strlen($sandi) > 72) {
             // bcrypt hanya memproses 72 byte pertama; tolak yang lebih panjang
             // agar tidak ada perbedaan perilaku tak terduga.
             SecurityLog::catat('login_gagal', 'info', 'Login ditolak: panjang kredensial tidak wajar.');
@@ -72,9 +80,6 @@ class PengendaliAuth extends PengendaliDasar
         // password_verify() sudah aman terhadap timing attack.
         $hasil = Auth::masuk($pengguna, $sandi);
         if (!$hasil['berhasil']) {
-            if (isset($hasil['limited']) && $hasil['limited']) {
-                Bantu::gagal($hasil['pesan'], 429);
-            }
             Bantu::gagal($hasil['pesan'], 401);
         }
 
@@ -122,17 +127,97 @@ class PengendaliAuth extends PengendaliDasar
             Bantu::gagal('Nama pengguna tidak dapat digunakan.', 409);
         }
 
+        $peran = $this->salahDari($this->teks('peran', 'admin'), self::PERAN, 'admin');
+
         $hash = Auth::hash($sandi);
         Database::eksekusi(
-            'INSERT INTO admin (pengguna, nama, email, sandi_hash, status) VALUES (?, ?, ?, ?, ?)',
-            [$pengguna, $nama, $email, $hash, 'Aktif']
+            'INSERT INTO admin (pengguna, nama, email, sandi_hash, status, peran) VALUES (?, ?, ?, ?, ?, ?)',
+            [$pengguna, $nama, $email, $hash, 'Aktif', $peran]
         );
 
-        SecurityLog::catat('admin_dibuat', 'info', 'Admin baru dibuat.', ['pengguna' => $pengguna]);
+        SecurityLog::catat('admin_dibuat', 'info', 'Admin baru dibuat.', ['pengguna' => $pengguna, 'peran' => $peran]);
         Aktivitas::audit('buat_admin', 'admin', '', 'Berhasil', [
             'pengguna' => $pengguna,
             'email' => $email,
+            'peran' => $peran,
         ], "Admin '{$pengguna}' dibuat");
-        Bantu::sukses(['pengguna' => $pengguna], 'Admin dibuat.', 201);
+        Bantu::sukses(['pengguna' => $pengguna, 'peran' => $peran], 'Admin dibuat.', 201);
+    }
+
+    // ===== Kelola admin (khusus superadmin) =====
+    private const PERAN = ['superadmin', 'admin'];
+
+    private function kelolaAdmin(string $metode, ?string $id): void
+    {
+        $sesi = Auth::wajibPeran('superadmin');
+
+        switch ($metode) {
+            case 'GET':
+                $rows = Database::banyak(
+                    'SELECT id, pengguna, nama, email, status, peran, dibuat_pada AS dibuatPada,
+                        masuk_terakhir AS masukTerakhir FROM admin ORDER BY id ASC'
+                );
+                Bantu::sukses($rows);
+                break;
+
+            case 'PUT':
+            case 'PATCH':
+                $this->validateCsrf();
+                if (!$id) Bantu::gagal('ID admin wajib ada.', 400);
+                $this->ubahAdmin($id, $sesi);
+                break;
+
+            case 'DELETE':
+                $this->validateCsrf();
+                if (!$id) Bantu::gagal('ID admin wajib ada.', 400);
+                $this->hapusAdmin($id, $sesi);
+                break;
+
+            default:
+                $this->metodeTakDiizinkan();
+        }
+    }
+
+    private function ubahAdmin(string $id, array $sesi): void
+    {
+        $lama = Database::satu('SELECT id, pengguna, status, peran FROM admin WHERE id = ?', [(int) $id]);
+        if (!$lama) Bantu::gagal('Admin tidak ditemukan.', 404);
+
+        $status = $this->salahDari($this->teks('status', $lama['status']), ['Aktif', 'Nonaktif'], $lama['status']);
+        $peran  = $this->salahDari($this->teks('peran', $lama['peran']), self::PERAN, $lama['peran']);
+
+        // Cegah superadmin menurunkan dirinya sendiri (kunci diri keluar dari RBAC).
+        if ((int) $lama['id'] === (int) $sesi['id'] && ($peran !== 'superadmin' || $status !== 'Aktif')) {
+            Bantu::gagal('Anda tidak dapat menonaktifkan/menurunkan peran akun sendiri.', 409);
+        }
+
+        Database::eksekusi('UPDATE admin SET status = ?, peran = ? WHERE id = ?', [$status, $peran, (int) $id]);
+        Aktivitas::audit('ubah_admin', 'admin', $id, 'Berhasil', [
+            'pengguna' => $lama['pengguna'] ?? '',
+            'status' => $status,
+            'peran' => $peran,
+        ], "Admin '{$lama['pengguna']}' diperbarui");
+        Bantu::sukses(['id' => (int) $id, 'status' => $status, 'peran' => $peran], 'Admin diperbarui.');
+    }
+
+    private function hapusAdmin(string $id, array $sesi): void
+    {
+        $baris = Database::satu('SELECT id, pengguna FROM admin WHERE id = ?', [(int) $id]);
+        if (!$baris) Bantu::gagal('Admin tidak ditemukan.', 404);
+        if ((int) $baris['id'] === (int) $sesi['id']) {
+            Bantu::gagal('Anda tidak dapat menghapus akun sendiri.', 409);
+        }
+        // Jangan biarkan sistem tanpa superadmin aktif.
+        $jumlahSuper = (int) (Database::nilai("SELECT COUNT(*) FROM admin WHERE peran = 'superadmin' AND status = 'Aktif'") ?? 0);
+        $targetSuper = (int) (Database::nilai("SELECT COUNT(*) FROM admin WHERE id = ? AND peran = 'superadmin' AND status = 'Aktif'", [(int) $id]) ?? 0);
+        if ($targetSuper > 0 && $jumlahSuper <= 1) {
+            Bantu::gagal('Tidak dapat menghapus superadmin aktif terakhir.', 409);
+        }
+
+        Database::eksekusi('DELETE FROM admin WHERE id = ?', [(int) $id]);
+        Aktivitas::audit('hapus_admin', 'admin', $id, 'Berhasil', [
+            'pengguna' => $baris['pengguna'] ?? '',
+        ], "Admin '{$baris['pengguna']}' dihapus");
+        Bantu::sukses(['id' => (int) $id], 'Admin dihapus.');
     }
 }

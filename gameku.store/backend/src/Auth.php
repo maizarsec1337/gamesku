@@ -33,7 +33,7 @@ class Auth
     private static function cekStatusAktif(array $sesi): void
     {
         $baris = Database::satu(
-            'SELECT status FROM admin WHERE id = ? AND status = ? LIMIT 1',
+            'SELECT status, peran FROM admin WHERE id = ? AND status = ? LIMIT 1',
             [(int) $sesi['id'], 'Aktif']
         );
         if (!$baris) {
@@ -43,6 +43,11 @@ class Auth
             ]);
             self::keluarSesiPaksa();
             return;
+        }
+        // Sinkronkan peran sesi dengan database (perubahan peran langsung berlaku).
+        $peran = (string) ($baris['peran'] ?? '');
+        if ($peran !== '' && (string) ($_SESSION['admin']['peran'] ?? '') !== $peran) {
+            $_SESSION['admin']['peran'] = $peran;
         }
         // Refresh waktu masuk terakhir.
         try {
@@ -69,9 +74,11 @@ class Auth
 
     public static function masuk(string $pengguna, string $sandi): array
     {
+        // Terima login dengan username ATAU email (mis. email pemilik project).
         $baris = Database::satu(
-            'SELECT id, pengguna, nama, sandi_hash, status FROM admin WHERE pengguna = ? LIMIT 1',
-            [$pengguna]
+            'SELECT id, pengguna, nama, sandi_hash, status, peran FROM admin
+             WHERE pengguna = ? OR email = ? LIMIT 1',
+            [$pengguna, $pengguna]
         );
 
         // Pesan samar agar akun yang ada tidak bocor.
@@ -92,32 +99,35 @@ class Auth
 
         // Regenerasi ID sesi sebelum mengikat data (cegah session fixation).
         session_regenerate_id(true);
+        $peran = (string) ($baris['peran'] ?? '') !== '' ? (string) $baris['peran'] : 'admin';
         $_SESSION['admin'] = [
             'id'      => (int) $baris['id'],
             'pengguna'=> $baris['pengguna'],
             'nama'    => $baris['nama'],
+            'peran'   => $peran,
         ];
+        // Rotasi token CSRF setelah login (token pra-login tidak lagi berlaku).
+        self::buatTokenCsrf(true);
 
         SecurityLog::catat('login_sukses', 'info', 'Admin berhasil masuk.', [
             'adminId' => (int) $baris['id'],
             'pengguna' => $baris['pengguna'],
+            'peran' => $peran,
         ]);
 
         return [
             'berhasil' => true,
-            'data'     => ['id' => (int) $baris['id'], 'pengguna' => $baris['pengguna'], 'nama' => $baris['nama']],
+            'data'     => [
+                'id' => (int) $baris['id'],
+                'pengguna' => $baris['pengguna'],
+                'nama' => $baris['nama'],
+                'peran' => $peran,
+            ],
         ];
     }
 
     public static function keluar(): void
     {
-        self::mulai();
-        $_SESSION = [];
-        if (ini_get('session.use_cookies')) {
-            $p = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'] ?? '', self::cookieSecure(), true);
-        }
-        session_destroy();
         self::keluarSesiPaksa();
     }
 
@@ -126,9 +136,12 @@ class Auth
         self::mulai();
         $sesi = $_SESSION['admin'] ?? null;
         if ($sesi) {
+            // cekStatusAktif() dapat menyegarkan peran di $_SESSION — kembalikan
+            // nilai terbaru, bukan salinan sebelum pemeriksaan.
             self::cekStatusAktif($sesi);
+            return $_SESSION['admin'] ?? null;
         }
-        return $sesi;
+        return null;
     }
 
     // Menghentikan request dengan 401 bila belum masuk.
@@ -167,10 +180,17 @@ class Auth
         return is_string($persegi) && is_string($token) && hash_equals($persegi, $token);
     }
 
-    public static function buatTokenCsrf(): string
+    // Ambil token CSRF aktif. Idempoten: token sesi yang sudah ada dipakai ulang
+    // agar beberapa tab/klien tidak saling membatalkan token (tanpa rotasi liar).
+    // Gunakan $paksa = true hanya untuk merotasi token (mis. tepat setelah login).
+    public static function buatTokenCsrf(bool $paksa = false): string
     {
         if (session_status() === PHP_SESSION_NONE) {
             self::mulai();
+        }
+        if (!$paksa && isset($_SESSION['_csrf_token']) && is_string($_SESSION['_csrf_token'])
+            && $_SESSION['_csrf_token'] !== '') {
+            return $_SESSION['_csrf_token'];
         }
         $token = bin2hex(random_bytes(32));
         $_SESSION['_csrf_token'] = $token;
@@ -216,6 +236,8 @@ class Auth
             'username' => (string) ($baris['username'] ?? ''),
             'email'    => (string) ($baris['email'] ?? ''),
         ];
+        // Rotasi token CSRF setelah login pembeli.
+        self::buatTokenCsrf(true);
 
         SecurityLog::catat('login_pembeli_sukses', 'info', 'Pembeli berhasil masuk.', [
             'pembeliId' => (string) $baris['id'],
@@ -259,6 +281,44 @@ class Auth
             'email'    => (string) ($baris['email'] ?? ''),
         ];
         return $_SESSION['pembeli'];
+    }
+
+    // Identitas sesi yang sedang aktif: admin diutamakan, lalu pembeli.
+    // Mengembalikan ['tipe' => 'admin'|'pembeli', 'id' => string, 'nama' => string]
+    // atau null bila tidak ada sesi. Dipakai endpoint yang melayani keduanya
+    // (mis. pesan/percakapan).
+    public static function identitas(): ?array
+    {
+        $admin = self::sesi();
+        if ($admin) {
+            return [
+                'tipe' => 'admin',
+                'id'   => (string) $admin['id'],
+                'nama' => (string) ($admin['nama'] ?? $admin['pengguna'] ?? ''),
+            ];
+        }
+        $pembeli = self::sesiPembeli();
+        if ($pembeli) {
+            return [
+                'tipe' => 'pembeli',
+                'id'   => (string) $pembeli['id'],
+                'nama' => (string) ($pembeli['nama'] ?? ''),
+            ];
+        }
+        return null;
+    }
+
+    // Hentikan request dengan 401 bila tidak ada sesi (admin maupun pembeli).
+    public static function wajibIdentitas(): array
+    {
+        $id = self::identitas();
+        if (!$id) {
+            SecurityLog::catat('akses_ditolak', 'warn', 'Endpoint pesan diakses tanpa sesi.', [
+                'path' => (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH),
+            ]);
+            Bantu::gagal('Perlu masuk terlebih dahulu.', 401);
+        }
+        return $id;
     }
 }
 

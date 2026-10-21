@@ -31,7 +31,7 @@ const kolomPesanan = [
   {
     kunci: 'tanggal',
     label: 'Tanggal',
-    render: (p) => <span className="teks-redup">{p.tanggal || '—'}</span>,
+    render: (p) => <span className="teks-redup">{p.tanggal || p.dibuatPada || '—'}</span>,
   },
   {
     kunci: 'total',

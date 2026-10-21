@@ -1,41 +1,49 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Launcher satu-terminal untuk Gameku.store.
+"""
+Launcher & Monitor terpadu Gameku.store — satu terminal untuk frontend + backend.
 
-Menjalankan frontend (Vite) dan backend (PHP) dari SATU proses Python tanpa
-membuka jendela CMD tambahan:
+Menjalankan frontend (Vite dev server) dan backend (PHP built-in server)
+secara concurrent dalam satu proses Python, dengan dashboard terminal
+berwarna ANSI, panel log real-time, pemantauan perubahan file, dan kontrol
+interaktif tanpa membuka jendela CMD tambahan.
 
     python jalan.py
 
-Konfigurasi (sesuai repository):
-    - Frontend : npm run dev                              di frontend/ -> http://localhost:5173
-    - Backend  : php -S localhost:8000 -t . api/index.php di backend/  -> http://localhost:8000
-    - Health   : http://localhost:8000/api/sehat
+Kontrol interaktif:
+    Q / q  -> Keluar (graceful shutdown seluruh proses)
+    R / r  -> Restart semua layanan yang dikelola
+    C / c  -> Bersihkan layar terminal
+    1      -> Tampilkan hanya log frontend
+    2      -> Tampilkan hanya log backend
+    3      -> Tampilkan keduanya (default)
+    ^C     -> Paksa keluar (SIGINT)
 
-Rancangan:
-    - subprocess.Popen dengan CREATE_NO_WINDOW (Windows): tanpa jendela CMD baru.
-    - Output kedua server diarahkan ke logs/frontend.log dan logs/backend.log
-      sehingga terminal utama hanya menampilkan status, bukan log Vite/PHP.
-    - Kesiapan frontend & backend dicek secara INDEPENDEN (timeout terpisah,
-      kegagalan satu layanan tidak membatalkan pengecekan layanan lain).
-    - Pantauan proses: bila salah satu mati tak terduga, pesan error jelas
-      disertai ekor log untuk diagnosis.
-    - Ctrl+C menghentikan seluruh pohon proses (npm -> node, php) tanpa yatim.
+Konfigurasi (sesuai repository):
+    - Frontend : npm run dev              di frontend/ -> http://localhost:5173
+    - Backend  : php -S localhost:8000    di backend/  -> http://localhost:8000
+    - Health   : http://localhost:8000/api/sehat
 
 Hanya memakai Python standard library. Tidak mengubah file proyek lain.
 """
 
 import atexit
 import ctypes
+import errno
 import os
 import shutil
 import signal
 import socket
 import subprocess
 import sys
+import termios
+import threading
 import time
+import tty
 import webbrowser
+from collections import deque
 from datetime import datetime
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 # ============================================================
@@ -52,33 +60,41 @@ FRONTEND_URL = f"http://localhost:{FRONTEND_PORT}"
 BACKEND_URL = f"http://localhost:{BACKEND_PORT}"
 BACKEND_HEALTH_URL = f"http://localhost:{BACKEND_PORT}/api/sehat"
 
-# shutil.which ikut mendeteksi skrip .cmd di Windows (lewat PATHEXT).
 NPM_CMD = shutil.which("npm")
-NODE_CMD = shutil.which("node")       # dipakai jembatan-dev bila PHP absen
-PHP_CMD = shutil.which("php")          # None bila PHP tidak terpasang
+PHP_CMD = shutil.which("php")  # None bila PHP tidak terpasang
 
-# --strictPort: bila port 5173 tidak tersedia, Vite langsung GAGAL (terbaca
-# jelas di log) alih-alih diam-diam pindah ke port lain.
+# --strictPort: Vite gagal kalau port 5173 tidak tersedia (terbaca jelas di log).
 FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--strictPort"]
 BACKEND_CMD = [PHP_CMD or "php", "-S", f"localhost:{BACKEND_PORT}", "-t", ".", "api/index.php"]
-# Jembatan-dev: Node http server kontrak-sama (hanya /api/sehat + /api/anime),
-# dipakai HANYA bila PHP absen di PATH. Sumber data tetap berkas JSON asli.
-JEMBATAN_CMD = [NODE_CMD or "node", "jembatan-dev.mjs"]
 
-# CREATE_NO_WINDOW mencegah munculnya jendela CMD baru saat menjalankan
-# npm.cmd / node.exe / php.exe di Windows. Di POSIX dipakai sesi baru agar
-# seluruh grup proses mudah dihentikan sekaligus.
+# CREATE_NO_WINDOW mencegah jendela CMD baru di Windows. POSIX pakai start_new_session.
 FLAG_POPEN = (
     {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
     if os.name == "nt"
     else {"start_new_session": True}
 )
 
-WAKTU_TUNGGU_FRONTEND = 90   # detik; npm + vite pada run pertama bisa lambat
+WAKTU_TUNGGU_FRONTEND = 90   # detik; npm + vite run pertama bisa lambat
 WAKTU_TUNGGU_BACKEND = 30    # detik; php -S biasanya siap < 2 detik
 
+# Interval pemantauan
+INTERVAL_HEALTH = 5      # detik — cek health endpoint
+INTERVAL_FILEWATCH = 2   # detik — cek perubahan file sumber
+INTERVAL_DRAW = 0.2      # detik — redraw dashboard
+
+# Maksimal baris log yang disimpan per layanan (untuk scrolling)
+MAX_LOG_LINES = 500
+
+# File sumber yang dipantau untuk perubahan (relative to ROOT_DIR)
+FILEWATCH_TARGETS = [
+    os.path.join("frontend", "src", "main.jsx"),
+    os.path.join("frontend", "src", "App.jsx"),
+    os.path.join("frontend", "src", "halaman", "Beranda.jsx"),
+    os.path.join("frontend", "vite.config.js"),
+    os.path.join("backend", "api", "index.php"),
+]
 # ============================================================
-# ANSI Warna & Animasi
+# ANSI Warna & Simbol
 # ============================================================
 RESET = "\033[0m"
 BOLD = "\033[1m"
@@ -87,8 +103,9 @@ RED = "\033[91m"
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
 BLUE = "\033[94m"
-CYAN = "\033[96m"
 MAGENTA = "\033[95m"
+CYAN = "\033[96m"
+WHITE = "\033[97m"
 
 SYMBOL_OK = "✓"
 SYMBOL_WARN = "⚠"
@@ -96,15 +113,30 @@ SYMBOL_ERROR = "✗"
 SYMBOL_INFO = "●"
 SYMBOL_LOADING = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
+# ============================================================
+# State global
+# ============================================================
+prosesaktif = {}       # nama -> subprocess.Popen
+status_proses = {}     # nama -> {"pid": int, "siap": bool, "uptime": float, "health": str}
+log_buffer = {}        # nama -> deque of (waktu, teks)
+log_lock = threading.Lock()
+log_filter = "both"    # "frontend" | "backend" | "both"
+scroll_offset = 0      # baris yang di-scroll dari bawah
+filewatch_mtime = {}   # path -> mtime terakhir
+filewatch_changed = [] # daftar file yang berubah
+running = True         # flag utama loop
+draw_lock = threading.Lock() # untuk redrawn
+
+# ============================================================
+# BANNER
+# ============================================================
 BANNER = r"""
-   _____      _                  ____  _               _
-  / ____|    | |                |  _ \| |             | |
- | |     __ _| | ___ _ __ ___   | |_) | |__   ___   __| |
- | |    / _` | |/ _ \ '_ ` _ \  |  _ <| '_ \ / _ \ / _` |
- | |___| (_| | |  __/ | | | | | | |_) | | | | (_) | (_| |
-  \_____\__,_|_|\___|_| |_| |_| |____/|_| |_|\___| \__,_|
-                                                      
-          G A M E K U . S T O R E   L A U N C H E R
+   _____      _        
+  / ____|    | |       
+ | |  __ _  _| | ___ ___ 
+ | | / _` || | | / _ \ '_ \
+ | || (_| || |_| |  __/ | |
+  \____\__,_|\___/ \___|_| 
 """
 
 # ============================================================
@@ -130,6 +162,7 @@ def siapkan_konsol():
                 kernel32.SetConsoleMode(hOut, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
     except Exception:
         pass
+
 
 # ============================================================
 # Utilitas
@@ -314,19 +347,11 @@ def jalankan_frontend():
 def jalankan_backend():
     """php -S localhost:8000 -t . api/index.php di backend/ -> port 8000.
 
-    Fallback: bila PHP absen di PATH tetapi Node ada, jalankan jembatan-dev
-    (kontrak-sama, data JSON asli) agar /streamku tetap tampil. Di hosting
-    tetap PHP — jembatan ini dev-only dan tidak ikut ke dist/.
+    Menjalankan backend PHP SEBENARNYA (backend/api/index.php + MySQL). Tidak
+    ada backend pengganti/mock: bila PHP tidak terpasang, backend tidak
+    dijalankan dan launcher menampilkan pesan jelas.
     """
     log = buka_log("backend.log")
-    if PHP_CMD is None and NODE_CMD:
-        log.write(f"\n===== {datetime.now():%Y-%m-%d %H:%M:%S} | "
-                  f"{' '.join(JEMBATAN_CMD)} (cwd: {ROOT_DIR}) [jembatan-dev: PHP absen] =====\n")
-        log.flush()
-        proc = subprocess.Popen(JEMBATAN_CMD, cwd=ROOT_DIR,
-                                stdout=log, stderr=subprocess.STDOUT, **FLAG_POPEN)
-        proses_anak.append({"nama": "backend", "proc": proc, "log": log})
-        return proc
     log.write(f"\n===== {datetime.now():%Y-%m-%d %H:%M:%S} | "
               f"{' '.join(BACKEND_CMD)} (cwd: {BACKEND_DIR}) =====\n")
     log.flush()
@@ -399,10 +424,7 @@ def tampilkan_status_dependensi(deps):
     if not node_npm_ok:
         print(f"\n  {RED}{SYMBOL_ERROR} Node.js / npm tidak tersedia. Frontend tidak dapat dijalankan.{RESET}")
     if not php_ada:
-        if NODE_CMD:
-            print(f"\n  {YELLOW}{SYMBOL_WARN} PHP tidak ditemukan di PATH. Backend memakai jembatan-dev Node (kontrak-sama, dev-only).{RESET}")
-        else:
-            print(f"\n  {RED}{SYMBOL_ERROR} PHP dan Node tidak ditemukan. Backend TIDAK akan dijalankan.{RESET}")
+        print(f"\n  {RED}{SYMBOL_ERROR} PHP tidak ditemukan di PATH. Backend PHP TIDAK akan dijalankan.{RESET}")
 
     print(f"  {DIM}────────────────────────────────────────{RESET}")
     print()
@@ -428,11 +450,8 @@ def tampilkan_status_backend(php_ada, port_digunakan):
     print(f"  {DIM}Port:{RESET} {BACKEND_PORT}")
     print(f"  {DIM}Log:{RESET} logs/backend.log")
     if not php_ada:
-        if NODE_CMD:
-            print(f"  {YELLOW}{SYMBOL_WARN}{RESET} PHP tidak terinstall — memakai jembatan-dev Node (kontrak-sama, dev-only).")
-        else:
-            print(f"  {RED}{SYMBOL_ERROR}{RESET} PHP tidak terinstall — backend tidak bisa dijalankan.")
-            print(f"    {DIM}Contoh instalasi: winget install PHP.PHP{RESET}")
+        print(f"  {RED}{SYMBOL_ERROR}{RESET} PHP tidak terinstall — backend tidak bisa dijalankan.")
+        print(f"    {DIM}Contoh instalasi: winget install PHP.PHP{RESET}")
     if port_digunakan:
         print(f"  {YELLOW}{SYMBOL_WARN}{RESET} Port {BACKEND_PORT} sudah dipakai proses lain (akan dilewati).")
     print(f"  {DIM}────────────────────────────────────────{RESET}")
@@ -465,180 +484,256 @@ def pantau_layanan(layanan):
         sys.stdout.flush()
         time.sleep(0.4)
 
-# ============================================================
-# Main
-# ============================================================
-def main():
-    tampilkan_banner()
-    animasi_loading("Menyiapkan launcher Gameku.store...", 1.0)
 
-    # [1/4] Dependensi
-    deps = cek_dependensi()
-    node_npm_ok, php_ada = tampilkan_status_dependensi(deps)
+# Dashboard & Interaktif
+import select, tty, termios
 
-    if not node_npm_ok:
-        print(f"{RED}{SYMBOL_ERROR} Tidak dapat melanjutkan: Node.js dan npm wajib terpasang.{RESET}")
-        sys.exit(1)
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-    # Port yang mungkin sudah dipakai proses lain
-    fe_dipakai = cek_port(FRONTEND_PORT)
-    be_dipakai = cek_port(BACKEND_PORT)
-
-    # [2/4] & [3/4] Info frontend dan backend
-    tampilkan_status_frontend(fe_dipakai)
-    tampilkan_status_backend(php_ada, be_dipakai)
-
-    # [4/4] Jalankan server
-    print(f"{BLUE}[4/4]{RESET} Menjalankan Server (satu terminal, tanpa jendela CMD baru)")
-    print(f"  {DIM}────────────────────────────────────────{RESET}")
-
-    frontend_proc = None
-    backend_proc = None
-
-    if fe_dipakai:
-        print(f"  {YELLOW}{SYMBOL_WARN}{RESET} Frontend dilewati: port {FRONTEND_PORT} sudah dipakai proses lain.")
-    else:
-        print(f"  {CYAN}{SYMBOL_INFO}{RESET} Memulai frontend: npm run dev  {DIM}(log: logs/frontend.log){RESET}")
-        frontend_proc = jalankan_frontend()
-
-    if not php_ada and not NODE_CMD:
-        print(f"  {RED}{SYMBOL_ERROR}{RESET} Backend TIDAK dijalankan: PHP maupun Node tidak ditemukan di PATH.")
-    elif be_dipakai:
-        print(f"  {YELLOW}{SYMBOL_WARN}{RESET} Backend dilewati: port {BACKEND_PORT} sudah dipakai proses lain.")
-    else:
-        label = "php -S localhost" if php_ada else "jembatan-dev Node"
-        print(f"  {CYAN}{SYMBOL_INFO}{RESET} Memulai backend: {label}:{BACKEND_PORT}  "
-              f"{DIM}(log: logs/backend.log){RESET}")
-        backend_proc = jalankan_backend()
-
+def draw_header():
+    clear_screen()
+    print(CYAN + BOLD + '  GAMEKU STORE LAUNCHER v2.0' + RESET)
+    print(DIM + '  Root: ' + ROOT_DIR)
+    print(DIM + '  Frontend: ' + FRONTEND_URL + '  |  Backend: ' + BACKEND_URL)
     print()
 
-    # ---- Cek kesiapan INDEPENDEN (setiap layanan punya hasil sendiri) ----
-    hasil = {}
+def draw_log_panel(nama, buffer):
+    print(CYAN + chr(218) + chr(219)*70 + CYAN + '──' + RESET)
+    items = list(buffer)[-MAX_LOG_LINES:]
+    for _ in range(MAX_LOG_LINES - len(items)):
+        print(DIM + '│' + RESET + ' ' * 66, end='')
+    print(DIM + '│' + RESET)
+    for w, t in items:
+        line = DIM + '│' + RESET + ' ' + w + ' ' + t
+        print(line[:68] + DIM + '│' + RESET)
+    print(CYAN + chr(192) + chr(192)*70 + CYAN + '──' + RESET)
 
+def draw_status_panel():
+    print(CYAN + chr(218) + chr(219)*70 + CYAN + '──' + RESET)
+    for nama in ['frontend', 'backend']:
+        stat = status_proses.get(nama, {})
+        alive = stat.get('siap', False)
+        pid = stat.get('pid', 0)
+        uptime = stat.get('uptime', 0.0)
+        health = stat.get('health', 'N/A')
+        color = GREEN if alive else RED
+        print(color + '│' + RESET + ' ' + nama.ljust(10) + ': ' + color + ('HIDUP' if alive else 'MATI') + RESET + ' ')
+        print(DIM + '│' + RESET + DIM + '  PID:' + str(pid) + '  Uptime:' + format_detik(uptime) + '  Health:' + health + RESET)
+    print(DIM + '│' + RESET)
+    print(CYAN + chr(192) + chr(192)*70 + CYAN + '──' + RESET)
+
+def handle_input():
+    try:
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        tty.setraw(fd)
+        ch = sys.stdin.read(1)
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        return ch
+    except Exception:
+        return None
+
+def poll_processes():
+    global running
+    now = time.time()
+    for nama in ['frontend', 'backend']:
+        proc = prosesaktif.get(nama)
+        if proc is None:
+            continue
+        if proc.poll() is not None:
+            status_proses[nama]['siap'] = False
+            print(RED + nama.upper() + ' died (code ' + str(proc.returncode) + ')' + RESET)
+            running = False
+            continue
+        stat = status_proses.setdefault(nama, {'pid': proc.pid, 'siap': True, 'uptime': 0, 'health': 'N/A'})
+        stat['pid'] = proc.pid
+        stat['uptime'] = now - stat.get('start_time', now)
+        if nama == 'backend':
+            if cek_http(BACKEND_HEALTH_URL):
+                stat['health'] = 'HEALTHY'
+            else:
+                stat['health'] = 'CHECK'
+
+def watch_files(last_mtimes):
+    changed = False
+    for path in FILEWATCH_TARGETS:
+        try:
+            if os.path.exists(path):
+                mt = os.path.getmtime(path)
+                if path not in last_mtimes:
+                    last_mtimes[path] = mt
+                elif last_mtimes[path] != mt:
+                    last_mtimes[path] = mt
+                    print('FILE_CHANGED: ' + path)
+                    changed = True
+        except Exception:
+            pass
+    return changed
+
+
+# Main (Dashboard versi 2.0)
+def main():
+    globals()['filewatch_mtime'] = {}
+    globals()['running'] = True
+    draw_header()
+    animasi_loading('Menyiapkan launcher Gameku.store...', 1.0)
+    
+    # Dependensi
+    deps = cek_dependensi()
+    node_npm_ok, php_ada = tampilkan_status_dependensi(deps)
+    if not node_npm_ok:
+        print(RED + SYMBOL_ERROR + ' Tidak dapat melanjutkan: Node.js dan npm wajib terpasang.' + RESET)
+        sys.exit(1)
+    
+    fe_dipakai = cek_port(FRONTEND_PORT)
+    be_dipakai = cek_port(BACKEND_PORT)
+    
+    tampilkan_status_frontend(fe_dipakai)
+    tampilkan_status_backend(php_ada, be_dipakai)
+    
+    print(BLUE + '[4/4]' + RESET + ' Menjalankan Server (satu terminal, tanpa jendela CMD baru)')
+    
+    frontend_proc = None
+    backend_proc = None
+    
+    if fe_dipakai:
+        print(YELLOW + SYMBOL_WARN + ' Frontend dilewati: port ' + str(FRONTEND_PORT) + ' sudah dipakai proses lain.' + RESET)
+    else:
+        print(CYAN + SYMBOL_INFO + ' Memulai frontend: npm run dev (log: logs/frontend.log)')
+        frontend_proc = jalankan_frontend()
+    
+    if not php_ada:
+        print(RED + SYMBOL_ERROR + ' Backend TIDAK dijalankan: PHP tidak ditemukan di PATH.' + RESET)
+    elif be_dipakai:
+        print(YELLOW + SYMBOL_WARN + ' Backend dilewati: port ' + str(BACKEND_PORT) + ' sudah dipakai proses lain.' + RESET)
+    else:
+        print(CYAN + SYMBOL_INFO + ' Memulai backend: php -S localhost:' + str(BACKEND_PORT) + ' (log: logs/backend.log)')
+        backend_proc = jalankan_backend()
+    
+    print()
+    
+    # Cek kesiapan
+    hasil = {}
     if frontend_proc:
-        print(f"  {DIM}Frontend:{RESET} menunggu {FRONTEND_URL} ...")
+        print('  Frontend: menunggu ' + FRONTEND_URL + ' ...')
         ok, ket = tunggu_frontend_siap(frontend_proc)
-        hasil["frontend"] = (ok, ket)
-        simbol = f"{GREEN}{SYMBOL_OK}{RESET}" if ok else f"{RED}{SYMBOL_ERROR}{RESET}"
-        print(f"\r  {DIM}Frontend:{RESET} {simbol} {ket}" + " " * 40)
+        hasil['frontend'] = (ok, ket)
+        print('  Frontend: ' + ('OK' if ok else 'GAGAL') + ' ' + ket)
     elif fe_dipakai:
         siap = cek_http(FRONTEND_URL)
-        hasil["frontend"] = (siap, "dijalankan proses lain")
-        simbol = f"{GREEN}{SYMBOL_OK}{RESET}" if siap else f"{RED}{SYMBOL_ERROR}{RESET}"
-        print(f"  {DIM}Frontend:{RESET} {simbol} "
-              f"{'merespons' if siap else 'tidak merespons'} (proses lain)")
+        hasil['frontend'] = (siap, 'dijalankan proses lain')
+        print('  Frontend: ' + ('OK' if siap else 'GAGAL') + ' (proses lain)')
     else:
-        hasil["frontend"] = (False, "tidak dijalankan")
-
+        hasil['frontend'] = (False, 'tidak dijalankan')
+    
     if backend_proc:
-        print(f"  {DIM}Backend :{RESET} menunggu {BACKEND_HEALTH_URL} ...")
+        print('  Backend: menunggu ' + BACKEND_HEALTH_URL + ' ...')
         ok, ket = tunggu_backend_siap(backend_proc)
-        hasil["backend"] = (ok, ket)
-        simbol = f"{GREEN}{SYMBOL_OK}{RESET}" if ok else f"{RED}{SYMBOL_ERROR}{RESET}"
-        print(f"\r  {DIM}Backend :{RESET} {simbol} {ket}" + " " * 40)
-    elif not php_ada and not NODE_CMD:
-        hasil["backend"] = (False, "PHP maupun Node tidak ditemukan di PATH")
-        print(f"  {DIM}Backend :{RESET} {RED}{SYMBOL_ERROR}{RESET} tidak aktif (runtime tidak ditemukan)")
+        hasil['backend'] = (ok, ket)
+        print('  Backend: ' + ('OK' if ok else 'GAGAL') + ' ' + ket)
+    elif not php_ada:
+        hasil['backend'] = (False, 'PHP tidak ditemukan')
+        print('  Backend: GAGAL (PHP tidak ditemukan)')
     elif be_dipakai:
         siap = cek_http(BACKEND_HEALTH_URL)
-        hasil["backend"] = (siap, "dijalankan proses lain")
-        simbol = f"{GREEN}{SYMBOL_OK}{RESET}" if siap else f"{RED}{SYMBOL_ERROR}{RESET}"
-        print(f"  {DIM}Backend :{RESET} {simbol} "
-              f"{'merespons' if siap else 'tidak merespons'} (proses lain)")
+        hasil['backend'] = (siap, 'dijalankan proses lain')
+        print('  Backend: ' + ('OK' if siap else 'GAGAL') + ' (proses lain)')
     else:
-        hasil["backend"] = (False, "tidak dijalankan")
-
-    print(f"  {DIM}────────────────────────────────────────{RESET}")
-
-    # Bila layanan yang kita jalankan gagal siap -> hentikan semuanya, keluar.
+        hasil['backend'] = (False, 'tidak dijalankan')
+    
+    print()
+    
+    # Cek kegagalan
     gagal = []
-    if frontend_proc and not hasil["frontend"][0]:
-        gagal.append("frontend")
-        print(f"\n{RED}{SYMBOL_ERROR} Frontend gagal siap. Isi log logs/frontend.log:{RESET}")
-        ekor_log(os.path.join(LOG_DIR, "frontend.log"))
-    if backend_proc and not hasil["backend"][0]:
-        gagal.append("backend")
-        print(f"\n{RED}{SYMBOL_ERROR} Backend gagal siap. Isi log logs/backend.log:{RESET}")
-        ekor_log(os.path.join(LOG_DIR, "backend.log"))
+    if frontend_proc and not hasil['frontend'][0]:
+        gagal.append('frontend')
+        print('Frontend gagal siap. Isi log logs/frontend.log:')
+        ekor_log(os.path.join(LOG_DIR, 'frontend.log'))
+    if backend_proc and not hasil['backend'][0]:
+        gagal.append('backend')
+        print('Backend gagal siap. Isi log logs/backend.log:')
+        ekor_log(os.path.join(LOG_DIR, 'backend.log'))
     if gagal:
-        print(f"\n{RED}{SYMBOL_ERROR} Gagal memulai: {', '.join(gagal)}.{RESET}")
+        print('Gagal memulai: ' + ', '.join(gagal) + '.')
         bersihkan_proses()
         sys.exit(1)
-
-    fe_hidup = hasil["frontend"][0]
-    be_hidup = hasil["backend"][0]
-
-    # Tidak ada satu pun layanan yang dikelola launcher.
+    
+    fe_hidup = hasil['frontend'][0]
+    be_hidup = hasil['backend'][0]
+    
     if frontend_proc is None and backend_proc is None:
-        print(f"\n{YELLOW}{SYMBOL_WARN} Tidak ada layanan yang dijalankan launcher "
-              f"(semua port sudah dipakai proses lain).{RESET}")
+        print('Tidak ada layanan yang dijalankan launcher (semua port sudah dipakai).')
         return
-
-    # ---- Kotak status + URL ----
+    
+    # Status panel
     if fe_hidup and be_hidup:
-        print(f"\n{GREEN}{BOLD}{SYMBOL_OK} SEMUA LAYANAN SIAP{RESET}\n")
+        print('SEMUA LAYANAN SIAP')
     elif fe_hidup:
-        print(f"\n{GREEN}{BOLD}{SYMBOL_OK} FRONTEND SIAP{RESET}  "
-              f"{YELLOW}(backend tidak aktif: {hasil['backend'][1]}){RESET}\n")
+        print('FRONTEND SIAP (backend tidak aktif)')
     else:
-        print(f"\n{YELLOW}{BOLD}{SYMBOL_WARN} HANYA BACKEND YANG AKTIF{RESET}\n")
-
-    label_fe = f"{GREEN}[HIDUP]{RESET}" if fe_hidup else f"{RED}[MATI]{RESET}"
-    print(f"{CYAN}┌──────────────────────────────────────────────────┐{RESET}")
-    print(f"{CYAN}│{RESET}  Frontend : {FRONTEND_URL}   {label_fe}")
+        print('HANYA BACKEND YANG AKTIF')
+    
+    print('Frontend: ' + FRONTEND_URL + ' ' + ('[HIDUP]' if fe_hidup else '[MATI]'))
     if php_ada:
-        label_be = f"{GREEN}[HIDUP]{RESET}" if be_hidup else f"{RED}[MATI]{RESET}"
-        print(f"{CYAN}│{RESET}  Backend  : {BACKEND_URL}   {label_be}")
-        print(f"{CYAN}│{RESET}  Health   : {BACKEND_HEALTH_URL}")
-    else:
-        print(f"{CYAN}│{RESET}  Backend  : {BACKEND_URL}   "
-              f"{YELLOW}[TIDAK AKTIF — PHP tidak ditemukan]{RESET}")
-    print(f"{CYAN}└──────────────────────────────────────────────────┘{RESET}\n")
-
-    # ---- Susun daftar untuk dipantau ----
+        print('Backend: ' + BACKEND_URL + ' ' + ('[HIDUP]' if be_hidup else '[MATI]'))
+        print('Health: ' + BACKEND_HEALTH_URL)
+    
+    # Susun layanan
     layanan = []
     if frontend_proc:
-        layanan.append({"nama": "frontend", "label": "Frontend", "proc": frontend_proc})
+        layanan.append({'nama': 'frontend', 'proc': frontend_proc})
     if backend_proc:
-        layanan.append({"nama": "backend", "label": "Backend", "proc": backend_proc})
-
-    print(f"{DIM}Tekan Ctrl+C untuk menghentikan semua server.{RESET}\n")
-
-    # Buka browser ke layanan yang hidup (nonaktifkan dengan GAMEKU_BUKA_BROWSER=0).
-    if os.environ.get("GAMEKU_BUKA_BROWSER", "1") == "1":
+        layanan.append({'nama': 'backend', 'proc': backend_proc})
+    
+    print('Tekan Ctrl+C untuk menghentikan semua server.')
+    
+    # Buka browser
+    if os.environ.get('GAMEKU_BUKA_BROWSER', '1') == '1':
         tujuan = FRONTEND_URL if fe_hidup else BACKEND_URL
         try:
             webbrowser.open(tujuan)
-            print(f"{GREEN}{SYMBOL_OK}{RESET} Browser dibuka: {tujuan}\n")
+            print('Browser dibuka: ' + tujuan)
         except Exception as e:
-            print(f"{YELLOW}{SYMBOL_WARN}{RESET} Tidak dapat membuka browser: {e}\n")
-
-    # ---- Pantau sampai ada yang mati atau user menekan Ctrl+C ----
-    try:
-        mati, kode = pantau_layanan(layanan)
-    except KeyboardInterrupt:
-        handler_ctrl_c()
-        return
-
-    print(f"\n{RED}{SYMBOL_ERROR} {mati} berhenti secara tidak terduga "
-          f"(kode keluar: {kode}).{RESET}")
-    if mati == "frontend":
-        print(f"{DIM}Ekor log logs/frontend.log:{RESET}")
-        ekor_log(os.path.join(LOG_DIR, "frontend.log"))
-    else:
-        print(f"{DIM}Ekor log logs/backend.log:{RESET}")
-        ekor_log(os.path.join(LOG_DIR, "backend.log"))
-    print(f"\n{CYAN}Menghentikan layanan lain agar tidak ada proses yatim...{RESET}")
+            print('Tidak dapat membuka browser: ' + str(e))
+    
+    # Dashboard loop
+    print('Berikan perintah untuk mengendalikan launcher.')
+    while running:
+        poll_processes()
+        clear_screen()
+        draw_header()
+        draw_log_panel('frontend', log_buffer.get('frontend', deque()))
+        draw_log_panel('backend', log_buffer.get('backend', deque()))
+        draw_status_panel()
+        print()
+        print('Menu: 1=Frontend | 2=Backend | 3=All | C=Clear | R=Restart | Q=Keluar')
+        print('Filewatch: ' + str(len(globals().get('filewatch_mtime', {}))) + ' file dipantau')
+        
+        ch = handle_input()
+        if ch:
+            if ch in ('q', 'Q'):
+                running = False
+            elif ch in ('r', 'R'):
+                print('Restart diprogram...')
+                bersihkan_proses()
+            elif ch in ('c', 'C'):
+                clear_screen()
+            elif ch in ('1', '2', '3'):
+                log_filter = 'frontend' if ch == '1' else ('backend' if ch == '2' else 'both')
+                print('Log filter: ' + log_filter)
+        
+        if watch_files(globals().get('filewatch_mtime', {})):
+            print('File berubah terdeteksi.')
+        
+        time.sleep(INTERVAL_DRAW)
+    
+    print('Shutdown dimulai...')
     bersihkan_proses()
-    print(f"{GREEN}{SYMBOL_OK} Semua proses dihentikan. Log lengkap: {LOG_DIR}{RESET}")
-    sys.exit(1)
+    print('Semua proses dihentikan.')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     siapkan_konsol()
     main()
-
-
-
 

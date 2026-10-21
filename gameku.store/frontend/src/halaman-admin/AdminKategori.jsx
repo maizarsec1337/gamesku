@@ -1,30 +1,41 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import JendelaModal from '../komponen/admin/JendelaModal.jsx'
 import TombolAksi from '../komponen/admin/TombolAksi.jsx'
 import LencanaStatus from '../komponen/admin/LencanaStatus.jsx'
 import KosongAdmin from '../komponen/admin/KosongAdmin.jsx'
 import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
-import { useDaftar } from '../layanan/gunakanDaftar.js'
-import layananKategori, {
-  tambahKategori,
-  perbaruiKategori,
-  hapusKategori,
-} from '../layanan/layananKategori.js'
-import { jumlahProdukPerKategori } from '../layanan/layananProduk.js'
+import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
+import {
+  daftarKategoriApi,
+  buatKategoriApi,
+  ubahKategoriApi,
+  hapusKategoriApi,
+  daftarProdukApi,
+} from '../layanan/apiAdmin.js'
 import { STATUS_KATEGORI, IKON_KATEGORI } from '../data/konstanta.js'
 import '../css/admin-tabel.css'
 
 const formKosong = { nama: '', slug: '', deskripsi: '', ikon: 'kategori', gambar: '', status: STATUS_KATEGORI[0] }
 
-// Halaman kategori (/admin/kategori); kategori dibuat admin, langsung
-// tersedia di form Tambah Produk.
+// Halaman kategori (/admin/kategori) — data dari backend (GET/POST/PUT/DELETE /api/kategori).
 export default function AdminKategori() {
   const { tampilkanPesan } = useAdmin()
-  const kategori = useDaftar(layananKategori)
+  const { data, memuat, galat, muat } = useApi(() => daftarKategoriApi(), [])
+  const { data: dataProduk } = useApi(() => daftarProdukApi({ batas: 200 }), [])
+  const kategori = Array.isArray(data) ? data : []
+
+  const jumlahProduk = useMemo(() => {
+    const daftar = Array.isArray(dataProduk) ? dataProduk : []
+    const hitung = {}
+    for (const p of daftar) hitung[p.kategoriId] = (hitung[p.kategoriId] || 0) + 1
+    return hitung
+  }, [dataProduk])
+
   const [form, setForm] = useState(formKosong)
   const [mode, setMode] = useState(null) // 'baru' | id kategori | null
   const [dihapus, setDihapus] = useState(null)
+  const [menyimpan, setMenyimpan] = useState(false)
 
   const bukaTambah = () => {
     setForm(formKosong)
@@ -35,7 +46,7 @@ export default function AdminKategori() {
     setForm({
       nama: k.nama,
       slug: k.slug,
-      deskripsi: k.deskripsi,
+      deskripsi: k.deskripsi || '',
       ikon: k.ikon,
       gambar: k.gambar || '',
       status: k.status,
@@ -43,25 +54,56 @@ export default function AdminKategori() {
     setMode(k.id)
   }
 
-  const simpan = (e) => {
+  const simpan = async (e) => {
     e.preventDefault()
-    const hasil = mode === 'baru' ? tambahKategori(form) : perbaruiKategori(mode, form)
-    if (!hasil.berhasil) {
-      tampilkanPesan(hasil.pesan)
-      return
+    if (menyimpan) return
+    setMenyimpan(true)
+    try {
+      const hasil = mode === 'baru' ? await buatKategoriApi(form) : await ubahKategoriApi(mode, form)
+      await muat()
+      tampilkanPesan(
+        mode === 'baru'
+          ? `Kategori "${hasil?.nama || form.nama}" ditambahkan.`
+          : `Kategori "${hasil?.nama || form.nama}" diperbarui.`,
+      )
+      setMode(null)
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
+    } finally {
+      setMenyimpan(false)
     }
-    tampilkanPesan(
-      mode === 'baru'
-        ? `Kategori "${hasil.data.nama}" ditambahkan.`
-        : `Kategori "${hasil.data.nama}" diperbarui.`,
-    )
-    setMode(null)
   }
 
-  const konfirmasiHapus = () => {
-    const hasil = hapusKategori(dihapus.id)
-    if (hasil.berhasil) tampilkanPesan(`Kategori "${dihapus.nama}" dihapus.`)
+  const konfirmasiHapus = async () => {
+    try {
+      await hapusKategoriApi(dihapus.id)
+      await muat()
+      tampilkanPesan(`Kategori "${dihapus.nama}" dihapus.`)
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
+    }
     setDihapus(null)
+  }
+
+  if (memuat) {
+    return (
+      <div className="keadaan-kosong keadaan-kosong-admin" role="status">
+        <span className="cb-putar" aria-hidden="true" />
+        <p>Memuat kategori…</p>
+      </div>
+    )
+  }
+
+  if (galat) {
+    return (
+      <div className="pesan-salah-login" role="alert">
+        <Ikon nama="info" ukuran={16} />
+        {pesanGalat(galat)}
+        <button type="button" className="tombol-admin tombol-garis" style={{ marginLeft: 'auto' }} onClick={muat}>
+          Coba lagi
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -104,21 +146,11 @@ export default function AdminKategori() {
               <p>{k.deskripsi || 'Tanpa deskripsi.'}</p>
               <div className="kartu-kategori-kaki">
                 <span className="jumlah-produk">
-                  <b>{jumlahProdukPerKategori(k.id)}</b> produk
+                  <b>{jumlahProduk[k.id] || 0}</b> produk
                 </span>
                 <span className="baris-aksi">
-                  <TombolAksi
-                    ikon="edit"
-                    label="Edit"
-                    jenis="utama"
-                    padaKlik={() => bukaEdit(k)}
-                  />
-                  <TombolAksi
-                    ikon="hapus"
-                    label="Hapus"
-                    jenis="bahaya"
-                    padaKlik={() => setDihapus(k)}
-                  />
+                  <TombolAksi ikon="edit" label="Edit" jenis="utama" padaKlik={() => bukaEdit(k)} />
+                  <TombolAksi ikon="hapus" label="Hapus" jenis="bahaya" padaKlik={() => setDihapus(k)} />
                 </span>
               </div>
               <div style={{ marginTop: 10 }}>
@@ -134,27 +166,18 @@ export default function AdminKategori() {
         </div>
       )}
 
-
       <JendelaModal
         judul={mode === 'baru' ? 'Tambah Kategori' : 'Edit Kategori'}
         padaTutup={mode ? () => setMode(null) : null}
         ukuran="kecil"
         kaki={
           <>
-            <button
-              type="button"
-              className="tombol-admin tombol-garis"
-              onClick={() => setMode(null)}
-            >
+            <button type="button" className="tombol-admin tombol-garis" onClick={() => setMode(null)}>
               Batal
             </button>
-            <button
-              type="submit"
-              form="form-kategori"
-              className="tombol-admin tombol-hijau"
-            >
+            <button type="submit" form="form-kategori" className="tombol-admin tombol-hijau" disabled={menyimpan}>
               <Ikon nama="simpan" ukuran={15} />
-              Simpan Kategori
+              {menyimpan ? 'Menyimpan…' : 'Simpan Kategori'}
             </button>
           </>
         }
@@ -228,28 +251,15 @@ export default function AdminKategori() {
           </div>
 
           <div className="blok-form" style={{ marginBottom: 0 }}>
-            <span className="label-form">Gambar Kategori</span>
-            <label className={`area-unggah ${form.gambar ? 'terisi' : ''}`}>
-              <Ikon nama="gambar" ukuran={20} />
-              <strong>{form.gambar ? 'Gambar dipilih' : 'Pilih gambar kategori'}</strong>
-              <span>PNG/JPG — opsional</span>
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e) => {
-                  const berkas = e.target.files?.[0]
-                  if (berkas) setForm((f) => ({ ...f, gambar: berkas.name }))
-                  e.target.value = ''
-                }}
-              />
-            </label>
-            {form.gambar && (
-              <span className="berkas-pilih">
-                <Ikon nama="cek" ukuran={15} />
-                <span>{form.gambar}</span>
-              </span>
-            )}
+            <label className="label-form" htmlFor="kat-gambar">Gambar Kategori (URL)</label>
+            <input
+              id="kat-gambar"
+              className="isian-admin"
+              value={form.gambar}
+              onChange={(e) => setForm((f) => ({ ...f, gambar: e.target.value }))}
+              placeholder="/uploads/… atau https://…"
+            />
+            <p className="bantuan-form">Unggah berkas ada di menu Media; tempel URL-nya di sini.</p>
           </div>
         </form>
       </JendelaModal>
@@ -260,18 +270,10 @@ export default function AdminKategori() {
         ukuran="kecil"
         kaki={
           <>
-            <button
-              type="button"
-              className="tombol-admin tombol-garis"
-              onClick={() => setDihapus(null)}
-            >
+            <button type="button" className="tombol-admin tombol-garis" onClick={() => setDihapus(null)}>
               Batal
             </button>
-            <button
-              type="button"
-              className="tombol-admin tombol-bahaya"
-              onClick={konfirmasiHapus}
-            >
+            <button type="button" className="tombol-admin tombol-bahaya" onClick={konfirmasiHapus}>
               <Ikon nama="hapus" ukuran={15} />
               Ya, Hapus
             </button>

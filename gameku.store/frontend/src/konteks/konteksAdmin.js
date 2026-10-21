@@ -1,9 +1,9 @@
 import { createContext, useContext } from 'react'
 
 // Konteks sesi admin (dipisah dari penyedia untuk fast refresh).
+// Sesi berasal dari server (cookie PHP + /api/auth/saya) — TIDAK menyimpan
+// kata sandi/token sensitif di localStorage/sessionStorage.
 export const KonteksAdmin = createContext(null)
-
-export const KUNCI_SESI_ADMIN = 'gameku_sesi_admin'
 
 export function useAdmin() {
   const konteks = useContext(KonteksAdmin)

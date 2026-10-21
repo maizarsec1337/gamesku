@@ -4,15 +4,16 @@ import LencanaStatus from '../komponen/admin/LencanaStatus.jsx'
 import KosongAdmin from '../komponen/admin/KosongAdmin.jsx'
 import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
-import { useDaftar } from '../layanan/gunakanDaftar.js'
-import layananCreator, { tambahCreator } from '../layanan/layananCreator.js'
+import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
+import { daftarCreatorApi, buatCreatorApi } from '../layanan/apiAdmin.js'
 import { STATUS_CREATOR, waktuRelatif } from '../data/konstanta.js'
 import '../css/admin-tabel.css'
 
 // Halaman creator (/admin/creator); mulai kosong, diisi lewat formulir undangan.
 export default function AdminCreator() {
   const { tampilkanPesan } = useAdmin()
-  const creator = useDaftar(layananCreator)
+  const { data, memuat, galat, muat } = useApi(() => daftarCreatorApi(), [])
+  const creator = Array.isArray(data) ? data : []
   const [filter, setFilter] = useState('')
   const [namaBaru, setNamaBaru] = useState('')
 
@@ -43,15 +44,37 @@ export default function AdminCreator() {
     { kunci: 'status', label: 'Status', render: (c) => <LencanaStatus status={c.status} /> },
   ]
 
-  const simpanCreator = (e) => {
+  const simpanCreator = async (e) => {
     e.preventDefault()
-    const hasilTambah = tambahCreator({ nama: namaBaru })
-    if (!hasilTambah.berhasil) {
-      tampilkanPesan(hasilTambah.pesan)
-      return
+    try {
+      const hasil = await buatCreatorApi({ nama: namaBaru })
+      await muat()
+      tampilkanPesan(`Creator "${hasil?.nama || namaBaru}" ditambahkan.`)
+      setNamaBaru('')
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
     }
-    tampilkanPesan(`Creator "${hasilTambah.data.nama}" ditambahkan.`)
-    setNamaBaru('')
+  }
+
+  if (memuat) {
+    return (
+      <div className="keadaan-kosong keadaan-kosong-admin" role="status">
+        <span className="cb-putar" aria-hidden="true" />
+        <p>Memuat creator…</p>
+      </div>
+    )
+  }
+
+  if (galat) {
+    return (
+      <div className="pesan-salah-login" role="alert">
+        <Ikon nama="info" ukuran={16} />
+        {pesanGalat(galat)}
+        <button type="button" className="tombol-admin tombol-garis" style={{ marginLeft: 'auto' }} onClick={muat}>
+          Coba lagi
+        </button>
+      </div>
+    )
   }
 
   return (

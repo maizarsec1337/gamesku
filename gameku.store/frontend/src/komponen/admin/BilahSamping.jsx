@@ -1,13 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import Ikon from '../Ikon.jsx'
 import { useAdmin } from '../../konteks/konteksAdmin.js'
-import { useDaftar } from '../../layanan/gunakanDaftar.js'
-import layananPesanan from '../../layanan/layananPesanan.js'
-import layananUlasan from '../../layanan/layananUlasan.js'
-import { STATUS_ULASAN } from '../../data/konstanta.js'
+import { useApi } from '../../layanan/gunakanApi.js'
+import { daftarPesananApi, daftarUlasanApi } from '../../layanan/apiAdmin.js'
 
 // Struktur menu bilah samping, dipisah per section.
-// Badge hanya muncul bila datanya benar-benar ada (hitung dari service).
+// Badge hanya muncul bila datanya benar-benar ada (dihitung dari server).
 const seksiMenu = [
   {
     judul: 'Utama',
@@ -30,24 +28,31 @@ const seksiMenu = [
   },
   {
     judul: 'Sistem',
-    tautan: [{ teks: 'Pengaturan', ke: '/admin/pengaturan', ikon: 'pengaturan' }],
+    tautan: [
+      { teks: 'Pengaturan', ke: '/admin/pengaturan', ikon: 'pengaturan' },
+      { teks: 'Reseller', ke: '/admin/reseller', ikon: 'dompet' },
+    ],
   },
 ]
 
 // Bilah samping (sidebar) admin — fixed di desktop, drawer di mobile.
 export default function BilahSamping({ terbuka = false, padaTutup = () => {} }) {
-  const { keluar } = useAdmin()
+  const { keluar, sesiServer, isSuperadmin } = useAdmin()
   const navigate = useNavigate()
 
-  // Badge dihitung dari data nyata; 0 = tidak ditampilkan.
-  const jumlahPesanan = useDaftar(layananPesanan).length
-  const jumlahUlasan = useDaftar(layananUlasan).filter(
-    (u) => u.status === STATUS_ULASAN[0],
-  ).length
-  const hitungan = { pesanan: jumlahPesanan, ulasan: jumlahUlasan }
+  // Badge dihitung dari data server (bukan data contoh). Gagal muat = 0.
+  const { data: pesanan } = useApi(() => daftarPesananApi(), [])
+  const { data: ulasan } = useApi(() => daftarUlasanApi(), [])
+  const hitungan = {
+    pesanan: Array.isArray(pesanan) ? pesanan.length : 0,
+    ulasan: Array.isArray(ulasan) ? ulasan.filter((u) => u.status === 'Menunggu').length : 0,
+  }
 
-  const akhiriSesi = () => {
-    keluar()
+  const namaAdmin = sesiServer?.nama || sesiServer?.pengguna || 'Administrator'
+  const labelPeran = isSuperadmin ? 'Super Admin' : 'Admin'
+
+  const akhiriSesi = async () => {
+    await keluar()
     navigate('/admin/login', { replace: true })
   }
 
@@ -94,12 +99,11 @@ export default function BilahSamping({ terbuka = false, padaTutup = () => {} }) 
       </nav>
 
       <div className="bilah-profil">
-        {/* Identitas admin berasal dari server (session PHP). Selama belum
-            ada server, panel hanya menampilkan peran, bukan nama akun. */}
-        <span className="avatar-admin">A</span>
+        {/* Identitas admin berasal dari sesi server (cookie PHP). */}
+        <span className="avatar-admin">{(namaAdmin[0] || 'A').toUpperCase()}</span>
         <span className="bilah-profil-teks">
-          <strong>Administrator</strong>
-          <span>Belum terhubung</span>
+          <strong>{namaAdmin}</strong>
+          <span>{labelPeran}</span>
         </span>
         <button
           type="button"

@@ -355,6 +355,18 @@ class PengendaliPesanan extends PengendaliDasar
         if (!$id) Bantu::gagal('ID pesanan wajib ada.', 400);
         $baris = Database::satu('SELECT id FROM pesanan WHERE id = ?', [$id]);
         if (!$baris) Bantu::gagal('Pesanan tidak ditemukan.', 404);
+
+        // FK pembayaran.pesanan_id = ON DELETE RESTRICT. Tolak lebih awal dengan
+        // pesan jelas daripada membiarkan galat integritas menjadi 500 generik.
+        try {
+            $adaBayar = Database::satu('SELECT id FROM pembayaran WHERE pesanan_id = ? LIMIT 1', [$id]);
+        } catch (Throwable $e) {
+            $adaBayar = null; // pembayaran belum ada di instalasi lama → lanjut hapus.
+        }
+        if ($adaBayar) {
+            Bantu::gagal('Pesanan memiliki data pembayaran dan tidak dapat dihapus. Hapus pembayaran lebih dulu.', 409);
+        }
+
         // pesanan_item ikut terhapus (ON DELETE CASCADE).
         Database::eksekusi('DELETE FROM pesanan WHERE id = ?', [$id]);
         Aktivitas::audit('hapus_pesanan', 'pesanan', $id, 'Berhasil', [], "Pesanan {$id} dihapus");

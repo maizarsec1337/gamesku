@@ -1,17 +1,24 @@
 import Ikon from '../Ikon.jsx'
 import KosongAdmin from './KosongAdmin.jsx'
-import { useDaftar } from '../../layanan/gunakanDaftar.js'
-import layananAktivitas from '../../layanan/layananAktivitas.js'
+import { useApi } from '../../layanan/gunakanApi.js'
+import { daftarAktivitasApi } from '../../layanan/apiAdmin.js'
 import { waktuRelatif } from '../../data/konstanta.js'
 
 // =====================================================================
-// Umpan aktivitas terbaru (timeline).
-//
-// Sumbernya layananAktivitas, yang hanya mencatat kejadian NYATA dari
-// aksi admin. Belum ada aksi => "Belum ada aktivitas."
+// Umpan aktivitas terbaru (timeline) — dibaca dari server (GET /api/aktivitas).
+// Hanya berisi kejadian NYATA dari aksi admin/toko. Belum ada => empty state.
 // =====================================================================
 export default function AktivitasTerbaru() {
-  const daftar = useDaftar(layananAktivitas)
+  const { data, memuat } = useApi(() => daftarAktivitasApi(8), [])
+  const daftar = Array.isArray(data) ? data : []
+
+  if (memuat) {
+    return (
+      <div className="keadaan-kosong keadaan-kosong-admin" role="status">
+        <span className="cb-putar" aria-hidden="true" />
+      </div>
+    )
+  }
 
   if (!daftar.length) {
     return (
@@ -32,7 +39,7 @@ export default function AktivitasTerbaru() {
           </span>
           <span className="teks-aktivitas">
             <p>{a.teks}</p>
-            <time>{waktuRelatif(a.dibuatPada)}</time>
+            <time>{waktuRelatif(a.waktu || a.dibuat_pada)}</time>
           </span>
         </li>
       ))}

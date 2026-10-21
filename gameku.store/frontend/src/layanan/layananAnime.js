@@ -28,7 +28,7 @@ async function minta(jalur) {
   // Backend mati / proxy Vite tanpa target mengembalikan 502 dgn badan KOSONG
   // (bukan JSON). Bedakan secara jujur agar pesan tidak menyesatkan.
   if (respons.status === 502) {
-    throw new GalatAnime('Server backend tidak aktif (port 8000). Jalankan `python jalan.py` lalu tekan Coba lagi.', 502)
+    throw new GalatAnime('Server backend tidak aktif (port 8000). Jalankan dari folder project: `php -S localhost:8000 -t backend backend/api/index.php`, lalu tekan Coba lagi.', 502)
   }
   const tipe = String(respons.headers.get('content-type') || '')
   if (!tipe.includes('application/json')) {

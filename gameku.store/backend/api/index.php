@@ -61,6 +61,9 @@ $kelasPeta = [
     'ulasan'    => 'PengendaliUlasan',
     'media'     => 'PengendaliMedia',
     'aktivitas' => 'PengendaliAktivitas',
+    'reseller'  => 'PengendaliReseller',
+    'pembayaran'=> 'PengendaliPembayaran',
+    'pesan'     => 'PengendaliPesan',
     'anime'     => 'PengendaliAnime',
     'chat'      => 'PengendaliChat',
 ];

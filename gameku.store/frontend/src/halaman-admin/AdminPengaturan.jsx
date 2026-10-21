@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
+import { tulis } from '../layanan/penyimpananLokal.js'
 import '../css/admin-form.css'
 import '../css/admin-tabel.css'
 
@@ -40,12 +41,26 @@ function Saklar({ aktif, ubah, label }) {
 
 // Halaman pengaturan (/admin/pengaturan) — UI saja.
 export default function AdminPengaturan() {
-  const { tampilkanPesan } = useAdmin()
+  const { tampilkanPesan, sesiServer, peran } = useAdmin()
   const [tab, setTab] = useState('profil')
   const [memuat, setMemuat] = useState(false)
-  // Profil admin BERASAL DARI SERVER (session PHP). Selama belum ada
-  // server, form dibiarkan kosong — tidak ada nama/email contoh.
+  // Profil admin BERASAL DARI SERVER (sesi PHP).
   const [profil, setProfil] = useState({ nama: '', pengguna: '', email: '', bio: '' })
+
+  // Isi identitas dari sesi server saat tersedia.
+  useEffect(() => {
+    if (!sesiServer) return
+    setProfil((p) =>
+      p.pengguna
+        ? p
+        : {
+            ...p,
+            nama: sesiServer.nama || '',
+            pengguna: sesiServer.pengguna || '',
+            email: sesiServer.email || '',
+          },
+    )
+  }, [sesiServer])
   const [toko, setToko] = useState({
     nama: 'Gamesku',
     tagline: 'Minecraft Digital Store',
@@ -75,10 +90,14 @@ export default function AdminPengaturan() {
   const simpan = () => {
     if (memuat) return
     setMemuat(true)
-    window.setTimeout(() => {
-      setMemuat(false)
-      tampilkanPesan('Pengaturan tersimpan.')
-    }, 650)
+    // Preferensi PANEL disimpan nyata di perangkat ini (bukan sukses palsu).
+    try {
+      tulis('pengaturanAdmin', { toko, saklar, warna, bio: profil.bio })
+    } catch {
+      /* localStorage diblokir — abaikan. */
+    }
+    setMemuat(false)
+    tampilkanPesan('Preferensi panel disimpan di perangkat ini.')
   }
 
   const [judulAktif, subAktif] = judulSeksi[tab]
@@ -118,7 +137,9 @@ export default function AdminPengaturan() {
             {tab === 'profil' && (
               <>
                 <div className="baris-avatar">
-                  <span className="avatar-besar">B</span>
+                  <span className="avatar-besar">
+                    {(profil.nama || profil.pengguna || 'A').charAt(0).toUpperCase()}
+                  </span>
                   <div>
                     <button
                       type="button"
@@ -342,8 +363,10 @@ export default function AdminPengaturan() {
                       <Ikon nama="perisai" ukuran={18} />
                     </span>
                     <span className="kartu-metode-teks">
-                      <strong>Belum ada sesi server</strong>
-                      <span>Riwayat perangkat muncul setelah session PHP aktif.</span>
+                      <strong>
+                        Sesi aktif: {profil.pengguna || 'admin'} ({peran || 'admin'})
+                      </strong>
+                      <span>Sesi dijaga cookie PHP (HttpOnly); tidak tersimpan di browser.</span>
                     </span>
                   </span>
                   <button
@@ -409,7 +432,8 @@ export default function AdminPengaturan() {
             style={{ borderTop: '1px solid var(--adm-border)' }}
           >
             <span className="teks-redup teks-kecil">
-              Perubahan disimpan di browser (belum ada backend).
+              Preferensi tampilan panel disimpan di perangkat ini; konfigurasi toko &amp;
+              pembayaran yang mengikat server diatur lewat backend (config/DB).
             </span>
             <button
               type="button"

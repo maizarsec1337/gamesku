@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS `pelanggan` (
   `bergabung` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `status` ENUM('Aktif','Nonaktif') NOT NULL DEFAULT 'Aktif',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_pelanggan_email` (`email`)
+  UNIQUE KEY `uniq_pelanggan_email` (`email`),
+  KEY `idx_pelanggan_username` (`username`),
+  KEY `idx_pelanggan_status_bergabung` (`status`, `bergabung`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `creator` (
@@ -44,6 +46,41 @@ CREATE TABLE IF NOT EXISTS `creator` (
   UNIQUE KEY `uniq_creator_nama` (`nama`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- RESELLER: pengajuan reseller oleh pelanggan. Identitas pemohon diambil
+-- dari sesi backend (bukan user_id dari request). Satu pelanggan tidak boleh
+-- memiliki pengajuan pending/approved secara bersamaan (unik per status).
+CREATE TABLE IF NOT EXISTS `reseller_pengajuan` (
+  `id` VARCHAR(40) NOT NULL,
+  `pelanggan_id` VARCHAR(40) NOT NULL,
+  `admin_id` INT UNSIGNED NULL DEFAULT NULL,
+  `nama` VARCHAR(120) NOT NULL DEFAULT '',
+  `email` VARCHAR(150) NOT NULL DEFAULT '',
+  `username` VARCHAR(60) NOT NULL DEFAULT '',
+  `whatsapp` VARCHAR(40) NOT NULL DEFAULT '',
+  `catatan` VARCHAR(500) NOT NULL DEFAULT '',
+  `status` ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `alasan_penolakan` VARCHAR(500) NOT NULL DEFAULT '',
+  `dibuat_pada` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `diperbarui_pada` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  -- Kolom generated: 1 bila masih ada pengajuan aktif (pending/approved),
+  -- NULL bila final (rejected). MySQL tidak mendukung operator ternary `? :`
+  -- di generated column, pakai IF(). Unique (pelanggan_id, aktif) mencegah
+  -- duplikat pending/approved; rejected berulang diperbolehkan karena NULL
+  -- tidak bertentangan pada unique key di MySQL (banyak NULL = tidak duplikat).
+  `aktif` TINYINT AS (IF(status IN ('pending','approved'),1,NULL)) STORED,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_reseller_pelanggan_aktif` (`pelanggan_id`, `aktif`),
+  KEY `idx_reseller_status_dibuat` (`status`, `dibuat_pada`),
+  KEY `idx_reseller_pelanggan` (`pelanggan_id`),
+  KEY `idx_reseller_admin` (`admin_id`),
+  CONSTRAINT `fk_reseller_pelanggan`
+    FOREIGN KEY (`pelanggan_id`) REFERENCES `pelanggan` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_reseller_admin`
+    FOREIGN KEY (`admin_id`) REFERENCES `admin` (`id`)
+    ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- PRODUK
 CREATE TABLE IF NOT EXISTS `kategori` (
   `id` VARCHAR(40) NOT NULL,
@@ -54,7 +91,7 @@ CREATE TABLE IF NOT EXISTS `kategori` (
   `gambar` VARCHAR(255) NOT NULL DEFAULT '',
   `status` ENUM('Aktif','Nonaktif') NOT NULL DEFAULT 'Aktif',
   `dibuat_pada` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `diperbarui_pada` DATETIME NULL DEFAULT NULL,
+  `diperbarui_pada` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_kategori_slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -69,6 +106,8 @@ CREATE TABLE IF NOT EXISTS `produk` (
   `deskripsi_lengkap` TEXT NULL,
   `harga` BIGINT NOT NULL DEFAULT 0,
   `harga_diskon` BIGINT NOT NULL DEFAULT 0,
+  CHECK (`harga` >= 0),
+  CHECK (`harga_diskon` >= 0),
   `thumbnail` VARCHAR(255) NOT NULL DEFAULT '',
   `preview` JSON NULL,
   `file_produk` VARCHAR(255) NOT NULL DEFAULT '',
@@ -77,11 +116,12 @@ CREATE TABLE IF NOT EXISTS `produk` (
   `creator_id` VARCHAR(40) NULL DEFAULT NULL,
   `status` ENUM('Draft','Aktif','Nonaktif') NOT NULL DEFAULT 'Draft',
   `dibuat_pada` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `diperbarui_pada` DATETIME NULL DEFAULT NULL,
+  `diperbarui_pada` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_produk_slug` (`slug`),
   KEY `idx_produk_kategori_status` (`kategori_id`, `status`),
   KEY `idx_produk_status` (`status`),
+  KEY `idx_produk_jenis_status` (`jenis`, `status`),
   KEY `idx_produk_creator` (`creator_id`),
   CONSTRAINT `fk_produk_kategori`
     FOREIGN KEY (`kategori_id`) REFERENCES `kategori` (`id`)
@@ -96,6 +136,7 @@ CREATE TABLE IF NOT EXISTS `promo` (
   `kode` VARCHAR(40) NOT NULL,
   `nama` VARCHAR(120) NOT NULL,
   `diskon` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  CHECK (`diskon` BETWEEN 0 AND 100),
   `mulai` DATE NULL DEFAULT NULL,
   `berakhir` DATE NULL DEFAULT NULL,
   `batas` INT NOT NULL DEFAULT 100,
@@ -123,7 +164,7 @@ CREATE TABLE IF NOT EXISTS `media` (
   `berkas` VARCHAR(255) NOT NULL DEFAULT '',
   `url` VARCHAR(255) NOT NULL DEFAULT '',
   `object_key` VARCHAR(255) NULL DEFAULT NULL,
-  `dibuat_pada` DATETIME NULL DEFAULT NULL,
+  `dibuat_pada` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `diperbarui_pada` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `dihapus_pada` DATETIME NULL DEFAULT NULL,
   `tanggal` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -168,18 +209,23 @@ CREATE TABLE IF NOT EXISTS `pesanan` (
   `biaya_layanan` BIGINT NOT NULL DEFAULT 0,
   `potongan` BIGINT NOT NULL DEFAULT 0,
   `total` BIGINT NOT NULL DEFAULT 0,
+  CHECK (`subtotal` >= 0),
+  CHECK (`biaya_layanan` >= 0),
+  CHECK (`potongan` >= 0),
+  CHECK (`total` >= 0),
   `kode_promo` VARCHAR(40) NOT NULL DEFAULT '',
   `status` ENUM('Menunggu','Diproses','Berhasil','Gagal') NOT NULL DEFAULT 'Menunggu',
   `catatan` VARCHAR(255) NOT NULL DEFAULT '',
   `idempotency_key` VARCHAR(64) NULL DEFAULT NULL,
   `dibuat_pada` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `diperbarui_pada` DATETIME NULL DEFAULT NULL,
+  `diperbarui_pada` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `dibatalkan_pada` DATETIME NULL DEFAULT NULL,
   `diselesaikan_pada` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_pesanan_idempotency` (`idempotency_key`),
   KEY `idx_pesanan_status_dibuat` (`status`, `dibuat_pada`),
   KEY `idx_pesanan_dibuat` (`dibuat_pada`),
+  KEY `idx_pesanan_email` (`email`),
   KEY `idx_pesanan_pelanggan` (`pelanggan_id`, `status`, `dibuat_pada`),
   CONSTRAINT `fk_pesanan_pelanggan`
     FOREIGN KEY (`pelanggan_id`) REFERENCES `pelanggan` (`id`)
@@ -194,7 +240,10 @@ CREATE TABLE IF NOT EXISTS `pesanan_item` (
   `harga` BIGINT NOT NULL DEFAULT 0,
   `jumlah` INT NOT NULL DEFAULT 1,
   `subtotal` BIGINT NOT NULL DEFAULT 0,
-  `dibuat_pada` DATETIME NULL DEFAULT NULL,
+  CHECK (`harga` >= 0),
+  CHECK (`jumlah` >= 1),
+  CHECK (`subtotal` >= 0),
+  `dibuat_pada` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `diperbarui_pada` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_item_pesanan` (`pesanan_id`),
@@ -212,6 +261,7 @@ CREATE TABLE IF NOT EXISTS `ulasan` (
   `pelanggan_id` VARCHAR(40) NULL,
   `pelanggan_nama` VARCHAR(120) NOT NULL DEFAULT '',
   `rating` TINYINT UNSIGNED NOT NULL DEFAULT 5,
+  CHECK (`rating` BETWEEN 1 AND 5),
   `komentar` TEXT NULL,
   `tanggal` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `status` ENUM('Menunggu','Disetujui','Disembunyikan') NOT NULL DEFAULT 'Menunggu',
@@ -221,7 +271,10 @@ CREATE TABLE IF NOT EXISTS `ulasan` (
   KEY `idx_ulasan_status` (`status`),
   CONSTRAINT `fk_ulasan_produk`
     FOREIGN KEY (`produk_id`) REFERENCES `produk` (`id`)
-    ON DELETE CASCADE ON UPDATE CASCADE
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_ulasan_pelanggan`
+    FOREIGN KEY (`pelanggan_id`) REFERENCES `pelanggan` (`id`)
+    ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- PEMBAYARAN
@@ -231,6 +284,7 @@ CREATE TABLE IF NOT EXISTS `pembayaran` (
   `kode_idempotensi` VARCHAR(64) NOT NULL,
   `nominal` BIGINT NOT NULL DEFAULT 0,
   `mata_uang` VARCHAR(10) NOT NULL DEFAULT 'IDR',
+  CHECK (`nominal` >= 0),
   `metode` VARCHAR(60) NOT NULL DEFAULT '',
   `akun_pembayaran` VARCHAR(255) NOT NULL DEFAULT '',
   `referensi` VARCHAR(255) NULL DEFAULT NULL,
@@ -241,6 +295,7 @@ CREATE TABLE IF NOT EXISTS `pembayaran` (
   `gagal_pada` DATETIME NULL DEFAULT NULL,
   `dikembalikan_pada` DATETIME NULL DEFAULT NULL,
   `nominal_refund` BIGINT NOT NULL DEFAULT 0,
+  CHECK (`nominal_refund` >= 0),
   `konfirmasi_admin` VARCHAR(60) NULL DEFAULT NULL,
   `catatan` VARCHAR(255) NOT NULL DEFAULT '',
   `diperbarui_pada` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -336,7 +391,7 @@ CREATE TABLE IF NOT EXISTS `pesan` (
   `teks` TEXT NULL,
   `tipe` VARCHAR(20) NOT NULL DEFAULT 'teks',
   `dibuat_pada` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `diubah_pada` DATETIME NULL DEFAULT NULL,
+  `diubah_pada` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `dihapus_pada` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_pesan_percakapan_kirim` (`percakapan_id`, `dibuat_pada`, `id`),
@@ -437,5 +492,242 @@ CREATE TABLE IF NOT EXISTS `aktivitas` (
   `dibuat_pada` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- VIEW: pesanan aktif (menunggu, diproses, gagal) untuk admin
+-- ============================================================================
+CREATE OR REPLACE VIEW `vw_pesanan_active` AS
+SELECT
+  `id` AS `pesanan_id`,
+  `pelanggan_id`,
+  `pelanggan_nama`,
+  `produk_ringkas`,
+  `total`,
+  `status`,
+  `kode_promo`,
+  `catatan`,
+  `dibuat_pada`,
+  `diperbarui_pada`
+FROM `pesanan`
+WHERE `status` IN ('Menunggu','Diproses','Gagal')
+ORDER BY `dibuat_pada` DESC;
+
+-- ============================================================================
+-- VIEW: pembayaran yang menunggu konfirmasi
+-- ============================================================================
+CREATE OR REPLACE VIEW `vw_pembayaran_pending` AS
+SELECT
+  `id` AS `pembayaran_id`,
+  `pesanan_id`,
+  `nominal`,
+  `metode`,
+  `akun_pembayaran`,
+  `dibuat_pada`,
+  `diperbarui_pada`
+FROM `pembayaran`
+WHERE `status` = 'Menunggu konfirmasi'
+ORDER BY `dibuat_pada` ASC;
+
+-- ============================================================================
+-- VIEW: audit log kegagalan (untuk investigasi keamanan)
+-- ============================================================================
+CREATE OR REPLACE VIEW `vw_audit_gagal` AS
+SELECT
+  `id`,
+  `user_tipe`,
+  `user_id`,
+  `jenis_aktivitas`,
+  `target_table`,
+  `target_id`,
+  `detail_json`,
+  `alamat_ip`,
+  `dibuat_pada`
+FROM `audit_log`
+WHERE `hasil` <> 'Berhasil'
+  AND `jenis_aktivitas` IN ('login_gagal','ganti_status_pesanan','hapus_produk',
+      'ulkah_edit','ukur_harga','atur_reseller')
+ORDER BY `dibuat_pada` DESC;
+
+-- ============================================================================
+-- INDEX TAMBAHAN untuk performa query umum
+-- ============================================================================
+CREATE INDEX IF NOT EXISTS `idx_pesanan_status_dibuat`
+  ON `pesanan` (`status`, `dibuat_pada`);
+
+CREATE INDEX IF NOT EXISTS `idx_pembayaran_status_dibuat`
+  ON `pembayaran` (`status`, `dibuat_pada`);
+
+CREATE INDEX IF NOT EXISTS `idx_ulasan_status_produk`
+  ON `ulasan` (`produk_id`, `status`);
+
+CREATE INDEX IF NOT EXISTS `idx_riwayat_video_terakhir`
+  ON `riwayat_tontonan` (`video_id`, `terakhir_ditonton`);
+
+CREATE INDEX IF NOT EXISTS `idx_pesanan_item_status`
+  ON `pesanan_item` (`pesanan_id`, `dibuat_pada`);
+
+
+
+-- ============================================================================
+-- TRIGGER: audit perubahan status pesanan
+-- ============================================================================
+CREATE TRIGGER IF NOT EXISTS `trg_pesanan_after_update`
+AFTER UPDATE ON `pesanan`
+FOR EACH ROW
+BEGIN
+  IF NEW.status <> OLD.status THEN
+    INSERT INTO `audit_log`
+      (`user_tipe`, `user_id`, `jenis_aktivitas`, `hasil`, `target_table`,
+       `target_id`, `teks`, `detail_json`, `ikon`, `warna`, `alamat_ip`, `dibuat_pada`)
+    VALUES
+      ('admin', NULL, 'ubah_status_pesanan', 'Berhasil', 'pesanan',
+       NEW.id,
+       CONCAT('Pesanan ', NEW.id, ' dipindahkan ke status ', NEW.status),
+       JSON_OBJECT('dari_status', OLD.status, 'ke_status', NEW.status,
+                   'kode_promo', NEW.kode_promo,
+                   'total_sebelum', OLD.total, 'total_setelah', NEW.total),
+       'pengecekan', 'orange', NULL, NOW());
+  END IF;
+END;
+
+-- ============================================================================
+-- TRIGGER: audit perubahan status pembayaran
+-- ============================================================================
+CREATE TRIGGER IF NOT EXISTS `trg_pembayaran_after_update`
+AFTER UPDATE ON `pembayaran`
+FOR EACH ROW
+BEGIN
+  IF NEW.status <> OLD.status THEN
+    INSERT INTO `audit_log`
+      (`user_tipe`, `user_id`, `jenis_aktivitas`, `hasil`, `target_table`,
+       `target_id`, `teks`, `detail_json`, `ikon`, `warna`, `alamat_ip`, `dibuat_pada`)
+    VALUES
+      ('admin', NULL, 'ubah_status_pembayaran', 'Berhasil', 'pembayaran',
+       NEW.id,
+       CONCAT('Pembayaran ', NEW.id, ' pindah ke status ', NEW.status),
+       JSON_OBJECT('dari_status', OLD.status, 'ke_status', NEW.status,
+                   'nominal', NEW.nominal,
+                   'metode', NEW.metode),
+       'uang', 'kuning', NULL, NOW());
+  END IF;
+END;
+
+-- ============================================================================
+-- TRIGGER: audit perubahan status produk
+-- ============================================================================
+CREATE TRIGGER IF NOT EXISTS `trg_produk_after_update`
+AFTER UPDATE ON `produk`
+FOR EACH ROW
+BEGIN
+  IF NEW.status <> OLD.status THEN
+    INSERT INTO `audit_log`
+      (`user_tipe`, `user_id`, `jenis_aktivitas`, `hasil`, `target_table`,
+       `target_id`, `teks`, `detail_json`, `ikon`, `warna`, `alamat_ip`, `dibuat_pada`)
+    VALUES
+      ('admin', NULL, 'ubah_status_produk', 'Berhasil', 'produk',
+       NEW.id,
+       CONCAT('Produk ', NEW.id, ' pindah ke status ', NEW.status),
+       JSON_OBJECT('dari_status', OLD.status, 'ke_status', NEW.status,
+                   'nama_produk', NEW.nama),
+       'bintang', 'hijau', NULL, NOW());
+  END IF;
+END;
+
+-- ============================================================================
+-- TRIGGER: audit perubahan status admin
+-- ============================================================================
+CREATE TRIGGER IF NOT EXISTS `trg_admin_after_update`
+AFTER UPDATE ON `admin`
+FOR EACH ROW
+BEGIN
+  IF NEW.status <> OLD.status OR NEW.peran <> OLD.peran THEN
+    INSERT INTO `audit_log`
+      (`user_tipe`, `user_id`, `jenis_aktivitas`, `hasil`, `target_table`,
+       `target_id`, `teks`, `detail_json`, `ikon`, `warna`, `alamat_ip`, `dibuat_pada`)
+    VALUES
+      ('admin', NEW.id, 'ubah_status_admin', 'Berhasil', 'admin',
+       NEW.id,
+       CONCAT('Admin ', NEW.id, ' status/role diubah: ',
+              IF(OLD.status <> NEW.status, CONCAT('status ', OLD.status, ' -> ', NEW.status, ' | '), ''),
+              IF(OLD.peran <> NEW.peran, CONCAT('peran ', OLD.peran, ' -> ', NEW.peran), '')),
+       JSON_OBJECT('dari_status', OLD.status, 'ke_status', NEW.status,
+                   'dari_peran', OLD.peran, 'ke_peran', NEW.peran),
+       'pengaturan', 'ungu', NULL, NOW());
+  END IF;
+END;
+
+-- ============================================================================
+-- TRIGGER: validasi ulasan (automatis setujui rating >= 4, tandai review)
+-- ============================================================================
+CREATE TRIGGER IF NOT EXISTS `trg_ulasan_after_insert`
+BEFORE INSERT ON `ulasan`
+FOR EACH ROW
+BEGIN
+  IF NEW.rating <= 3 THEN
+    SET NEW.status = 'Menunggu';
+  ELSE
+    SET NEW.status = 'Disetujui';
+  END IF;
+END;
+
+
+
+-- ============================================================================
+-- PENINGKATAN KETERECANAAN & INTEGRITAS DATA
+-- (tambahan ALTER TABLE untuk tabel yang ada)
+-- ============================================================================
+
+-- 1) Admin: lacak percobaan login gagal (untuk rate limiting di aplikasi)
+ALTER TABLE `admin`
+  ADD COLUMN IF NOT EXISTS `gagal_login` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `sandi_hash`,
+  ADD COLUMN IF NOT EXISTS `terakhir_gagal_login` DATETIME NULL DEFAULT NULL
+    AFTER `gagal_login`;
+
+-- 2) Pelanggan: catat waktu login terakhir (untuk aktivitas, batas usia akun)
+ALTER TABLE `pelanggan`
+  ADD COLUMN IF NOT EXISTS `terakhir_login` DATETIME NULL DEFAULT NULL
+    AFTER `jumlah_pesanan`;
+
+-- 3) Produk: pastikan diskon tidak melebihi harga (ketika diskon > 0)
+ALTER TABLE `produk`
+  ADD CONSTRAINT `chk_produk_diskon_harga`
+    CHECK (`harga_diskon` = 0 OR `harga_diskon` <= `harga`);
+
+-- 4) Promo: pastikan tanggal berakhir >= tanggal mulai
+ALTER TABLE `promo`
+  ADD CONSTRAINT `chk_promo_range_waktu`
+    CHECK (`berakhir` IS NULL OR `mulai` IS NULL OR `berakhir` >= `mulai`);
+
+-- 5) Pesanan: hindari total yang tidak masuk akal
+ALTER TABLE `pesanan`
+  ADD CONSTRAINT `chk_pesanan_total_reasonable`
+    CHECK (`total` <= `subtotal` + `biaya_layanan` + 1000000);
+
+-- 6) Pembayaran: pastikan nominal_refund tidak melebihi nominal
+ALTER TABLE `pembayaran`
+  ADD CONSTRAINT `chk_pembayaran_refund_bukan_lebih`
+    CHECK (`nominal_refund` <= `nominal`);
+
+-- 7) Riwayat tontonan: pastikan posisi_detik tidak melebihi durasi_detik
+ALTER TABLE `riwayat_tontonan`
+  ADD CONSTRAINT `chk_riwayat_posisi_bawah_durasi`
+    CHECK (`posisi_detik` <= IFNULL(`durasi_detik`, POWER(2, 32) - 1));
+
+-- 8) Ulasan: status default yang konsisten
+ALTER TABLE `ulasan`
+  MODIFY COLUMN `status` ENUM('Menunggu','Disetujui','Disembunyikan') NOT NULL
+    DEFAULT 'Menunggu' AFTER `komentar`;
+
+-- 9) Pesan: pastikan teks tidak kosong bila tipe = 'teks'
+ALTER TABLE `pesan`
+  ADD CONSTRAINT `chk_pesan_teks_wajib_bila_tipe_teks`
+    CHECK (`tipe` <> 'teks' OR (CHAR_LENGTH(`teks`) > 0));
+
+-- 10) Percakapan: pastikan setidaknya ada anggota
+ALTER TABLE `anggota_percakapan`
+  ADD CONSTRAINT `chk_anggota_bukan_null`
+    CHECK (`user_tipe` <> '' AND `user_id` <> '');
+
+
 
 SET FOREIGN_KEY_CHECKS = 1;

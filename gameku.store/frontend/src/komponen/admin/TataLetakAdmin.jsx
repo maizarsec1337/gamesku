@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import Ikon from '../Ikon.jsx'
 import BilahSamping from './BilahSamping.jsx'
 import KepalaDashboard from './KepalaDashboard.jsx'
@@ -17,19 +17,17 @@ const petaJudul = {
   '/admin/kategori': 'Kategori',
   '/admin/promo': 'Promo',
   '/admin/ulasan': 'Ulasan',
-  '/admin/media': 'Media',
+   '/admin/media': 'Media',
+  '/admin/reseller': 'Reseller',
   '/admin/pengaturan': 'Pengaturan',
 }
 
 // Kerangka halaman admin: bilah samping + kepala + isi rute anak.
 //
-// CATATAN KEAMANAN: belum ada penjaga sesi di sini. Begitu modul PHP
-// siap, guard berikut diaktifkan:
-//
-//   const { sesiServer } = useAdmin()
-//   if (!sesiServer) return <Navigate to="/admin/login" replace />
+// PENJAGA SESI: seluruh rute /admin/* hanya boleh diakses admin dengan sesi
+// server valid (cookie PHP). Verifikasi dilakukan backend lewat GET /api/auth/saya.
 export default function TataLetakAdmin() {
-  const { pesan } = useAdmin()
+  const { pesan, sesiServer, memuatSesi } = useAdmin()
   const { pathname } = useLocation()
   // Status drawer "ditanam" pada pathname: saat pathname berubah, nilai
   // turunan di bawah otomatis menutup drawer tanpa setState di effect.
@@ -45,6 +43,23 @@ export default function TataLetakAdmin() {
     document.body.classList.add('mode-admin')
     return () => document.body.classList.remove('mode-admin')
   }, [])
+
+  // Selagi sesi diperiksa server, tampilkan status memuat (jangan kedip ke login).
+  if (memuatSesi) {
+    return (
+      <div className="admin-aplikasi" role="status" aria-live="polite">
+        <div className="admin-memuat-sesi">
+          <span className="cb-putar" aria-hidden="true" />
+          Memeriksa sesi admin…
+        </div>
+      </div>
+    )
+  }
+
+  // Tanpa sesi server valid → paksa ke halaman masuk admin.
+  if (!sesiServer) {
+    return <Navigate to="/admin/login" replace />
+  }
 
   return (
     <div className="admin-aplikasi">

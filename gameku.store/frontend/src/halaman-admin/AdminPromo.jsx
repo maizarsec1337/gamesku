@@ -6,15 +6,17 @@ import JendelaModal from '../komponen/admin/JendelaModal.jsx'
 import KosongAdmin from '../komponen/admin/KosongAdmin.jsx'
 import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
-import { useDaftar } from '../layanan/gunakanDaftar.js'
-import layananPromo, {
-  tambahPromo,
-  perbaruiPromo,
-  hapusPromo,
-  formKosong,
-} from '../layanan/layananPromo.js'
+import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
+import {
+  daftarPromoApi,
+  buatPromoApi,
+  ubahPromoApi,
+  hapusPromoApi,
+} from '../layanan/apiAdmin.js'
 import { STATUS_PROMO } from '../data/konstanta.js'
 import '../css/admin-tabel.css'
+
+const formKosong = () => ({ kode: '', nama: '', diskon: 10, mulai: '', berakhir: '', batas: 100 })
 
 // =====================================================================
 // Halaman promo (/admin/promo).
@@ -24,11 +26,13 @@ import '../css/admin-tabel.css'
 // =====================================================================
 export default function AdminPromo() {
   const { tampilkanPesan } = useAdmin()
-  const promo = useDaftar(layananPromo)
+  const { data, memuat, galat, muat } = useApi(() => daftarPromoApi(), [])
+  const promo = Array.isArray(data) ? data : []
   const [filter, setFilter] = useState('')
   const [form, setForm] = useState(formKosong)
   const [mode, setMode] = useState(null) // 'baru' | id promo | null
   const [dihapus, setDihapus] = useState(null)
+  const [menyimpan, setMenyimpan] = useState(false)
 
   const hasil = useMemo(
     () => (filter ? promo.filter((p) => p.status === filter) : promo),
@@ -52,20 +56,30 @@ export default function AdminPromo() {
     setMode(p.id)
   }
 
-  const simpan = (e) => {
+  const simpan = async (e) => {
     e.preventDefault()
-    const hasilSimpan = mode === 'baru' ? tambahPromo(form) : perbaruiPromo(mode, form)
-    if (!hasilSimpan.berhasil) {
-      tampilkanPesan(hasilSimpan.pesan)
-      return
+    if (menyimpan) return
+    setMenyimpan(true)
+    try {
+      const hasil = mode === 'baru' ? await buatPromoApi(form) : await ubahPromoApi(mode, form)
+      await muat()
+      tampilkanPesan(`Promo "${hasil?.nama || form.nama}" disimpan.`)
+      setMode(null)
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
+    } finally {
+      setMenyimpan(false)
     }
-    tampilkanPesan(`Promo "${hasilSimpan.data.nama}" disimpan.`)
-    setMode(null)
   }
 
-  const konfirmasiHapus = () => {
-    const hasilHapus = hapusPromo(dihapus.id)
-    if (hasilHapus.berhasil) tampilkanPesan(`Promo ${dihapus.kode} dihapus.`)
+  const konfirmasiHapus = async () => {
+    try {
+      await hapusPromoApi(dihapus.id)
+      await muat()
+      tampilkanPesan(`Promo ${dihapus.kode} dihapus.`)
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
+    }
     setDihapus(null)
   }
 
@@ -102,6 +116,27 @@ export default function AdminPromo() {
       ),
     },
   ]
+
+  if (memuat) {
+    return (
+      <div className="keadaan-kosong keadaan-kosong-admin" role="status">
+        <span className="cb-putar" aria-hidden="true" />
+        <p>Memuat promo…</p>
+      </div>
+    )
+  }
+
+  if (galat) {
+    return (
+      <div className="pesan-salah-login" role="alert">
+        <Ikon nama="info" ukuran={16} />
+        {pesanGalat(galat)}
+        <button type="button" className="tombol-admin tombol-garis" style={{ marginLeft: 'auto' }} onClick={muat}>
+          Coba lagi
+        </button>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -166,9 +201,9 @@ export default function AdminPromo() {
             >
               Batal
             </button>
-            <button type="submit" form="form-promo" className="tombol-admin tombol-hijau">
+            <button type="submit" form="form-promo" className="tombol-admin tombol-hijau" disabled={menyimpan}>
               <Ikon nama="simpan" ukuran={15} />
-              Simpan Promo
+              {menyimpan ? 'Menyimpan…' : 'Simpan Promo'}
             </button>
           </>
         }

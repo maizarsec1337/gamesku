@@ -9,66 +9,65 @@ import JendelaModal from '../komponen/admin/JendelaModal.jsx'
 import KosongAdmin from '../komponen/admin/KosongAdmin.jsx'
 import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
-import { useDaftar } from '../layanan/gunakanDaftar.js'
-import layananProduk, {
-  hapusProduk,
-  ubahStatusProduk,
-} from '../layanan/layananProduk.js'
-import layananKategori, { namaKategori } from '../layanan/layananKategori.js'
-import { STATUS_PRODUK, gradasiOtomatis, waktuRelatif } from '../data/konstanta.js'
+import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
+import {
+  daftarProdukApi,
+  daftarKategoriApi,
+  hapusProdukApi,
+} from '../layanan/apiAdmin.js'
+import { gradasiOtomatis, waktuRelatif } from '../data/konstanta.js'
 import { formatRupiah } from '../utilitas/format.js'
 import '../css/admin-tabel.css'
 
 const PER_HALAMAN = 8
 
-// =====================================================================
-// Halaman kelola produk (/admin/produk).
-//
-// Daftar dibaca dari service, bukan dari array yang ditulis di JSX.
-// Belum ada produk => "Belum ada produk."
-// =====================================================================
+// Halaman kelola produk (/admin/produk) — data dari backend (GET/PUT/DELETE /api/produk).
 export default function AdminProduk() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const { tampilkanPesan } = useAdmin()
+  const { data, memuat, galat, muat } = useApi(() => daftarProdukApi({ batas: 200 }), [])
+  const { data: dataKategori } = useApi(() => daftarKategoriApi(), [])
+  const semua = Array.isArray(data) ? data : []
+  const kategori = Array.isArray(dataKategori) ? dataKategori : []
+
   const [kata, setKata] = useState(params.get('cari') || '')
   const [filter, setFilter] = useState('')
   const [halaman, setHalaman] = useState(1)
   const [dipilih, setDipilih] = useState(null)
   const [dihapus, setDihapus] = useState(null)
 
-  // Data nyata dari service.
-  const semua = useDaftar(layananProduk)
-  const kategori = useDaftar(layananKategori)
+  // Peta id → nama kategori (dari server) untuk kolom & filter.
+  const petaKategori = useMemo(() => {
+    const peta = {}
+    for (const k of kategori) peta[k.id] = k.nama
+    return peta
+  }, [kategori])
 
-  // Chip filter dibangun dari kategori yang benar-benar ada.
   const pilihanKategori = useMemo(() => ['Semua', ...kategori.map((k) => k.nama)], [kategori])
 
   const hasil = useMemo(() => {
     const kunci = kata.trim().toLowerCase()
     return semua.filter((p) => {
-      const cocokKategori = !filter || filter === 'Semua' || namaKategori(p.kategoriId) === filter
+      const cocokKategori = !filter || filter === 'Semua' || petaKategori[p.kategoriId] === filter
       const cocokKata = !kunci || `${p.nama} ${p.creator} ${p.slug}`.toLowerCase().includes(kunci)
       return cocokKategori && cocokKata
     })
-  }, [semua, kata, filter])
+  }, [semua, kata, filter, petaKategori])
 
   const totalHalaman = Math.max(1, Math.ceil(hasil.length / PER_HALAMAN))
   const halamanAman = Math.min(halaman, totalHalaman)
   const baris = hasil.slice((halamanAman - 1) * PER_HALAMAN, halamanAman * PER_HALAMAN)
 
-  const konfirmasiHapus = () => {
-    const hasilHapus = hapusProduk(dihapus.id)
-    if (hasilHapus.berhasil) tampilkanPesan(`Produk "${dihapus.nama}" dihapus.`)
-    setDihapus(null)
-  }
-
-  const gantiStatus = (produk, status) => {
-    const hasilUbah = ubahStatusProduk(produk.id, status)
-    if (hasilUbah.berhasil) {
-      tampilkanPesan(`Status "${produk.nama}" diubah menjadi ${status}.`)
-      setDipilih((p) => (p && p.id === produk.id ? { ...p, status } : p))
+  const konfirmasiHapus = async () => {
+    try {
+      await hapusProdukApi(dihapus.id)
+      await muat()
+      tampilkanPesan(`Produk "${dihapus.nama}" dihapus.`)
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
     }
+    setDihapus(null)
   }
 
   const kolom = [
@@ -88,7 +87,7 @@ export default function AdminProduk() {
     {
       kunci: 'kategoriId',
       label: 'Kategori',
-      render: (p) => <span className="kategori-pill">{namaKategori(p.kategoriId) || '—'}</span>,
+      render: (p) => <span className="kategori-pill">{petaKategori[p.kategoriId] || '—'}</span>,
     },
     {
       kunci: 'harga',
@@ -122,6 +121,26 @@ export default function AdminProduk() {
     },
   ]
 
+  if (memuat) {
+    return (
+      <div className="keadaan-kosong keadaan-kosong-admin" role="status">
+        <span className="cb-putar" aria-hidden="true" />
+        <p>Memuat produk…</p>
+      </div>
+    )
+  }
+
+  if (galat) {
+    return (
+      <div className="pesan-salah-login" role="alert">
+        <Ikon nama="info" ukuran={16} />
+        {pesanGalat(galat)}
+        <button type="button" className="tombol-admin tombol-garis" style={{ marginLeft: 'auto' }} onClick={muat}>
+          Coba lagi
+        </button>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -251,7 +270,7 @@ export default function AdminProduk() {
             <div className="daftar-detail">
               <div className="baris-detail">
                 <span className="k">Kategori</span>
-                <span className="v">{namaKategori(dipilih.kategoriId) || '—'}</span>
+                <span className="v">{petaKategori[dipilih.kategoriId] || '—'}</span>
               </div>
               <div className="baris-detail">
                 <span className="k">Jenis Produk</span>
@@ -296,21 +315,11 @@ export default function AdminProduk() {
             )}
 
             <div className="blok-form" style={{ marginTop: 18, marginBottom: 0 }}>
-              <label className="label-form" htmlFor="ubah-status-produk">
-                Ubah status produk
-              </label>
-              <select
-                id="ubah-status-produk"
-                className="pilih-admin"
-                value={dipilih.status}
-                onChange={(e) => gantiStatus(dipilih, e.target.value)}
-              >
-                {STATUS_PRODUK.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <span className="label-form">Status produk</span>
+              <p className="bantuan-form" style={{ marginTop: 6 }}>
+                Status saat ini: <b>{dipilih.status}</b>. Ubah status lewat formulir
+                Edit Produk agar seluruh data produk tersimpan utuh.
+              </p>
             </div>
           </>
         )}

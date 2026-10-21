@@ -13,7 +13,7 @@ frontend/
     komponen/       Komponen toko + admin
     konteks/        State global (keranjang, wishlist, admin, pesanan)
     layanan/        Lapisan data (siap diganti fetch /api/*.php)
-    data/           Konstanta + seed awal
+    data/           Konstanta nilai (tanpa data contoh)
     css/            Style aktif (hanya yang diimpor)
     utilitas/       Format, hitung, validasi
   scripts/    Skrip dev (uji visual Playwright)

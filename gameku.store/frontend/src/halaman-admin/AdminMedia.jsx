@@ -3,46 +3,85 @@ import JendelaModal from '../komponen/admin/JendelaModal.jsx'
 import KosongAdmin from '../komponen/admin/KosongAdmin.jsx'
 import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
-import { useDaftar } from '../layanan/gunakanDaftar.js'
-import layananMedia, { tambahMedia, hapusMedia } from '../layanan/layananMedia.js'
+import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
+import { daftarMediaApi, unggahMediaApi, hapusMediaApi } from '../layanan/apiAdmin.js'
 import { gradasiOtomatis, waktuRelatif } from '../data/konstanta.js'
 import '../css/admin-tabel.css'
 
 const filterJenis = ['Semua', 'Thumbnail', 'Banner', 'Preview', 'Gambar Produk']
 
-// =====================================================================
-// Halaman pustaka media (/admin/media).
-//
-// MULAI KOSONG. Tidak ada gambar contoh. Media masuk setelah admin
-// mengunggah berkas sungguhan.
-// =====================================================================
+// Ukuran berkas (byte) → teks ringkas.
+function ukuranTeks(byte) {
+  const n = Number(byte) || 0
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
+
+// Halaman pustaka media (/admin/media) — unggah/hapus ke backend (POST/DELETE /api/media).
 export default function AdminMedia() {
   const { tampilkanPesan } = useAdmin()
-  const daftar = useDaftar(layananMedia)
+  const { data, memuat, galat, muat } = useApi(() => daftarMediaApi(), [])
+  const daftar = Array.isArray(data) ? data : []
   const [filter, setFilter] = useState('')
   const [dipilih, setDipilih] = useState(null)
   const [dihapus, setDihapus] = useState(null)
   const [bukaUnggah, setBukaUnggah] = useState(false)
+  const [mengunggah, setMengunggah] = useState(false)
 
   const hasil = useMemo(
     () => (!filter || filter === 'Semua' ? daftar : daftar.filter((m) => m.jenis === filter)),
     [daftar, filter],
   )
 
-  const pilihBerkas = (e) => {
+  const pilihBerkas = async (e) => {
     const berkas = e.target.files?.[0]
-    if (!berkas) return
-    const hasilUnggah = tambahMedia(berkas, filter === 'Semua' ? 'Thumbnail' : filter)
-    if (hasilUnggah.berhasil) tampilkanPesan(`"${berkas.name}" diunggah.`)
-    setBukaUnggah(false)
     e.target.value = ''
+    if (!berkas || mengunggah) return
+    setMengunggah(true)
+    try {
+      await unggahMediaApi(berkas, filter === 'Semua' ? 'Thumbnail' : filter)
+      await muat()
+      tampilkanPesan(`"${berkas.name}" diunggah.`)
+      setBukaUnggah(false)
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
+    } finally {
+      setMengunggah(false)
+    }
   }
 
-  const konfirmasiHapus = () => {
-    const hasilHapus = hapusMedia(dihapus.id)
-    if (hasilHapus.berhasil) tampilkanPesan(`Media "${dihapus.nama}" dihapus.`)
-    if (dipilih?.id === dihapus.id) setDipilih(null)
+  const konfirmasiHapus = async () => {
+    try {
+      await hapusMediaApi(dihapus.id)
+      await muat()
+      tampilkanPesan(`Media "${dihapus.nama}" dihapus.`)
+      if (dipilih?.id === dihapus.id) setDipilih(null)
+    } catch (err) {
+      tampilkanPesan(pesanGalat(err))
+    }
     setDihapus(null)
+  }
+
+  if (memuat) {
+    return (
+      <div className="keadaan-kosong keadaan-kosong-admin" role="status">
+        <span className="cb-putar" aria-hidden="true" />
+        <p>Memuat media…</p>
+      </div>
+    )
+  }
+
+  if (galat) {
+    return (
+      <div className="pesan-salah-login" role="alert">
+        <Ikon nama="info" ukuran={16} />
+        {pesanGalat(galat)}
+        <button type="button" className="tombol-admin tombol-garis" style={{ marginLeft: 'auto' }} onClick={muat}>
+          Coba lagi
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -94,16 +133,6 @@ export default function AdminMedia() {
             </div>
           </div>
 
-          <button
-            type="button"
-            className="tombol-tambah-kategori"
-            style={{ minHeight: 200 }}
-            onClick={() => setBukaUnggah(true)}
-          >
-            <Ikon nama="unggah" ukuran={24} />
-            <span>Unggah Media</span>
-          </button>
-
           {hasil.length === 0 ? (
             <section className="kartu-panel">
               <KosongAdmin
@@ -144,7 +173,11 @@ export default function AdminMedia() {
                     className="pratinjau-media"
                     style={{ background: `linear-gradient(135deg, ${gradasiOtomatis(i).join(', ')})` }}
                   >
-                    <Ikon nama="gambar" ukuran={34} />
+                    {m.url ? (
+                      <img src={m.url} alt={m.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <Ikon nama="gambar" ukuran={34} />
+                    )}
                     <div className="overlay-media">
                       <button
                         type="button"
@@ -173,7 +206,7 @@ export default function AdminMedia() {
                   <div className="media-info">
                     <strong>{m.nama}</strong>
                     <span>
-                      {m.jenis} · {m.ukuran} · {waktuRelatif(m.dibuatPada || m.tanggal)}
+                      {m.jenis} · {ukuranTeks(m.ukuran)} · {waktuRelatif(m.tanggal)}
                     </span>
                   </div>
                 </article>
@@ -199,13 +232,12 @@ export default function AdminMedia() {
       >
         <label className="area-unggah terisi">
           <Ikon nama="unggah" ukuran={26} />
-          <strong>Pilih berkas gambar</strong>
-          <span>PNG, JPG, atau WEBP — maksimal 2 MB</span>
-          <input type="file" accept="image/*" hidden onChange={pilihBerkas} />
+          <strong>{mengunggah ? 'Mengunggah…' : 'Pilih berkas gambar'}</strong>
+          <span>PNG, JPG, WEBP, GIF, atau PDF — maksimal 8 MB</span>
+          <input type="file" accept="image/*,application/pdf,application/zip" hidden onChange={pilihBerkas} disabled={mengunggah} />
         </label>
         <p className="bantuan-form">
-          Berkas disimpan sementara di memori browser. Nanti diganti penyimpanan
-          server PHP.
+          Berkas diunggah ke server (folder uploads/) dan tercatat di pustaka media.
         </p>
       </JendelaModal>
 
@@ -236,13 +268,13 @@ export default function AdminMedia() {
           <>
             <div
               className="pratinjau-media"
-              style={{
-                background: `linear-gradient(135deg, ${gradasiOtomatis(0).join(', ')})`,
-                borderRadius: 13,
-                marginBottom: 16,
-              }}
+              style={{ borderRadius: 13, marginBottom: 16 }}
             >
-              <Ikon nama="gambar" ukuran={46} />
+              {dipilih.url ? (
+                <img src={dipilih.url} alt={dipilih.nama} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              ) : (
+                <Ikon nama="gambar" ukuran={46} />
+              )}
             </div>
             <div className="daftar-detail" style={{ gridTemplateColumns: '1fr' }}>
               <div className="baris-detail">
@@ -255,11 +287,11 @@ export default function AdminMedia() {
               </div>
               <div className="baris-detail">
                 <span className="k">Ukuran</span>
-                <span className="v">{dipilih.ukuran}</span>
+                <span className="v">{ukuranTeks(dipilih.ukuran)}</span>
               </div>
               <div className="baris-detail">
-                <span className="k">Diunggah</span>
-                <span className="v">{dipilih.tanggal}</span>
+                <span className="k">URL</span>
+                <span className="v">{dipilih.url || '—'}</span>
               </div>
             </div>
           </>

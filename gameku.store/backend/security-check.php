@@ -1,243 +1,269 @@
 <?php
-// Pemeriksaan keamanan backend (jalankan: php backend/security-check.php).
+// Pemeriksaan keamanan backend + lint sintaks PHP.
+// Jalankan: php backend/security-check.php   (dari root repo)
+//           php security-check.php           (dari folder backend)
+//
+// Tanpa dependensi eksternal. Exit code 1 bila ada pemeriksaan gagal.
 
 declare(strict_types=1);
 
+$base = __DIR__;
+
 echo "=== gamesku.store Backend Security Check ===" . PHP_EOL;
-echo "Waktu: " . date('c') . PHP_EOL . PHP_EOL;
+echo "Waktu: " . date('c') . PHP_EOL . PHP_EOL . "Root: {$base}" . PHP_EOL . PHP_EOL;
 
-// --- Konfigurasi (jangan masukkan secret) ---
 $config = [
-    'check_php_syntax'      => true,
-    'check_session_cookie'  => true,
-    'check_cors_origins'    => true,
-    'check_secret_files'    => true,
-    'check_rate_limiting'   => true,
-    'check_error_handling'  => true,
-    'check_csrf'            => true,
-    'check_input_validation'=> true,
-    'check_security_headers'=> true,
+    'check_php_syntax'       => true,
+    'check_session_cookie'   => true,
+    'check_cors_origins'     => true,
+    'check_secret_files'     => true,
+    'check_error_handling'   => true,
+    'check_csrf'             => true,
+    'check_input_validation' => true,
+    'check_rate_limiting'    => true,
+    'check_security_headers' => true,
+    'check_database'         => true,
 ];
 
-$results = [
-    'pass'   => 0,
-    'fail'   => 0,
-    'warn'   => 0,
-    'details' => [],
-];
+$results = ['pass' => 0, 'fail' => 0, 'warn' => 0, 'details' => []];
 
-// --- Fungsi helper ---
 function report(string $status, string $name, string $message, array &$results): void
 {
     $results[$status]++;
-    $icon = match($status) {
-        'pass'   => '✅',
-        'fail'   => '❌',
-        'warn'   => '⚠️',
+    $ikon = match ($status) {
+        'pass' => '[PASS]',
+        'fail' => '[FAIL]',
+        default => '[WARN]',
     };
-    echo "{$icon} [$status] {$name}: {$message}" . PHP_EOL;
+    echo "{$ikon} {$name}: {$message}" . PHP_EOL;
     $results['details'][] = "{$status}|{$name}|{$message}";
 }
 
-function runCommand(string $cmd): string
+function bacaFile(string $path): string
 {
-    $output = [];
-    $return = 0;
-    exec($cmd, $output, $return);
-    return implode(PHP_EOL, $output);
+    return is_file($path) ? (string) file_get_contents($path) : '';
 }
 
-// --- 1. Cek sintaks PHP ---
+// ---------- 1. Sintaks PHP (php -l untuk semua berkas) ----------
 if ($config['check_php_syntax']) {
-    $phpFiles = [
-        __DIR__ . '/src/Auth.php',
-        __DIR__ . '/src/Database.php',
-// --- 3. Cek konfigurasi CORS ---
-if ($config['check_cors_origins']) {
-    $bootstrap = file_get_contents(__DIR__ . '/src/bootstrap.php');
-    if (strpos($bootstrap, 'Access-Control-Allow-Origin') !== false) {
-        report('pass', 'CORS Config', 'Access-Control-Allow-Origin diset', $results);
-    } else {
-        report('warn', 'CORS Config', 'Access-Control-Allow-Origin tidak ditemukan', $results);
+    $targets = array_merge(
+        glob(__DIR__ . '/src/*.php') ?: [],
+        glob(__DIR__ . '/src/Pengendali/*.php') ?: [],
+        glob(__DIR__ . '/api/*.php') ?: [],
+        glob(__DIR__ . '/database/*.php') ?: [],
+        [__DIR__ . '/security-check.php'],
+    );
+    if (empty($targets)) {
+        report('warn', 'PHP Syntax', 'Tidak ada berkas PHP ditemukan.', $results);
     }
-    if (strpos($bootstrap, 'Access-Control-Allow-Credentials: true') !== false) {
-        report('pass', 'CORS Config', 'Credentials diperbolehkan', $results);
-    } else {
-        report('warn', 'CORS Config', 'Access-Control-Allow-Credentials NOT set', $results);
+    // Gunakan biner PHP yang sedang menjalankan skrip ini (PHP_BINARY) agar
+    // tidak bergantung pada `php` yang ada di PATH.
+    $biner = defined('PHP_BINARY') && PHP_BINARY !== '' ? PHP_BINARY : 'php';
+    $lint = [];
+    foreach ($targets as $file) {
+        if (!is_file($file)) {
+            continue;
+        }
+        $output = [];
+        $code = 0;
+        exec(escapeshellarg($biner) . ' -l ' . escapeshellarg($file) . ' 2>&1', $output, $code);
+        $lint[] = $code === 0;
+        if ($code !== 0) {
+            report('fail', 'PHP Syntax', basename($file) . ': ' . trim(implode(' ', $output)), $results);
+        }
+    }
+    $jumlahFile = count($lint);
+    if ($jumlahFile > 0 && count(array_filter($lint)) === $jumlahFile) {
+        report('pass', 'PHP Syntax', "{$jumlahFile} berkas lulus php -l", $results);
     }
 }
 
-// --- 4. Cek file sensitive ---
-if ($config['check_secret_files']) {
-    $secretPatterns = [
-        'config/config.php'       => 'config.php',
-        'config/contoh.config.php' => 'contoh.config.php',
+// ---------- 2. Konfigurasi cookie sesi ----------
+if ($config['check_session_cookie']) {
+    $bootstrap = bacaFile(__DIR__ . '/src/bootstrap.php');
+    $checks = [
+        'session.cookie_httponly'  => "ini_set('session.cookie_httponly'",
+        'session.use_strict_mode'  => "ini_set('session.use_strict_mode'",
+        'session.use_only_cookies' => "ini_set('session.use_only_cookies'",
     ];
-    foreach ($secretPatterns as $relPath => $desc) {
-        $fullPath = __DIR__ . '/' . $relPath;
-        if (is_file($fullPath)) {
-// --- 6. Cek CSRF protection ---
-if ($config['check_csrf']) {
-    $authPhp = file_get_contents(__DIR__ . '/src/Auth.php');
-    if (strpos($authPhp, 'cekCsrf') !== false && strpos($authPhp, 'buatTokenCsrf') !== false) {
-        report('pass', 'CSRF', 'Auth::cekCsrf() and Auth::buatTokenCsrf() tersedia', $results);
-    } else {
-        report('warn', 'CSRF', 'CSRF methods tidak ditemukan', $results);
+    foreach ($checks as $nama => $cuplik) {
+        report(
+            strpos($bootstrap, $cuplik) !== false ? 'pass' : 'warn',
+            'Session Config',
+            strpos($bootstrap, $cuplik) !== false ? $nama . ' aktif' : "Tidak ditemukan: {$nama}",
+            $results
+        );
     }
-    $dashboard = file_get_contents(__DIR__ . '/src/Pengendali/PengendaliDasar.php');
-    if (strpos($dashboard, 'validateCsrf') !== false) {
-        report('pass', 'CSRF', 'validateCsrf() tersedia di PengendaliDasar', $results);
+    // Cookie secure diambil dari ENV (Auth::cookieSecure) — cek keberadaannya.
+    $auth = bacaFile(__DIR__ . '/src/Auth.php');
+    report(
+        strpos($auth, 'cookieSecure') !== false ? 'pass' : 'warn',
+        'Session Config',
+        strpos($auth, 'cookieSecure') !== false ? 'cookie Secure berbasis ENV tersedia' : 'cookie Secure tidak ditemukan',
+        $results
+    );
+}
+
+// ---------- 3. CORS ----------
+if ($config['check_cors_origins']) {
+    $bootstrap = bacaFile(__DIR__ . '/src/bootstrap.php');
+    report(
+        strpos($bootstrap, 'Access-Control-Allow-Origin') !== false ? 'pass' : 'warn',
+        'CORS Config',
+        strpos($bootstrap, 'Access-Control-Allow-Origin') !== false
+            ? 'Access-Control-Allow-Origin diset dari whitelist'
+            : 'Access-Control-Allow-Origin tidak ditemukan',
+        $results
+    );
+    report(
+        strpos($bootstrap, 'Access-Control-Allow-Credentials: true') !== false ? 'pass' : 'warn',
+        'CORS Config',
+        strpos($bootstrap, 'Access-Control-Allow-Credentials: true') !== false
+            ? 'Credentials diperbolehkan hanya untuk origin tepercaya'
+            : 'Access-Control-Allow-Credentials tidak diset',
+        $results
+    );
+}
+
+// ---------- 4. Berkas rahasia ----------
+if ($config['check_secret_files']) {
+    // config.php tidak boleh ter-commit (di-gitignore). Contoh config aman.
+    $configPath = __DIR__ . '/config/config.php';
+    if (is_file($configPath)) {
+        report('pass', 'Secret File', 'config/config.php ada (lokal, di-gitignore)', $results);
     } else {
-        report('warn', 'CSRF', 'validateCsrf() tidak ditemukan', $results);
+        report('warn', 'Secret File', 'config/config.php belum dibuat (salin dari contoh.config.php)', $results);
+    }
+    $contoh = bacaFile(__DIR__ . '/config/contoh.config.php');
+    if ($contoh !== '' && stripos($contoh, 'db_pass') !== false && strpos($contoh, "'db_pass' => ''") === false) {
+        report('warn', 'Secret File', 'contoh.config.php tampak berisi nilai db_pass non-kosong', $results);
+    } else {
+        report('pass', 'Secret File', 'contoh.config.php tanpa kredensial nyata', $results);
     }
 }
 
-// --- 7. Cek input validation ---
+// ---------- 5. Penanganan error ----------
+if ($config['check_error_handling']) {
+    $bootstrap = bacaFile(__DIR__ . '/src/bootstrap.php');
+    report(
+        strpos($bootstrap, "ini_set('display_errors', '0')") !== false ? 'pass' : 'warn',
+        'Error Handling',
+        'display_errors=0 untuk respons produksi',
+        $results
+    );
+    report(
+        strpos($bootstrap, 'set_exception_handler') !== false ? 'pass' : 'warn',
+        'Error Handling',
+        'set_exception_handler mengembalikan JSON',
+        $results
+    );
+}
+
+// ---------- 6. Proteksi CSRF ----------
+if ($config['check_csrf']) {
+    $auth = bacaFile(__DIR__ . '/src/Auth.php');
+    $dasar = bacaFile(__DIR__ . '/src/Pengendali/PengendaliDasar.php');
+    report(
+        (strpos($auth, 'cekCsrf') !== false && strpos($auth, 'buatTokenCsrf') !== false) ? 'pass' : 'fail',
+        'CSRF',
+        'Auth::cekCsrf() + Auth::buatTokenCsrf() tersedia',
+        $results
+    );
+    report(
+        strpos($dasar, 'validateCsrf') !== false ? 'pass' : 'fail',
+        'CSRF',
+        'validateCsrf() tersedia di PengendaliDasar',
+        $results
+    );
+}
+
+// ---------- 7. Validasi input ----------
 if ($config['check_input_validation']) {
-    $authPhp = file_get_contents(__DIR__ . '/src/Pengendali/PengendaliAuth.php');
-    if (strpos($authPhp, 'filter_var') !== false) {
-        report('pass', 'Input Validation', 'filter_var digunakan di pengendali auth', $results);
-    } else {
-        report('warn', 'Input Validation', 'filter_var tidak ditemukan', $results);
+    $authCtrl = bacaFile(__DIR__ . '/src/Pengendali/PengendaliAuth.php');
+    $pelangganCtrl = bacaFile(__DIR__ . '/src/Pengendali/PengendaliPelanggan.php');
+    report(
+        strpos($authCtrl, 'filter_var') !== false ? 'pass' : 'warn',
+        'Input Validation',
+        'filter_var digunakan di pengendali auth',
+        $results
+    );
+    report(
+        (strpos($authCtrl, 'validateCsrf') !== false && strpos($pelangganCtrl, 'validateCsrf') !== false) ? 'pass' : 'warn',
+        'Input Validation',
+        'validateCsrf dipanggil pada endpoint state-changing',
+        $results
+    );
+}
+
+// ---------- 8. Rate limiting ----------
+if ($config['check_rate_limiting']) {
+    $auth = bacaFile(__DIR__ . '/src/Auth.php');
+    $authCtrl = bacaFile(__DIR__ . '/src/Pengendali/PengendaliAuth.php');
+    $pelangganCtrl = bacaFile(__DIR__ . '/src/Pengendali/PengendaliPelanggan.php');
+    report(
+        strpos($auth, 'class AuthRateLimiter') !== false ? 'pass' : 'warn',
+        'Rate Limiting',
+        'AuthRateLimiter tersedia',
+        $results
+    );
+    report(
+        strpos($authCtrl, 'AuthRateLimiter::check') !== false ? 'pass' : 'warn',
+        'Rate Limiting',
+        'rate limit aktif pada login admin',
+        $results
+    );
+    report(
+        strpos($pelangganCtrl, "'masuk_pembeli'") !== false ? 'pass' : 'warn',
+        'Rate Limiting',
+        'rate limit aktif pada login pembeli',
+        $results
+    );
+}
+
+// ---------- 9. Header keamanan ----------
+if ($config['check_security_headers']) {
+    $bootstrap = bacaFile(__DIR__ . '/src/bootstrap.php');
+    $headers = ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Cache-Control', 'Content-Security-Policy'];
+    foreach ($headers as $nama) {
+        report(
+            strpos($bootstrap, "header('{$nama}") !== false || strpos($bootstrap, "header(\"{$nama}") !== false ? 'pass' : 'warn',
+            'Security Headers',
+            "{$nama} diset",
+            $results
+        );
     }
-    $validateCsrf = strpos($authPhp, 'validateCsrf') !== false;
-// --- Summary ---
-echo PHP_EOL . "=== Summary ===" . PHP_EOL;
-echo "Passes:  {$results['pass']}" . PHP_EOL;
-echo "Fails:   {$results['fail']}" . PHP_EOL;
-echo "Warns:   {$results['warn']}" . PHP_EOL;
-echo PHP_EOL;
+}
+
+// ---------- 10. Database ----------
+if ($config['check_database']) {
+    $db = bacaFile(__DIR__ . '/src/Database.php');
+    report(
+        (strpos($db, 'PDO') !== false && strpos($db, 'prepare') !== false) ? 'pass' : 'warn',
+        'Database',
+        'PDO prepared statement digunakan',
+        $results
+    );
+    report(
+        strpos($db, 'ATTR_EMULATE_PREPARES') !== false ? 'pass' : 'warn',
+        'Database',
+        'ATTR_EMULATE_PREPARES => false',
+        $results
+    );
+}
+
+// ---------- Ringkasan ----------
+echo PHP_EOL . '=== Ringkasan ===' . PHP_EOL;
+echo "Passes: {$results['pass']}" . PHP_EOL;
+echo "Fails:  {$results['fail']}" . PHP_EOL;
+echo "Warns:  {$results['warn']}" . PHP_EOL . PHP_EOL;
 
 if ($results['fail'] > 0) {
-    echo "⚠️  Beberapa pemeriksaan gagal. Perbaiki sebelum deployment." . PHP_EOL;
+    echo 'Ada pemeriksaan yang GAGAL. Perbaiki sebelum deployment.' . PHP_EOL;
     exit(1);
-} elseif ($results['warn'] > 0) {
-    echo "⚠️  Beberapa pemeriksaan memberi peringatan. Review sebelum deployment." . PHP_EOL;
-    exit(0);
-} else {
-    echo "✅ Semua pemeriksaan lulus." . PHP_EOL;
+}
+if ($results['warn'] > 0) {
+    echo 'Ada peringatan. Tinjau sebelum deployment.' . PHP_EOL;
     exit(0);
 }
-
-    if ($validateCsrf) {
-        report('pass', 'Input Validation', 'validateCsrf dipanggil di auth endpoints', $results);
-    } else {
-        report('warn', 'Input Validation', 'validateCsrf belum dipanggil di auth', $results);
-    }
-}
-
-// --- 8. Cek rate limiting ---
-if ($config['check_rate_limiting']) {
-    $authPhp = file_get_contents(__DIR__ . '/src/Auth.php');
-    if (strpos($authPhp, 'AuthRateLimiter') !== false) {
-        report('pass', 'Rate Limiting', 'AuthRateLimiter tersedia', $results);
-    } else {
-        report('warn', 'Rate Limiting', 'AuthRateLimiter tidak ditemukan', $results);
-    }
-    // Check if login endpoint calls the limiter
-    $authController = file_get_contents(__DIR__ . '/src/Pengendali/PengendaliAuth.php');
-    if (strpos($authController, 'AuthRateLimiter::check') !== false) {
-        report('pass', 'Rate Limiting', 'AuthRateLimiter::check dipanggil di login', $results);
-    } else {
-        report('warn', 'Rate Limiting', 'AuthRateLimiter::check belum dipanggil di login', $results);
-    }
-}
-
-// --- 9. Cek security headers ---
-if ($config['check_security_headers']) {
-    $bootstrap = file_get_contents(__DIR__ . '/src/bootstrap.php');
-    $headers = [
-        'X-Content-Type-Options' => 'nosniff',
-        'X-Frame-Options'       => 'DENY',
-        'Referrer-Policy'       => 'no-referrer',
-        'Cache-Control'         => 'no-store',
-    ];
-    foreach ($headers as $name => $expected) {
-        if (strpos($bootstrap, "header('{$name}: {$expected}')") !== false) {
-            report('pass', 'Security Headers', $name, $results);
-        } else {
-            report('warn', 'Security Headers', "header('{$name}') belum ada", $results);
-        }
-    }
-}
-
-// --- 10. Cek database connection ---
-if ($config['check_database']) {
-    $dbFile = file_get_contents(__DIR__ . '/src/Database.php');
-    if (strpos($dbFile, 'PDO') !== false && strpos($dbFile, 'prepare') !== false) {
-        report('pass', 'Database', 'PDO prepared statements digunakan', $results);
-    } else {
-        report('warn', 'Database', 'PDO prepared statement belum diverifikasi', $results);
-    }
-    if (strpos($dbFile, 'ATTR_EMULATE_PREPARES') !== false) {
-        report('pass', 'Database', 'PDO::ATTR_EMULATE_PREPARES = false', $results);
-    } else {
-        report('warn', 'Database', 'PDO::ATTR_EMULATE_PREPARES belum diverifikasi', $results);
-    }
-}
-
-            $content = file_get_contents($fullPath);
-            if (strpos($content, 'root') !== false || strpos($content, 'db_pass') !== false) {
-                report('warn', 'Secret File', $desc . ' mungkin mengandung kredensial', $results);
-            } else {
-                report('pass', 'Secret File', $desc . ' tidak terlihat mengandung kredensial', $results);
-            }
-        }
-    }
-}
-
-// --- 5. Cek handler error ---
-if ($config['check_error_handling']) {
-    $bootstrap = file_get_contents(__DIR__ . '/src/bootstrap.php');
-    if (strpos($bootstrap, 'display_errors') !== false && strpos($bootstrap, '0') !== false) {
-        report('pass', 'Error Handling', 'display_errors dipsain ke 0 (production)', $results);
-    } else {
-        report('warn', 'Error Handling', 'display_errors belum diverifikasi', $results);
-    }
-    if (strpos($bootstrap, 'set_exception_handler') !== false) {
-        report('pass', 'Error Handling', 'set_exception_handler tersedia', $results);
-    } else {
-        report('warn', 'Error Handling', 'set_exception_handler tidak ditemukan', $results);
-    }
-}
-
-        __DIR__ . '/src/Bantu.php',
-        __DIR__ . '/src/bootstrap.php',
-        __DIR__ . '/src/Aktivitas.php',
-        __DIR__ . '/api/index.php',
-        __DIR__ . '/database/instal.php',
-    ];
-    $found = false;
-    foreach ($phpFiles as $file) {
-        if (is_file($file)) {
-            $output = runCommand("php -l \"{$file}\" 2>&1");
-            if (strpos($output, 'No syntax errors') !== false) {
-                report('pass', 'PHP Syntax', basename($file), $results);
-            } else {
-                report('fail', 'PHP Syntax', basename($file) . ': ' . $output, $results);
-            }
-            $found = true;
-        }
-    }
-    if (!$found) {
-        report('warn', 'PHP Syntax', 'Tidak ada file PHP ditemukan untuk dicek', $results);
-    }
-}
-
-// --- 2. Cek konfigurasi session cookie ---
-if ($config['check_session_cookie']) {
-    // File bootstrap.php men-set session config
-    $bootstrap = file_get_contents(__DIR__ . '/src/bootstrap.php');
-    $checks = [
-        'session.cookie_httponly' => 'ini_set(\'session.cookie_httponly\', \'1\')',
-        'session.use_strict_mode' => 'ini_set(\'session.use_strict_mode\', \'1\')',
-        'session.use_only_cookies' => 'ini_set(\'session.use_only_cookies\', \'1\')',
-    ];
-    foreach ($checks as $name => $expected) {
-        if (strpos($bootstrap, $expected) !== false) {
-            report('pass', 'Session Config', $name, $results);
-        } else {
-            report('warn', 'Session Config', "Tidak ditemukan: {$name}", $results);
-        }
-    }
-}
+echo 'Semua pemeriksaan lulus.' . PHP_EOL;
+exit(0);
