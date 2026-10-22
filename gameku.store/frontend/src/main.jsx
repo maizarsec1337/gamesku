@@ -5,6 +5,7 @@ import { PenyediaKeranjang } from './konteks/KonteksKeranjang.jsx'
 import { PenyediaPesanan } from './konteks/KonteksPesanan.jsx'
 import { PenyediaWishlist } from './konteks/KonteksWishlist.jsx'
 import { PenyediaAdmin } from './konteks/KonteksAdmin.jsx'
+import { PenyediaSesiPembeli } from './konteks/KonteksSesiPembeli.jsx'
 import { BatasKesalahan } from './komponen/BatasKesalahan.jsx'
 import './css/global.css'
 import './css/navigasi.css'
@@ -28,7 +29,9 @@ createRoot(akar).render(
           <PenyediaWishlist>
             <PenyediaKeranjang>
               <PenyediaPesanan>
-                <App />
+                <PenyediaSesiPembeli>
+                  <App />
+                </PenyediaSesiPembeli>
               </PenyediaPesanan>
             </PenyediaKeranjang>
           </PenyediaWishlist>

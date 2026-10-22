@@ -6,7 +6,7 @@ import {
   ChevronUp, TrendingUp, TrendingDown, Filter, Upload, Image as ImageIcon,
   Calendar, Clock, CircleCheck, CircleX, Tag, ChartColumn, CreditCard,
   Palette, Save, Lock, UserPlus, RefreshCw, Ellipsis, Puzzle, Package,
-  Globe, KeyRound, CircleAlert, Box,
+  Globe, KeyRound, CircleAlert, Box, Eye,
 } from 'lucide-react'
 
 const PETA = {

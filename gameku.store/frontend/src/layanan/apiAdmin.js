@@ -4,11 +4,9 @@
 // - Sesi memakai cookie PHP (credentials: 'same-origin').
 // - Request state-changing (POST/PUT/PATCH/DELETE) menyertakan token CSRF
 //   dari GET /api/auth/csrf-token.
-// - Token CSRF TIDAK disimpan kredensial apa pun; hanya token CSRF di memori.
+// - Token CSRF dibaca dari sesi aktif sebelum setiap perubahan.
 
 const API = '/api'
-
-let tokenCsrf = null
 
 export class GalatApi extends Error {
   constructor(pesan, status, data) {
@@ -64,12 +62,11 @@ async function minta(jalur, opsi = {}) {
   return isi.data
 }
 
-// Ambil/cache token CSRF. $paksa memaksa ambil ulang (setelah login/keluar).
-export async function tokenCsrfAmbil(paksa = false) {
-  if (tokenCsrf && !paksa) return tokenCsrf
+// Token selalu dibaca dari sesi aktif, termasuk bila dirotasi tab pembeli.
+export async function tokenCsrfAmbil() {
   const data = await minta('/auth/csrf-token')
-  tokenCsrf = data && data.csrf_token ? String(data.csrf_token) : ''
-  return tokenCsrf
+  if (!data?.csrf_token) throw new GalatApi('Token keamanan tidak tersedia. Coba lagi.', 0)
+  return String(data.csrf_token)
 }
 
 async function tulis(metode, jalur, badan) {
@@ -108,8 +105,6 @@ export async function masukAdmin(pengguna, sandi) {
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token || '' },
     body: JSON.stringify({ pengguna: String(pengguna || '').trim(), sandi: String(sandi || '') }),
   })
-  // Login merotasi token CSRF di server → buang cache.
-  tokenCsrf = null
   return data
 }
 
@@ -119,7 +114,6 @@ export async function keluarAdmin() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token || '' },
   })
-  tokenCsrf = null
 }
 
 // ===================== Dasbor =====================

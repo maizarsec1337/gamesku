@@ -243,7 +243,7 @@ export default function AdminPromo() {
               <input
                 id="promo-diskon"
                 type="number"
-                min="1"
+                min="0"
                 max="100"
                 className="isian-admin"
                 value={form.diskon}

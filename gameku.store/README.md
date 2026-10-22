@@ -12,7 +12,7 @@ gamesku.store/
 
 ```bash
 # Terminal 1 — backend PHP
-php -S localhost:8000 -t backend
+php -S localhost:8000 -t backend backend/api/index.php
 
 # Terminal 2 — frontend Vite
 cd frontend
@@ -49,3 +49,17 @@ dist/
 Catatan: `config/config.php` tidak di-commit (lihat `.gitignore`).
 Di hosting, salin `backend/config/contoh.config.php` menjadi dasar isi
 `dist/config/config.php` lalu sesuaikan kredensial MySQL hosting.
+
+## Pengujian
+
+Di `frontend/`, jalankan `npm test` dan `npm run lint`. Setelah server Vite
+berjalan, jalankan `npm run uji-regresi` dan `npm run uji-pembeli` untuk
+pengujian browser dengan fixture API. Gunakan `GAMEKU_TEST_BROWSER` untuk
+menentukan executable browser bila Playwright belum memiliki browser.
+
+Di `backend/`, jalankan `npm test`. Isi `GAMEKU_TEST_BASE` dengan URL server
+PHP yang berjalan untuk menyertakan smoke HTTP. Pengujian terisolasi tidak
+memerlukan MySQL dan tidak menggantikan pengujian transaksi database nyata.
+
+Lihat [hasil audit lanjutan](docs/audit_lanjutan_2026-10-22.md) untuk daftar
+perbaikan dan batas verifikasi.

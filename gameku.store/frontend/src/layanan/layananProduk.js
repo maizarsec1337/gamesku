@@ -12,6 +12,8 @@ let sudahDimuat = false
 let sedangMemuat = false
 let galatTerakhir = null
 const pendengar = new Set()
+let status = { memuat: true, galat: null }
+export const statusProduk = () => status
 
 function siarkan() {
   for (const dengar of pendengar) dengar()
@@ -33,6 +35,8 @@ function memoVersi(hitung) {
 async function muatKatalog() {
   if (sedangMemuat) return
   sedangMemuat = true
+  status = { memuat: true, galat: null }
+  siarkan()
   try {
     const respons = await fetch(`${API}/produk?batas=200`, {
       credentials: 'same-origin',
@@ -49,6 +53,7 @@ async function muatKatalog() {
   } finally {
     sudahDimuat = true
     sedangMemuat = false
+    status = { memuat: false, galat: galatTerakhir }
     versi += 1
     siarkan()
   }
@@ -93,9 +98,9 @@ export const ambilProdukId = memoVersi((id) => cache.find((p) => p.id === id) ||
 export const ambilProdukSlug = memoVersi((slug) => cache.find((p) => p.slug === slug) || null)
 
 // Pencarian pada nama, creator, dan slug (hanya produk Aktif).
-export function cariProduk(kataKunci) {
+export function cariProduk(kataKunci, katalog = cache) {
   const kunci = String(kataKunci || '').trim().toLowerCase()
-  const tersedia = cache.filter((p) => p.status === 'Aktif')
+  const tersedia = katalog.filter((p) => p.status === 'Aktif')
   if (!kunci) return tersedia
   return tersedia.filter((p) =>
     `${p.nama} ${p.creator} ${p.slug}`.toLowerCase().includes(kunci),

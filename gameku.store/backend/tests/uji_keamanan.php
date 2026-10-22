@@ -75,3 +75,12 @@ uji('endpoint admin tanpa sesi ditolak 401', function () {
     [$statusDash] = httpPanggil('GET', '/api/dasbor');
     sama(401, $statusDash, 'dasbor tanpa sesi admin harus 401');
 });
+
+uji('berkas internal tidak dapat diunduh/dieksekusi langsung', function () {
+    foreach (['/database/schema.sql', '/src/Bantu.php', '/tests/uji_bantu.php',
+        '/config/config.php', '/DATABASE/schema.sql', '/database%2Fschema.sql',
+        '/api/data_anime_lengkap.json', '/.git/config'] as $jalur) {
+        [$status] = httpPanggil('GET', $jalur);
+        sama(404, $status, 'akses internal harus 404: ' . $jalur);
+    }
+});

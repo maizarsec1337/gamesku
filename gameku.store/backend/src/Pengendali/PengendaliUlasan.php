@@ -103,16 +103,17 @@ class PengendaliUlasan extends PengendaliDasar
             Bantu::gagal('Ulasan perlu produk dan nama pelanggan.');
         }
 
-        // Ambil nama produk dari DB bila ada.
-        $produk = Database::satu('SELECT nama FROM produk WHERE id = ?', [$produkId]);
-        $produkNama = $produk['nama'] ?? Bantu::potong($this->teks('produk'), 160);
+        // Ulasan publik hanya boleh merujuk produk aktif yang benar-benar ada.
+        $produk = Database::satu('SELECT nama FROM produk WHERE id = ? AND status = ?', [$produkId, 'Aktif']);
+        if (!$produk) Bantu::gagal('Produk tidak ditemukan atau tidak tersedia.', 422);
+        $produkNama = $produk['nama'];
 
         $rating = min(5, max(1, $this->angka('rating', 5)));
         $komentar = $this->teksMentah('komentar', '', 5000);
         $id = Bantu::idBaru('uls');
 
-        // Validasi otomatis: rating >= 4 langsung Disetujui, else Menunggu
-        $status = ($rating >= 4) ? 'Disetujui' : 'Menunggu';
+        // Semua kiriman publik menunggu moderasi, sesuai kontrak respons API.
+        $status = 'Menunggu';
 
         Database::eksekusi(
             'INSERT INTO ulasan (id, produk_id, produk_nama, pelanggan_nama, rating, komentar, status)

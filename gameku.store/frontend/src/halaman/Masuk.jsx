@@ -22,7 +22,7 @@ export default function HalamanMasuk() {
   const lokasi = useLocation()
   const tujuan = lokasi.state?.dari || '/profil'
   const adaTujuan = Boolean(lokasi.state?.dari)
-  const { status, masuk: masukFungsi, daftar, error } = useSesiPembeli()
+  const { status, masukFungsi, daftar, error } = useSesiPembeli()
   const [mode, setMode] = useState('masuk') // 'masuk' | 'daftar'
   const [form, setForm] = useState({ nama: '', email: '', kataSandi: '' })
   const [tampilSandi, setTampilSandi] = useState(false)

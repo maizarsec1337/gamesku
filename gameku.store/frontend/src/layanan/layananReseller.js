@@ -9,9 +9,9 @@
 // mengandung user_id/pelanggan_id (cukup whatsapp + catatan) agar tidak
 // bisa disetel klien. Respons: { ok, data?, pesan }.
 
-const API = '/api'
+import { ambilTokenCsrf } from './layananSesiPembeli.js'
 
-let tokenCsrf = null
+const API = '/api'
 
 async function minta(jalur, opsi = {}) {
   let respons
@@ -52,13 +52,6 @@ async function minta(jalur, opsi = {}) {
     throw err
   }
   return isi.data
-}
-
-async function ambilTokenCsrf() {
-  if (tokenCsrf) return tokenCsrf
-  const data = await minta('/auth/csrf-token')
-  tokenCsrf = data && data.csrf_token ? String(data.csrf_token) : ''
-  return tokenCsrf
 }
 
 // Status pengajuan terbaru pembeli yang login (null bila belum pernah ajukan).

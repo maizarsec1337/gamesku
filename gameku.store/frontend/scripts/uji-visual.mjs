@@ -3,16 +3,22 @@
 // Memeriksa 320/375/390/430/desktop: shell 430px, overflow-x, bottom-nav,
 // hero slider, console error, reduced-motion.
 import { spawn } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 
 const URL = process.argv[2] || 'http://localhost:4173'
-const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe'
+const CHROME = [
+  process.env.GAMEKU_TEST_BROWSER,
+  'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
+].find((path) => path && existsSync(path))
 
 const kasus = [
   { nama: '320px', lebar: 320, tinggi: 700 },
   { nama: '375px', lebar: 375, tinggi: 780 },
   { nama: '390px', lebar: 390, tinggi: 844 },
   { nama: '430px', lebar: 430, tinggi: 900 },
+  { nama: 'tablet', lebar: 768, tinggi: 1024 },
   { nama: 'desktop', lebar: 1280, tinggi: 900 },
 ]
 
@@ -20,7 +26,7 @@ const skrip = `
 const { chromium } = require('playwright');
 (async () => {
   const hasil = [];
-  const browser = await chromium.launch({ executablePath: ${JSON.stringify(CHROME)}, args: ['--no-sandbox'] });
+  const browser = await chromium.launch({ executablePath: ${JSON.stringify(CHROME)}, headless: true });
   for (const k of ${JSON.stringify(kasus)}) {
     const ctx = await browser.newContext({ viewport: { width: k.lebar, height: k.tinggi } });
     const page = await ctx.newPage();
@@ -62,7 +68,7 @@ const { chromium } = require('playwright');
     // Interaksi: klik menu Store pada bottom nav, pastikan route berubah.
     let klikNav = false;
     try {
-      await page.click('.navigasi-bawah a[href="/store"]', { timeout: 4000 });
+      await page.click(k.lebar >= 1024 ? '.navigasi-atas a[href="/store"]' : '.navigasi-bawah a[href="/store"]', { timeout: 4000 });
       await page.waitForURL('**/store', { timeout: 5000 }).catch(() => {});
       klikNav = page.url().includes('/store');
     } catch { klikNav = false; }
@@ -93,6 +99,9 @@ const { chromium } = require('playwright');
   await ctxRM.close();
   await browser.close();
   console.log(JSON.stringify(hasil, null, 2));
+  const gagal = hasil.filter((h) => h.viewport !== 'reduced-motion' &&
+    (h.overflowX > 1 || h.errors.length || h.gagalRute.length || !h.klikNav));
+  if (gagal.length || !rm.cocok) process.exitCode = 1;
 })();
 `
 writeFileSync('.uji-visual-tmp.cjs', skrip)

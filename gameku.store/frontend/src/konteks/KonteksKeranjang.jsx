@@ -2,6 +2,11 @@ import { useCallback, useMemo, useState } from 'react'
 import { KonteksKeranjang } from './konteksKeranjang.js'
 import { cariPromo, hitungRingkasan, hitungSubtotal } from '../utilitas/perhitungan.js'
 
+function batasiJumlah(nilai) {
+  const jumlah = Number(nilai)
+  return Number.isFinite(jumlah) ? Math.min(10, Math.max(1, Math.round(jumlah))) : 1
+}
+
 // Penyedia data keranjang (mulai kosong; hanya produk yang ditambahkan pembeli).
 export function PenyediaKeranjang({ children }) {
   const [daftarItem, setDaftarItem] = useState([])
@@ -10,7 +15,7 @@ export function PenyediaKeranjang({ children }) {
 
   // Menambah item baru, atau menambah jumlah bila item sudah ada.
   const tambahItem = useCallback((itemBaru) => {
-    const jumlahTambahan = Number(itemBaru.jumlah) || 1
+    const jumlahTambahan = batasiJumlah(itemBaru.jumlah)
     setDaftarItem((sebelumnya) => {
       const sudahAda = sebelumnya.find((item) => item.id === itemBaru.id)
       if (sudahAda) {
@@ -31,7 +36,7 @@ export function PenyediaKeranjang({ children }) {
 
   // Jumlah dibatasi 1 sampai 10 agar tampilan tetap rapi.
   const ubahJumlah = useCallback((idItem, jumlahBaru) => {
-    const jumlahRapi = Math.min(Math.max(Number(jumlahBaru) || 1, 1), 10)
+    const jumlahRapi = batasiJumlah(jumlahBaru)
     setDaftarItem((sebelumnya) =>
       sebelumnya.map((item) => (item.id === idItem ? { ...item, jumlah: jumlahRapi } : item)),
     )

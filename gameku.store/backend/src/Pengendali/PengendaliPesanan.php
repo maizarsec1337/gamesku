@@ -195,8 +195,9 @@ class PengendaliPesanan extends PengendaliDasar
         $promoDipakai = null;
         if ($kodePromo !== '' && $subtotal > 0) {
             $promo = Database::satu(
-                "SELECT id, kode, diskon, batas, terpakai FROM promo WHERE kode = ? AND status = 'Aktif'",
-                [$kodePromo]
+                'SELECT id, kode, diskon, batas, terpakai FROM promo
+                 WHERE kode = ? AND mulai <= ? AND berakhir >= ?',
+                [$kodePromo, Bantu::hariIni(), Bantu::hariIni()]
             );
             if ($promo && (int) $promo['terpakai'] < (int) $promo['batas']) {
                 $diskon = (int) $promo['diskon'];
@@ -232,12 +233,6 @@ class PengendaliPesanan extends PengendaliDasar
                 $subtotal, $biayaLayanan, $potongan, $total, $kodePromo, $barisItem, $promoDipakai,
                 $idempotencyKey
             );
-        } catch (RuntimeException $e) {
-            // Kuota promo habis saat transaksi (race) — pesan jelas, bukan 500.
-            if (strpos($e->getMessage(), 'promo') !== false) {
-                Bantu::gagal('Kuota kode promo sudah habis. Silakan tanpa kode promo.', 409);
-            }
-            throw $e;
         } catch (PDOException $e) {
             // Race idempotensi: dua request dengan key sama INSERT bersamaan →
             // duplicate key. Kembalikan pesanan yang sudah tersimpan.
@@ -254,6 +249,12 @@ class PengendaliPesanan extends PengendaliDasar
                         'total' => (int) $ada['total'], 'status' => $ada['status'],
                     ], 'Pesanan sudah tercatat.', 200);
                 }
+            }
+            throw $e;
+        } catch (RuntimeException $e) {
+            // PDOException juga turunan RuntimeException: tangani PDO dahulu.
+            if (strpos($e->getMessage(), 'promo') !== false) {
+                Bantu::gagal('Kuota kode promo sudah habis. Silakan tanpa kode promo.', 409);
             }
             throw $e;
         }

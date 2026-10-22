@@ -31,6 +31,7 @@ import AdminUlasan from './halaman-admin/AdminUlasan.jsx'
 import AdminMedia from './halaman-admin/AdminMedia.jsx'
 import AdminPengaturan from './halaman-admin/AdminPengaturan.jsx'
 import AdminReseller from './halaman-admin/AdminReseller.jsx'
+import SuperadminDasbor from './halaman-admin/SuperadminDasbor.jsx'
 
 // Rute aplikasi (admin + toko depan).
 export default function App() {

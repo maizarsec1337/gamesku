@@ -23,7 +23,7 @@ const PER_HALAMAN = 8
 
 // Halaman kelola produk (/admin/produk) — data dari backend (GET/PUT/DELETE /api/produk).
 export default function AdminProduk() {
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const { tampilkanPesan } = useAdmin()
   const { data, memuat, galat, muat } = useApi(() => daftarProdukApi({ batas: 200 }), [])
@@ -31,7 +31,13 @@ export default function AdminProduk() {
   const semua = Array.isArray(data) ? data : []
   const kategori = Array.isArray(dataKategori) ? dataKategori : []
 
-  const [kata, setKata] = useState(params.get('cari') || '')
+  const kata = params.get('cari') || ''
+  const setKata = (nilai) => {
+    const baru = new URLSearchParams(params)
+    if (nilai) baru.set('cari', nilai)
+    else baru.delete('cari')
+    setParams(baru, { replace: true })
+  }
   const [filter, setFilter] = useState('')
   const [halaman, setHalaman] = useState(1)
   const [dipilih, setDipilih] = useState(null)

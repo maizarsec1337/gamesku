@@ -9,16 +9,21 @@ $jalur = rawurldecode($uri);
 // Larang akses web ke direktori internal (berisi kredensial/ error).
 // Server PHP built-in mengabaikan .htaccess, jadi perlindungan harus ada di sini
 // DITEMPATKAN SEBELUM penyajian berkas statis agar tidak terlewati.
-if ($jalur === '/config' || strpos($jalur, '/config/') === 0
-    || $jalur === '/logs' || strpos($jalur, '/logs/') === 0) {
+if (preg_match('#^/(config|logs|src|database|tests)(/|$)#i', $jalur)
+    || preg_match('#(^|/)[.]#', $jalur)) {
     Bantu::gagal('Tidak ditemukan.', 404);
 }
 
 // Berkas statis diserahkan ke server PHP built-in.
 $berkasStatis = realpath(__DIR__ . '/..' . $jalur);
+$akarPublik = realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR;
+$relatif = $berkasStatis ? str_replace('\\', '/', substr($berkasStatis, strlen($akarPublik))) : '';
+// Built-in server mengabaikan .htaccess: hanya aset publik yang boleh
+// dilayani langsung, termasuk pemeriksaan path hasil realpath (symlink).
+$asetPublik = preg_match('#^(uploads|assets|image)/#', $relatif)
+    && preg_match('#\.(png|jpe?g|webp|gif|svg|ico|zip|pdf|css|js|woff2?|ttf)$#i', $relatif);
 if ($jalur !== '/' && $berkasStatis && is_file($berkasStatis)
-    && strpos($berkasStatis, realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR) === 0
-    && !preg_match('#/api/#', $jalur)) {
+    && strpos($berkasStatis, $akarPublik) === 0 && $asetPublik) {
     return false; // server PHP menyajikan berkas aslinya
 }
 

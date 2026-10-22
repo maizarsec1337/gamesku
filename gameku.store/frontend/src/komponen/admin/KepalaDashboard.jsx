@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Ikon from '../Ikon.jsx'
 import { useAdmin } from '../../konteks/konteksAdmin.js'
-import { useApi } from '../../layanan/gunakanApi.js'
+import { useApi, pesanGalat } from '../../layanan/gunakanApi.js'
 import { daftarPesananApi, daftarUlasanApi, daftarProdukApi } from '../../layanan/apiAdmin.js'
 import { waktuRelatif } from '../../data/konstanta.js'
 
@@ -20,7 +20,7 @@ export default function KepalaDashboard({ judul, padaBukaSidebar = () => {} }) {
   const [kataCari, setKataCari] = useState('')
   const areaKepala = useRef(null)
   const navigate = useNavigate()
-  const { keluar, sesiServer, isSuperadmin } = useAdmin()
+  const { keluar, sesiServer, isSuperadmin, tampilkanPesan } = useAdmin()
 
   // Notifikasi disusun dari data server nyata (bukan daftar karangan).
   const { data: pesanan } = useApi(() => daftarPesananApi({ batas: 3 }), [])
@@ -70,8 +70,10 @@ export default function KepalaDashboard({ judul, padaBukaSidebar = () => {} }) {
 
   const akhiriSesi = async () => {
     setProfilTerbuka(false)
-    await keluar()
-    navigate('/admin/login', { replace: true })
+    try {
+      await keluar()
+      navigate('/admin/login', { replace: true })
+    } catch (err) { tampilkanPesan(pesanGalat(err)) }
   }
 
   const namaAdmin = sesiServer?.nama || sesiServer?.pengguna || 'Administrator'

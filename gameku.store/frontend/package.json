@@ -8,6 +8,9 @@
     "build": "vite build && node scripts/kemas-backend.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test": "node --test scripts/*.test.mjs",
+    "uji-regresi": "node scripts/uji-regresi.mjs",
+    "uji-pembeli": "node scripts/uji-alur-pembeli.mjs",
     "uji-visual": "node scripts/uji-visual.mjs"
   },
   "dependencies": {

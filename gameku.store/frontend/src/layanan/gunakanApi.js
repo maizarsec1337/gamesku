@@ -10,6 +10,7 @@ export function useApi(pengambil, deps = []) {
   const [memuat, setMemuat] = useState(true)
   const [galat, setGalat] = useState(null)
   const refMounted = useRef(true)
+  const refPermintaan = useRef(0)
   const refAmbil = useRef(pengambil)
   refAmbil.current = pengambil
 
@@ -17,28 +18,32 @@ export function useApi(pengambil, deps = []) {
     refMounted.current = true
     return () => {
       refMounted.current = false
+      refPermintaan.current += 1
     }
   }, [])
 
   const muat = useCallback(async () => {
+    const permintaan = ++refPermintaan.current
+    const masihAktif = () => refMounted.current && permintaan === refPermintaan.current
     setMemuat(true)
     setGalat(null)
     try {
       const hasil = await refAmbil.current()
-      if (refMounted.current) setData(hasil)
+      if (masihAktif()) setData(hasil)
     } catch (e) {
-      if (refMounted.current) {
+      if (masihAktif()) {
         setGalat(e)
         setData(null)
       }
     } finally {
-      if (refMounted.current) setMemuat(false)
+      if (masihAktif()) setMemuat(false)
     }
   }, [])
 
   // Muat ulang saat dependensi berubah.
   useEffect(() => {
     muat()
+    return () => { refPermintaan.current += 1 }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 

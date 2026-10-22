@@ -12,40 +12,40 @@ export function PenyediaAdmin({ children }) {
   const [memuatSesi, setMemuatSesi] = useState(true)
   const [pesan, setPesan] = useState('')
   const penghitung = useRef(null)
-  const refMounted = useRef(true)
+  const versiSesi = useRef(0)
 
   // Muat sesi dari server saat aplikasi dimulai.
   useEffect(() => {
-    refMounted.current = true
+    let abaikan = false
+    const versi = versiSesi.current
     ;(async () => {
       try {
         const sesi = await sesiAdmin()
-        if (refMounted.current) setSesiServer(sesi)
+        if (!abaikan && versi === versiSesi.current) setSesiServer(sesi)
       } catch {
-        if (refMounted.current) setSesiServer(null)
+        if (!abaikan && versi === versiSesi.current) setSesiServer(null)
       } finally {
-        if (refMounted.current) setMemuatSesi(false)
+        if (!abaikan && versi === versiSesi.current) setMemuatSesi(false)
       }
     })()
     return () => {
-      refMounted.current = false
+      abaikan = true
     }
   }, [])
 
   // Login: verifikasi dilakukan backend (password_verify). Melempar GalatApi bila gagal.
   const masuk = useCallback(async (pengguna, sandi) => {
     const data = await masukAdmin(pengguna, sandi)
+    versiSesi.current += 1
     setSesiServer(data)
+    setMemuatSesi(false)
     return data
   }, [])
 
   // Logout: akhiri sesi di server, lalu bersihkan state.
   const keluar = useCallback(async () => {
-    try {
-      await keluarAdmin()
-    } catch {
-      // Tetap bersihkan state lokal meski server tidak merespons.
-    }
+    await keluarAdmin()
+    versiSesi.current += 1
     setSesiServer(null)
   }, [])
 

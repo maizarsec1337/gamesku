@@ -1,7 +1,7 @@
-// Status sesi PEMBELI (toko depan) — BUKAN sesi admin.
+// Status sesi PEMBELI (toko depan), terpisah dari sesi admin.
 //
 // Backend buyer tersedia melalui:
-//   POST /api/auth/csrf-token   ambil token CSRF
+//   GET  /api/auth/csrf-token   ambil token CSRF
 //   POST /api/pelanggan/masuk   login pembeli (email + sandi)
 //   GET  /api/pelanggan/saya    cek sesi pembeli saat ini
 //   POST /api/pelanggan/keluar  logout pembeli
@@ -10,8 +10,8 @@
 // Kunci sesi: $_SESSION['pembeli'] (PHP cookie), terpisah dari $_SESSION['admin'].
 // JANGAN mengarang sesi pembeli dari localStorage / koleksi lokal:
 // `buatKoleksi('pelanggan')` hanya menyimpan nama+email pendaftar di browser,
-// tanpa password_verify dan tanpa cookie sesi server — bukan bukti login.8
-import { useCallback, useEffect, useState } from 'react'
+// tanpa password_verify dan tanpa cookie sesi server bukan bukti login.
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 
 import {
   cekSesiPembeli,
@@ -20,27 +20,37 @@ import {
   daftarPembeli as apiDaftarPembeli,
 } from '../layanan/layananSesiPembeli.js'
 
+export const KonteksSesiPembeli = createContext(null)
+
 export function useSesiPembeli() {
+  const nilai = useContext(KonteksSesiPembeli)
+  if (!nilai) throw new Error('useSesiPembeli memerlukan PenyediaSesiPembeli.')
+  return nilai
+}
+
+export function useStatusSesiPembeli() {
   const [status, setStatus] = useState('memuat') // 'memuat' | 'masuk' | 'belum-masuk'
   const [sesi, setSesi] = useState(null)
   const [error, setError] = useState(null)
+  const versiSesi = useRef(0)
 
   // Pemeriksaan sesi saat mount. Tidak memakai useCallback terpisah agar
   // tidak ada missing-dependency / set-state-in-effect warning.
   useEffect(() => {
     let abaikan = false
+    const versi = versiSesi.current
     ;(async () => {
       try {
         const data = await cekSesiPembeli()
-        if (abaikan) return
+        if (abaikan || versi !== versiSesi.current) return
         const pembeli = data && data.pembeli ? data.pembeli : null
         setSesi(pembeli)
         setStatus(pembeli ? 'masuk' : 'belum-masuk')
         setError(null)
       } catch (e) {
-        if (abaikan) return
+        if (abaikan || versi !== versiSesi.current) return
         // Tidak ada sesi yang valid (401, jaringan mati, atau server error)
-        // → treat sebagai belum masuk agar /profil selalu menampilkan form login,
+        // Tampilkan form login di /profil ketika pemeriksaan gagal,
         // tidak pernah tertahan di layar loading selamanya.
         setSesi(null)
         setStatus('belum-masuk')
@@ -53,6 +63,7 @@ export function useSesiPembeli() {
   const masuk = useCallback(async (email, sandi) => {
     setError(null)
     const data = await apiMasukPembeli(email, sandi)
+    versiSesi.current += 1
     setSesi(data)
     setStatus('masuk')
     return data
@@ -61,9 +72,12 @@ export function useSesiPembeli() {
   const keluar = useCallback(async () => {
     try {
       await apiKeluarPembeli()
-    } catch {
-      // Tetap bersihkan state lokal meskipun server gagal.
+    } catch (e) {
+      setError(e.message || 'Gagal keluar. Silakan coba lagi.')
+      throw e
     }
+    versiSesi.current += 1
+    setError(null)
     setSesi(null)
     setStatus('belum-masuk')
   }, [])

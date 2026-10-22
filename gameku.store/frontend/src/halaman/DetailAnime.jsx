@@ -1,5 +1,5 @@
 // Halaman /streamku/:slug — detail seri + daftar episode (dari backend /api/anime).
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Ikon from '../komponen/Ikon.jsx'
 import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
@@ -8,6 +8,11 @@ import { detailAnime, episodeAnime, GalatAnime } from '../layanan/layananAnime.j
 import { BarisEpisode, PemutarVideo, GalatStreamku, MuatKerangka } from '../komponen/StreamkuTayang.jsx'
 
 export default function HalamanDetailAnime() {
+  const { slug } = useParams()
+  return <DetailSeri key={slug} />
+}
+
+function DetailSeri() {
   const { slug } = useParams()
   useReveal()
   const [status, setStatus] = useState('memuat') // memuat | siap | galat
@@ -20,10 +25,13 @@ export default function HalamanDetailAnime() {
   const [videoEmbed, setVideoEmbed] = useState(null)
   const [videoMemuat, setVideoMemuat] = useState(false)
   const [videoGalat, setVideoGalat] = useState('')
+  const permintaanEpisode = useRef(0)
+  useEffect(() => () => { permintaanEpisode.current += 1 }, [])
 
   const pilihEpisode = async (no) => {
     const eps = Array.isArray(data?.episode) ? data.episode.find((e) => Number(e.no) === no) : null
     if (!eps) return
+    const permintaan = ++permintaanEpisode.current
     setPilihanEps(eps)
     setVideoMemuat(true)
     setVideoGalat('')
@@ -31,6 +39,7 @@ export default function HalamanDetailAnime() {
     setVideoEmbed(null)
     try {
       const epData = await episodeAnime(slug, no)
+      if (permintaan !== permintaanEpisode.current) return
       const ep = epData && epData.episode
       // Kontrak backend: sumberPemutaran ('mp4'|'hls'|'belum-tersedia'),
       // urlPemutaran (URL video langsung), embedPemutaran (iframe resmi).
@@ -49,9 +58,10 @@ export default function HalamanDetailAnime() {
         setVideoGalat('Sumber pemutaran untuk episode ini belum tersedia di sumber resmi. Buka tautan halaman episode resmi untuk menonton.')
       }
     } catch (e) {
+      if (permintaan !== permintaanEpisode.current) return
       setVideoGalat(e instanceof GalatAnime ? e.message : 'Gagal memuat sumber episode.')
     } finally {
-      setVideoMemuat(false)
+      if (permintaan === permintaanEpisode.current) setVideoMemuat(false)
     }
   }
 
@@ -127,6 +137,7 @@ export default function HalamanDetailAnime() {
             </div>
             <div className="sk-detail-isi">
               <PemutarVideo
+                key={videoUrl || videoEmbed || 'kosong'}
                 videoUrl={videoUrl}
                 embedUrl={videoEmbed}
                 judulEpisode={pilihanEps ? pilihanEps.judul : null}

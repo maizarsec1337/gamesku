@@ -5,6 +5,13 @@ class PengendaliProduk extends PengendaliDasar
 {
     private const JENIS  = ['Skin', 'Skin Pack', 'Map', 'Texture Pack', 'Add-on', 'Mod', 'Build', 'Bundle'];
     private const STATUS = ['Draft', 'Aktif', 'Nonaktif'];
+    private ?bool $adminAktif = null;
+
+    private function adminAktif(): bool
+    {
+        // Identitas cukup diverifikasi sekali dalam satu request katalog.
+        return $this->adminAktif ??= Auth::sesi() !== null;
+    }
 
     // Kolom SELECT bersama + pemetaan nama ala frontend.
     private const PILIH = 'SELECT p.id, p.nama, p.slug, p.kategori_id AS kategoriId,
@@ -45,12 +52,19 @@ class PengendaliProduk extends PengendaliDasar
     private function petakan(array $p): array
     {
         if (isset($p['preview']) && is_string($p['preview'])) {
-            $p['preview'] = json_decode($p['preview'], true) ?: [];
+            $p['preview'] = json_decode($p['preview'], true);
         } elseif (!isset($p['preview'])) {
             $p['preview'] = [];
         }
+        // JSON valid belum tentu daftar gambar (mis. string/objek dari data lama).
+        $p['preview'] = is_array($p['preview'])
+            ? array_values(array_filter($p['preview'], fn($url) => is_string($url) && trim($url) !== ''))
+            : [];
         $p['harga']       = (int) $p['harga'];
         $p['hargaDiskon'] = (int) $p['hargaDiskon'];
+        // Tautan berkas berbayar hanya untuk pengelolaan admin; API publik
+        // belum memiliki verifikasi pembelian untuk mengizinkan unduhan.
+        if ($p['harga'] > 0 && !$this->adminAktif()) unset($p['fileProduk']);
         return $p;
     }
 
@@ -60,7 +74,7 @@ class PengendaliProduk extends PengendaliDasar
         $param = [];
 
         // Tamu hanya melihat produk Aktif.
-        if (Auth::sesi() === null) {
+        if (!$this->adminAktif()) {
             $where[] = 'p.status = ?';
             $param[] = 'Aktif';
         }
@@ -103,6 +117,9 @@ class PengendaliProduk extends PengendaliDasar
             $baris = Database::satu(self::PILIH . ' WHERE p.slug = ?', [$kunci]);
         }
         if (!$baris) Bantu::gagal('Produk tidak ditemukan.', 404);
+        if (!$this->adminAktif() && $baris['status'] !== 'Aktif') {
+            Bantu::gagal('Produk tidak ditemukan.', 404);
+        }
         Bantu::sukses($this->petakan($baris));
     }
 

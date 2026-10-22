@@ -4,6 +4,7 @@
 // HalamanMasuk dan TIDAK PERNAH membocorkan data privat. Setelah login
 // sukses, pembeli dikembalikan ke /profil (atau state.dari jika ada).
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { useWishlist } from '../konteks/konteksWishlist.js'
 import { useKeranjang } from '../konteks/konteksKeranjang.js'
 import { useSesiPembeli } from '../konteks/gunakanSesiPembeli.js'
@@ -20,7 +21,15 @@ const menuProfil = [
 export default function HalamanProfil() {
   const { jumlahSuka } = useWishlist()
   const { jumlahItem } = useKeranjang()
-  const { status } = useSesiPembeli()
+  const { status, sesi, keluar, error } = useSesiPembeli()
+  const [sedangKeluar, setSedangKeluar] = useState(false)
+  const akhiriSesi = async () => {
+    if (sedangKeluar) return
+    setSedangKeluar(true)
+    try { await keluar() }
+    catch { /* Pesan kegagalan tersedia dari penyedia sesi. */ }
+    finally { setSedangKeluar(false) }
+  }
 
   // Sesi masih diperiksa — jangan tampilkan login maupun data.
   if (status === 'memuat') {
@@ -60,11 +69,14 @@ export default function HalamanProfil() {
         <article className="kartu"><div className="kartu-isi" style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
           <span className="avatar-creator" style={{ width: 56, height: 56 }} aria-hidden="true"><Ikon nama="pengguna" ukuran={24} /></span>
           <div style={{ flex: 1, minWidth: 180 }}>
-            <strong style={{ fontSize: 17 }}>Belum masuk</strong>
-            <p className="subjudul-halaman" style={{ margin: 0 }}>Tidak ada akun aktif di browser ini.</p>
+            <strong style={{ fontSize: 17 }}>{sesi.nama || sesi.username || 'Pembeli'}</strong>
+            <p className="subjudul-halaman" style={{ margin: 0 }}>{sesi.email}</p>
           </div>
-          <Link className="tombol tombol-garis tombol-kecil" to="/masuk" state={{ dari: '/profil' }}>Masuk</Link>
+          <button type="button" className="tombol tombol-garis tombol-kecil" disabled={sedangKeluar} onClick={akhiriSesi}>
+            {sedangKeluar ? 'Memproses…' : 'Keluar'}
+          </button>
         </div></article>
+        {error && <p role="alert">{error}</p>}
 
         <div className="kisi-produk" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
           {[

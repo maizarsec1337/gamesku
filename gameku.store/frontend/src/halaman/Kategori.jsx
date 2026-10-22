@@ -1,15 +1,17 @@
 // Halaman /kategori dan /kategori/:slug — data dari service Gameku.
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useSyncExternalStore } from 'react'
 import KartuProduk from '../komponen/KartuProduk.jsx'
 import FilterProduk from '../komponen/FilterProduk.jsx'
 import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
+import KeadaanKatalog from '../komponen/KeadaanKatalog.jsx'
 import {
   subscribeProduk,
   produkTersedia,
   cariProduk,
   urutkanProduk,
+  statusProduk,
 } from '../layanan/layananProduk.js'
 import { subscribeKategori, daftarKategori } from '../layanan/layananKategori.js'
 import useReveal from '../layanan/gunakanReveal.js'
@@ -21,6 +23,7 @@ export default function HalamanKategori() {
   const [urutan, setUrutan] = useState('terbaru')
 
   useSyncExternalStore(subscribeProduk, produkTersedia, produkTersedia)
+  const status = useSyncExternalStore(subscribeProduk, statusProduk, statusProduk)
   useSyncExternalStore(subscribeKategori, daftarKategori, daftarKategori)
   useReveal()
 
@@ -30,12 +33,10 @@ export default function HalamanKategori() {
 
   const semuaProduk = produkTersedia()
 
-  const daftarHasil = useMemo(() => {
-    let daftar = cariProduk(kataKunci)
-    if (kategoriAktif !== 'semua') daftar = daftar.filter((p) => p.kategoriId === kategoriAktif)
-    return urutkanProduk(daftar, urutan)
-    // eslint-disable-next-line react-hooks/exhaustive-deps (katalog sudah di-subscribe)
-  }, [kataKunci, kategoriAktif, urutan])
+  const daftarHasil = urutkanProduk(
+    cariProduk(kataKunci, semuaProduk).filter((p) => kategoriAktif === 'semua' || p.kategoriId === kategoriAktif),
+    urutan,
+  )
 
   return (
     <>
@@ -54,6 +55,7 @@ export default function HalamanKategori() {
           pilihKataKunci={setKataKunci}
           kategoriAktif={kategoriAktif}
           pilihKategori={() => {}}
+          tampilKategori={false}
           urutAktif={urutan}
           pilihUrut={setUrutan}
           daftarKategori={[]}
@@ -61,7 +63,7 @@ export default function HalamanKategori() {
         />
       </div></section>
       <section className="bagian reveal"><div className="wadah">
-        {daftarHasil.length === 0 ? (
+        {status.memuat || status.galat ? <KeadaanKatalog status={status} /> : daftarHasil.length === 0 ? (
           <KeadaanKosong
             judul="Belum ada produk"
             deskripsi={semuaProduk.length === 0 ? 'Katalog masih kosong.' : 'Kategori ini masih kosong.'}

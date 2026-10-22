@@ -1,7 +1,8 @@
 // Halaman /wishlist — produk yang disimpan lewat KonteksWishlist.
 import { useMemo, useSyncExternalStore } from 'react'
 import { useWishlist } from '../konteks/konteksWishlist.js'
-import { daftarProduk, subscribeProduk } from '../layanan/layananProduk.js'
+import { daftarProduk, subscribeProduk, statusProduk } from '../layanan/layananProduk.js'
+import KeadaanKatalog from '../komponen/KeadaanKatalog.jsx'
 import KartuProduk from '../komponen/KartuProduk.jsx'
 import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
 
@@ -10,6 +11,7 @@ export default function HalamanWishlist() {
 
   // Berlangganan katalog; jangan menamai variabel "daftarProduk" (menutupi import/TDZ).
   const katalog = useSyncExternalStore(subscribeProduk, daftarProduk, daftarProduk)
+  const status = useSyncExternalStore(subscribeProduk, statusProduk, statusProduk)
 
   const produk = useMemo(
     () => daftarSuka.map((id) => katalog.find((p) => p.id === id)).filter(Boolean),
@@ -26,7 +28,7 @@ export default function HalamanWishlist() {
         </p>
       </div></section>
       <section className="bagian"><div className="wadah">
-        {produk.length === 0 ? (
+        {status.memuat || status.galat ? <KeadaanKatalog status={status} /> : produk.length === 0 ? (
           <KeadaanKosong
             judul="Wishlist masih kosong"
             deskripsi="Ketuk ikon hati pada kartu produk untuk menyimpan top-up favoritmu di Gamesku."

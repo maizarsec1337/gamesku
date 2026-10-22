@@ -2,10 +2,12 @@
 import { useSyncExternalStore } from 'react'
 import BagianProduk from '../komponen/BagianProduk.jsx'
 import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
-import { subscribeProduk, produkGratis } from '../layanan/layananProduk.js'
+import KeadaanKatalog from '../komponen/KeadaanKatalog.jsx'
+import { subscribeProduk, produkGratis, statusProduk } from '../layanan/layananProduk.js'
 
 export default function HalamanGratis() {
   useSyncExternalStore(subscribeProduk, produkGratis, produkGratis)
+  const status = useSyncExternalStore(subscribeProduk, statusProduk, statusProduk)
   const daftar = produkGratis(20)
 
   return (
@@ -15,7 +17,7 @@ export default function HalamanGratis() {
         <h1 className="judul-halaman">Konten Gratis</h1>
         <p className="subjudul-halaman">Unduh langsung tanpa bayar. Cocok untuk coba-coba sebelum upgrade premium.</p>
       </div></section>
-      {daftar.length === 0 ? (
+      {status.memuat || status.galat ? <KeadaanKatalog status={status} /> : daftar.length === 0 ? (
         <section className="bagian"><div className="wadah">
           <KeadaanKosong
             judul="Belum ada konten gratis"

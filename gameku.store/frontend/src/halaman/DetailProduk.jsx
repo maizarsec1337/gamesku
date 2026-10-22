@@ -6,10 +6,12 @@ import {
   ambilProdukSlug,
   produkTerkait,
   subscribeProduk,
+  statusProduk,
 } from '../layanan/layananProduk.js'
 import DetailProduk from '../komponen/DetailProduk.jsx'
 import BagianProduk from '../komponen/BagianProduk.jsx'
 import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
+import KeadaanKatalog from '../komponen/KeadaanKatalog.jsx'
 
 export default function HalamanDetailProduk() {
   const { slug } = useParams()
@@ -17,9 +19,12 @@ export default function HalamanDetailProduk() {
   // useSyncExternalStore hanya menerima 3 argumen; slug dilewatkan lewat useCallback.
   const cari = useCallback(() => ambilProdukSlug(slug), [slug])
   useSyncExternalStore(subscribeProduk, cari, cari)
+  const status = useSyncExternalStore(subscribeProduk, statusProduk, statusProduk)
 
   const produk = cari()
   const terkait = useMemo(() => produkTerkait(produk, 4), [produk])
+
+  if (status.memuat || status.galat) return <KeadaanKatalog status={status} />
 
   if (!produk) {
     return (
@@ -40,7 +45,7 @@ export default function HalamanDetailProduk() {
         <Link className="tautan-lihat" to="/store">← Kembali ke Store</Link>
       </div></section>
       <section className="bagian"><div className="wadah">
-        <DetailProduk produk={produk} />
+        <DetailProduk key={produk.id} produk={produk} />
       </div></section>
       <BagianProduk judul="Produk Terkait" subjudul="Masih satu kategori dengan produk ini." daftar={terkait} tautan="/store" />
     </>

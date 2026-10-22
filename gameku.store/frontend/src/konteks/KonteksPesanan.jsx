@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { KonteksPesanan } from './konteksPesanan.js'
 import { daftarPesanan, subscribePesanan } from '../layanan/layananPesanan.js'
 import { buatNomorPesanan } from '../utilitas/perhitungan.js'
@@ -6,7 +6,7 @@ import { buatNomorPesanan } from '../utilitas/perhitungan.js'
 // Penyedia data pesanan (mulai kosong; checkout menambah di atas service).
 export function PenyediaPesanan({ children }) {
   const [daftarPesananState, setDaftarPesananState] = useState(daftarPesanan)
-  subscribePesanan(() => setDaftarPesananState(daftarPesanan()))
+  useEffect(() => subscribePesanan(() => setDaftarPesananState(daftarPesanan())), [])
 
   const buatPesanan = useCallback((dataBaru) => {
     const pesananBaru = {

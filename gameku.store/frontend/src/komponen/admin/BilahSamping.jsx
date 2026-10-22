@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import Ikon from '../Ikon.jsx'
 import { useAdmin } from '../../konteks/konteksAdmin.js'
-import { useApi } from '../../layanan/gunakanApi.js'
+import { useApi, pesanGalat } from '../../layanan/gunakanApi.js'
 import { daftarPesananApi, daftarUlasanApi } from '../../layanan/apiAdmin.js'
 
 // Struktur menu bilah samping, dipisah per section.
@@ -37,7 +37,7 @@ const seksiMenu = [
 
 // Bilah samping (sidebar) admin — fixed di desktop, drawer di mobile.
 export default function BilahSamping({ terbuka = false, padaTutup = () => {} }) {
-  const { keluar, sesiServer, isSuperadmin } = useAdmin()
+  const { keluar, sesiServer, isSuperadmin, tampilkanPesan } = useAdmin()
   const navigate = useNavigate()
 
   // Badge dihitung dari data server (bukan data contoh). Gagal muat = 0.
@@ -63,8 +63,10 @@ export default function BilahSamping({ terbuka = false, padaTutup = () => {} }) 
   ]
 
   const akhiriSesi = async () => {
-    await keluar()
-    navigate('/admin/login', { replace: true })
+    try {
+      await keluar()
+      navigate('/admin/login', { replace: true })
+    } catch (err) { tampilkanPesan(pesanGalat(err)) }
   }
 
   return (

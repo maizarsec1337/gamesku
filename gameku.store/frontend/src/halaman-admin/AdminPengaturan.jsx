@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
-import { tulis } from '../layanan/penyimpananLokal.js'
+import { baca, tulis } from '../layanan/penyimpananLokal.js'
 import '../css/admin-form.css'
 import '../css/admin-tabel.css'
 
@@ -44,8 +44,9 @@ export default function AdminPengaturan() {
   const { tampilkanPesan, sesiServer, peran } = useAdmin()
   const [tab, setTab] = useState('profil')
   const [memuat, setMemuat] = useState(false)
+  const [tersimpan] = useState(() => baca('pengaturanAdmin', {}))
   // Profil admin BERASAL DARI SERVER (sesi PHP).
-  const [profil, setProfil] = useState({ nama: '', pengguna: '', email: '', bio: '' })
+  const [profil, setProfil] = useState({ nama: '', pengguna: '', email: '', bio: String(tersimpan?.bio || '') })
 
   // Isi identitas dari sesi server saat tersedia.
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function AdminPengaturan() {
     telepon: '',
     deskripsi:
       'Marketplace konten Minecraft: skin, map, texture pack, add-on, build, mod, dan bundle.',
+    ...(tersimpan?.toko && typeof tersimpan.toko === 'object' ? tersimpan.toko : {}),
   })
   const [saklar, setSaklar] = useState({
     qris: true,
@@ -83,8 +85,9 @@ export default function AdminPengaturan() {
     duaFaktor: false,
     animasi: true,
     padat: false,
+    ...(tersimpan?.saklar && typeof tersimpan.saklar === 'object' ? tersimpan.saklar : {}),
   })
-  const [warna, setWarna] = useState('#43DDF5')
+  const [warna, setWarna] = useState(() => /^#[0-9a-f]{6}$/i.test(tersimpan?.warna || '') ? tersimpan.warna : '#43DDF5')
 
   const ubahSaklar = (kunci) => setSaklar((s) => ({ ...s, [kunci]: !s[kunci] }))
   const simpan = () => {

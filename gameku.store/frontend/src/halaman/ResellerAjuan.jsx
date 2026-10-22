@@ -15,26 +15,32 @@ export default function ResellerAjuan() {
   const [form, setForm] = useState({ whatsapp: '', catatan: '' })
   const [cek, setCek] = useState(false) // syarat dicentang
   const [mengirim, setMengirim] = useState(false) // kunci tombol selama request
+  const [galatAksi, setGalatAksi] = useState(null)
+  const [ajukanUlang, setAjukanUlang] = useState(false)
 
   const kirim = async (e) => {
     e.preventDefault()
     if (mengirim || !cek || !form.whatsapp) return
     setMengirim(true)
+    setGalatAksi(null)
     try {
       await kirimReseller(form.whatsapp, form.catatan)
       await muat()
-    } catch { /* error ditampilkan di bawah form */ }
+    } catch (err) { setGalatAksi(err) }
     finally {
       setMengirim(false)
     }
   }
 
   const batalkan = async () => {
-    if (!ajuan) return
+    if (!ajuan || mengirim) return
+    setMengirim(true)
+    setGalatAksi(null)
     try {
       await batalReseller(ajuan.id)
       await muat()
-    } catch { /* refresh akan update UI */ }
+    } catch (err) { setGalatAksi(err) }
+    finally { setMengirim(false) }
   }
 
   const status = ajuan ? ajuan.status : null
@@ -99,9 +105,10 @@ export default function ResellerAjuan() {
               notifikasi melalui email ketika keputusan diambil.
             </p>
           </div>
-          <button type="button" className="tombol tombol-garis" style={{ marginLeft: 'auto' }} onClick={batalkan}>
+          <button type="button" className="tombol tombol-garis" style={{ marginLeft: 'auto' }} disabled={mengirim} onClick={batalkan}>
             <Ikon nama="hapus" ukuran={14} /> Batalkan
           </button>
+          {galatAksi && <p role="alert">{pesanGalat(galatAksi)}</p>}
         </div></div>
       </div></section>
     )
@@ -123,14 +130,14 @@ export default function ResellerAjuan() {
     )
   }
 
-  if (status === 'rejected') {
+  if (status === 'rejected' && !ajukanUlang) {
     return (
       <section className="bagian"><div className="wadah">
         <div className="kartu"><div className="kartu-isi">
           <strong style={{ color: '#f43f5e' }}>Pengajuan ditolak</strong>
           {ajuan.alasan_penolakan ? <p className="subjudul-halaman">{ajuan.alasan_penolakan}</p> : null}
           <button type="button" className="tombol tombol-garis" style={{ marginTop: 12 }}
-            onClick={() => { setCek(false); setForm({ whatsapp: '', catatan: '' }); }}>
+            onClick={() => { setCek(false); setForm({ whatsapp: '', catatan: '' }); setAjukanUlang(true); }}>
             <Ikon nama="tambah" ukuran={14} /> Ajukan kembali
           </button>
         </div></div>
@@ -208,7 +215,7 @@ export default function ResellerAjuan() {
                 <Link to="/privasi" style={{ color: '#43DDF5' }}>Kebijakan Privasi</Link> GameKU.
               </label>
             </div>
-            {galat && <span style={{ fontSize: 13.6, color: '#f87171' }}>{pesanGalat(galat)}</span>}
+            {galatAksi && <p role="alert" style={{ fontSize: 13.6, color: '#f87171' }}>{pesanGalat(galatAksi)}</p>}
 
             <div className="panel-aksi" style={{ display: 'flex', gap: 12, marginTop: 16 }}>
               <Link to="/profil" className="tombol tombol-garis">

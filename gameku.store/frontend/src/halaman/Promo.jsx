@@ -2,11 +2,13 @@
 import { useSyncExternalStore } from 'react'
 import BagianProduk from '../komponen/BagianProduk.jsx'
 import KeadaanKosong from '../komponen/KeadaanKosong.jsx'
-import { subscribeProduk, produkTersedia } from '../layanan/layananProduk.js'
+import KeadaanKatalog from '../komponen/KeadaanKatalog.jsx'
+import { subscribeProduk, produkTersedia, statusProduk } from '../layanan/layananProduk.js'
 import '../css/beranda.css'
 
 export default function HalamanPromo() {
   useSyncExternalStore(subscribeProduk, produkTersedia, produkTersedia)
+  const status = useSyncExternalStore(subscribeProduk, statusProduk, statusProduk)
 
   // Hanya produk yang benar-benar punya harga coret.
   const daftarPromo = produkTersedia().filter(
@@ -20,7 +22,7 @@ export default function HalamanPromo() {
         <h1 className="judul-halaman">Promo Minggu Ini</h1>
         <p className="subjudul-halaman">Diskon kreator pilihan. Harga kembali normal tanpa pemberitahuan.</p>
       </div></section>
-      {daftarPromo.length === 0 ? (
+      {status.memuat || status.galat ? <KeadaanKatalog status={status} /> : daftarPromo.length === 0 ? (
         <section className="bagian"><div className="wadah">
           <KeadaanKosong
             judul="Belum ada promo"

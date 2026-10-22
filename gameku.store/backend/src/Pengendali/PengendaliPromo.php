@@ -103,6 +103,16 @@ class PengendaliPromo extends PengendaliDasar
         $batas    = max(1, $this->angka('batas', 100));
         $mulai    = $this->teks('mulai') ?: null;
         $berakhir = $this->teks('berakhir') ?: null;
+        foreach ([$mulai, $berakhir] as $tanggal) {
+            if ($tanggal === null) continue;
+            $nilaiTanggal = DateTimeImmutable::createFromFormat('!Y-m-d', $tanggal);
+            if (!$nilaiTanggal || $nilaiTanggal->format('Y-m-d') !== $tanggal) {
+                Bantu::gagal('Tanggal promo tidak valid. Gunakan format YYYY-MM-DD.', 422);
+            }
+        }
+        if ($mulai && $berakhir && $mulai > $berakhir) {
+            Bantu::gagal('Tanggal berakhir tidak boleh sebelum tanggal mulai.', 422);
+        }
         $status   = $this->statusDari($mulai, $berakhir);
 
         if ($id) {

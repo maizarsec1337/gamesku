@@ -36,15 +36,12 @@ async function minta(jalur, opsi = {}) {
   return isi.data
 }
 
-let tokenCsrf = null
-
-// Ambil (dan simpan di cache) token CSRF dari backend. Token ini wajib
-// disertakan dalam header X-CSRF-Token pada setiap POST state-changing.
+// Baca token sesi aktif sebelum menulis. Login admin/pembeli maupun tab
+// lain dapat merotasi token; cache permanen akan mengirim token kedaluwarsa.
 export async function ambilTokenCsrf() {
-  if (tokenCsrf) return tokenCsrf
   const data = await minta('/auth/csrf-token')
-  tokenCsrf = data && data.csrf_token ? String(data.csrf_token) : ''
-  return tokenCsrf
+  if (!data?.csrf_token) throw new Error('Token keamanan tidak tersedia. Coba lagi.')
+  return String(data.csrf_token)
 }
 
 // Cek apakah pembeli sudah memiliki sesi server yang valid.
@@ -76,7 +73,6 @@ export async function keluarPembeli() {
       'X-CSRF-Token': token || '',
     },
   })
-  tokenCsrf = null
 }
 
 // Daftar pembeli baru. Setelah sukses, caller biasanya langsung panggil masukPembeli.

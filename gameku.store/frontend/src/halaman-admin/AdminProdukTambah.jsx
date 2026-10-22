@@ -37,15 +37,20 @@ const formKosong = () => ({
 // Tambah / Edit produk (/admin/produk/tambah?edit=<id>) — tersambung ke backend.
 export default function AdminProdukTambah() {
   const [params] = useSearchParams()
+  return <EditorProduk key={params.get('edit') || 'baru'} />
+}
+
+function EditorProduk() {
+  const [params] = useSearchParams()
   const navigate = useNavigate()
   const { tampilkanPesan } = useAdmin()
 
   const idEdit = params.get('edit')
-  const { data: asli, memuat: memuatAsli } = useApi(
+  const { data: asli, memuat: memuatAsli, galat: galatAsli, muat: muatAsli } = useApi(
     () => (idEdit ? ambilProdukApi(idEdit) : Promise.resolve(null)),
     [idEdit],
   )
-  const { data: dataKategori } = useApi(() => daftarKategoriApi(), [])
+  const { data: dataKategori, memuat: memuatKategori, galat: galatKategori, muat: muatKategori } = useApi(() => daftarKategoriApi(), [])
   const { data: dataCreator } = useApi(() => daftarCreatorApi(), [])
   const kategori = Array.isArray(dataKategori) ? dataKategori : []
   const daftarCreator = Array.isArray(dataCreator)
@@ -85,7 +90,7 @@ export default function AdminProdukTambah() {
   }
 
   const simpan = async (status) => {
-    if (menyimpan) return
+    if (menyimpan || memuatAsli || memuatKategori || galatAsli || galatKategori) return
     const isi = { ...form, status }
     setMenyimpan(true)
     try {
@@ -98,6 +103,16 @@ export default function AdminProdukTambah() {
     } finally {
       setMenyimpan(false)
     }
+  }
+
+  if (memuatAsli || memuatKategori) return <div role="status">Memuat formulir produk…</div>
+  if (galatAsli || galatKategori) {
+    return (
+      <div className="pesan-salah-login" role="alert">
+        {pesanGalat(galatAsli || galatKategori)}
+        <button type="button" className="tombol-admin tombol-garis" onClick={galatAsli ? muatAsli : muatKategori}>Coba lagi</button>
+      </div>
+    )
   }
 
   // Tanpa kategori, produk tidak bisa disimpan.
