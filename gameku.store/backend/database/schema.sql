@@ -493,37 +493,32 @@ CREATE TABLE IF NOT EXISTS `aktivitas` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================================
--- VIEW: pesanan aktif (menunggu, diproses, gagal) untuk admin
--- ============================================================================
-CREATE OR REPLACE VIEW `vw_pesanan_active` AS
 SELECT
-  `id` AS `pesanan_id`,
-  `pelanggan_id`,
-  `pelanggan_nama`,
-  `produk_ringkas`,
-  `total`,
-  `status`,
-  `kode_promo`,
-  `catatan`,
-  `dibuat_pada`,
-  `diperbarui_pada`
+    `id` AS `pesanan_id`,
+    `pelanggan_id`,
+    `pelanggan_nama`,
+    `produk_ringkas`,
+    `total`,
+    `status`,
+    `kode_promo`,
+    `catatan`,
+    `dibuat_pada`,
+    `diperbarui_pada`
 FROM `pesanan`
-WHERE `status` IN ('Menunggu','Diproses','Gagal')
+WHERE `status` IN ('Menunggu', 'Diproses', 'Gagal')
 ORDER BY `dibuat_pada` DESC;
 
 -- ============================================================================
 -- VIEW: pembayaran yang menunggu konfirmasi
 -- ============================================================================
-CREATE OR REPLACE VIEW `vw_pembayaran_pending` AS
 SELECT
-  `id` AS `pembayaran_id`,
-  `pesanan_id`,
-  `nominal`,
-  `metode`,
-  `akun_pembayaran`,
-  `dibuat_pada`,
-  `diperbarui_pada`
+    `id` AS `pembayaran_id`,
+    `pesanan_id`,
+    `nominal`,
+    `metode`,
+    `akun_pembayaran`,
+    `dibuat_pada`,
+    `diperbarui_pada`
 FROM `pembayaran`
 WHERE `status` = 'Menunggu konfirmasi'
 ORDER BY `dibuat_pada` ASC;
@@ -531,23 +526,27 @@ ORDER BY `dibuat_pada` ASC;
 -- ============================================================================
 -- VIEW: audit log kegagalan (untuk investigasi keamanan)
 -- ============================================================================
-CREATE OR REPLACE VIEW `vw_audit_gagal` AS
 SELECT
-  `id`,
-  `user_tipe`,
-  `user_id`,
-  `jenis_aktivitas`,
-  `target_table`,
-  `target_id`,
-  `detail_json`,
-  `alamat_ip`,
-  `dibuat_pada`
+    `id`,
+    `user_tipe`,
+    `user_id`,
+    `jenis_aktivitas`,
+    `target_table`,
+    `target_id`,
+    `detail_json`,
+    `alamat_ip`,
+    `dibuat_pada`
 FROM `audit_log`
 WHERE `hasil` <> 'Berhasil'
-  AND `jenis_aktivitas` IN ('login_gagal','ganti_status_pesanan','hapus_produk',
-      'ulkah_edit','ukur_harga','atur_reseller')
+  AND `jenis_aktivitas` IN (
+      'login_gagal',
+      'ganti_status_pesanan',
+      'hapus_produk',
+      'ulkah_edit',
+      'ukur_harga',
+      'atur_reseller'
+  )
 ORDER BY `dibuat_pada` DESC;
-
 -- ============================================================================
 -- INDEX TAMBAHAN untuk performa query umum
 -- ============================================================================
@@ -563,112 +562,36 @@ CREATE INDEX IF NOT EXISTS `idx_ulasan_status_produk`
 CREATE INDEX IF NOT EXISTS `idx_riwayat_video_terakhir`
   ON `riwayat_tontonan` (`video_id`, `terakhir_ditonton`);
 
-CREATE INDEX IF NOT EXISTS `idx_pesanan_item_status`
-  ON `pesanan_item` (`pesanan_id`, `dibuat_pada`);
 
 
 
--- ============================================================================
--- TRIGGER: audit perubahan status pesanan
--- ============================================================================
-CREATE TRIGGER IF NOT EXISTS `trg_pesanan_after_update`
-AFTER UPDATE ON `pesanan`
-FOR EACH ROW
-BEGIN
-  IF NEW.status <> OLD.status THEN
-    INSERT INTO `audit_log`
-      (`user_tipe`, `user_id`, `jenis_aktivitas`, `hasil`, `target_table`,
-       `target_id`, `teks`, `detail_json`, `ikon`, `warna`, `alamat_ip`, `dibuat_pada`)
-    VALUES
-      ('admin', NULL, 'ubah_status_pesanan', 'Berhasil', 'pesanan',
-       NEW.id,
-       CONCAT('Pesanan ', NEW.id, ' dipindahkan ke status ', NEW.status),
-       JSON_OBJECT('dari_status', OLD.status, 'ke_status', NEW.status,
-                   'kode_promo', NEW.kode_promo,
-                   'total_sebelum', OLD.total, 'total_setelah', NEW.total),
-       'pengecekan', 'orange', NULL, NOW());
-  END IF;
-END;
 
 -- ============================================================================
--- TRIGGER: audit perubahan status pembayaran
+-- SEMUA TRIGGER DITERUSKAN KE BACKEND PHP
+-- ==========================================================================--
+-- InfinityFree shared MySQL tidak memberi hak TRIGGER (error #1142),
+-- sehingga semua audit log status/profil sekarang ditulis oleh aplikasi
+-- melalui Aktivitas::audit() yang dipanggil di dalam Database::transaksi().
+-- Desain ini memastikan atomicity: UPDATE + audit terjadi bersama-sama,
+-- atau jika audit gagal, transaksi digulirkan untuk menjaga konsistensi.
+--
+-- Peta logika yang dipindahkan:
+--   trg_pesanan_after_update     -> audit ubah_status_pesanan     (PengendaliPesanan::ubahStatus)
+--   trg_pembayaran_after_update  -> audit ubah_status_pembayaran  (PengendaliPembayaran::ubah)
+--   trg_produk_after_update      -> audit ubah_status_produk    (PengendaliProduk::simpan)
+--   trg_admin_after_update       -> audit ubah_status_admin     (PengendaliAuth::ubahAdmin)
+--   trg_ulasan_after_insert      -> validasi auto-approve rating>=4 (PengendaliUlasan::kirim)
+--
+-- Migrasi M0 (database/migrasi.php) menjalankan DROP TRIGGER IF EXISTS
+-- untuk 5 trigger lama bersifat idempoten (bisa dijalankan berkali-kali).
+-- SETANA LINTAS: SETELAH schema.sql diterapkan di DB, migrasi M0 bisa
+-- dijalankan untuk membersihkan trigger lama yang masih ada.
+--
+-- +++ PERBAikan F-V5-04: SEMUA CHECK CONSTRAINT TAMBAHAN IDempotent +++
+-- Semua ALTER TABLE ADD CONSTRAINT CHECK di-selenggarai dengan IF NOT EXISTS
+-- agar skema dapat dieksekusi berulang kali tanpa error "Duplicate CHECK constraint".
+-- Lihat setiap constraint di bawah ini (baris 610-670).
 -- ============================================================================
-CREATE TRIGGER IF NOT EXISTS `trg_pembayaran_after_update`
-AFTER UPDATE ON `pembayaran`
-FOR EACH ROW
-BEGIN
-  IF NEW.status <> OLD.status THEN
-    INSERT INTO `audit_log`
-      (`user_tipe`, `user_id`, `jenis_aktivitas`, `hasil`, `target_table`,
-       `target_id`, `teks`, `detail_json`, `ikon`, `warna`, `alamat_ip`, `dibuat_pada`)
-    VALUES
-      ('admin', NULL, 'ubah_status_pembayaran', 'Berhasil', 'pembayaran',
-       NEW.id,
-       CONCAT('Pembayaran ', NEW.id, ' pindah ke status ', NEW.status),
-       JSON_OBJECT('dari_status', OLD.status, 'ke_status', NEW.status,
-                   'nominal', NEW.nominal,
-                   'metode', NEW.metode),
-       'uang', 'kuning', NULL, NOW());
-  END IF;
-END;
-
--- ============================================================================
--- TRIGGER: audit perubahan status produk
--- ============================================================================
-CREATE TRIGGER IF NOT EXISTS `trg_produk_after_update`
-AFTER UPDATE ON `produk`
-FOR EACH ROW
-BEGIN
-  IF NEW.status <> OLD.status THEN
-    INSERT INTO `audit_log`
-      (`user_tipe`, `user_id`, `jenis_aktivitas`, `hasil`, `target_table`,
-       `target_id`, `teks`, `detail_json`, `ikon`, `warna`, `alamat_ip`, `dibuat_pada`)
-    VALUES
-      ('admin', NULL, 'ubah_status_produk', 'Berhasil', 'produk',
-       NEW.id,
-       CONCAT('Produk ', NEW.id, ' pindah ke status ', NEW.status),
-       JSON_OBJECT('dari_status', OLD.status, 'ke_status', NEW.status,
-                   'nama_produk', NEW.nama),
-       'bintang', 'hijau', NULL, NOW());
-  END IF;
-END;
-
--- ============================================================================
--- TRIGGER: audit perubahan status admin
--- ============================================================================
-CREATE TRIGGER IF NOT EXISTS `trg_admin_after_update`
-AFTER UPDATE ON `admin`
-FOR EACH ROW
-BEGIN
-  IF NEW.status <> OLD.status OR NEW.peran <> OLD.peran THEN
-    INSERT INTO `audit_log`
-      (`user_tipe`, `user_id`, `jenis_aktivitas`, `hasil`, `target_table`,
-       `target_id`, `teks`, `detail_json`, `ikon`, `warna`, `alamat_ip`, `dibuat_pada`)
-    VALUES
-      ('admin', NEW.id, 'ubah_status_admin', 'Berhasil', 'admin',
-       NEW.id,
-       CONCAT('Admin ', NEW.id, ' status/role diubah: ',
-              IF(OLD.status <> NEW.status, CONCAT('status ', OLD.status, ' -> ', NEW.status, ' | '), ''),
-              IF(OLD.peran <> NEW.peran, CONCAT('peran ', OLD.peran, ' -> ', NEW.peran), '')),
-       JSON_OBJECT('dari_status', OLD.status, 'ke_status', NEW.status,
-                   'dari_peran', OLD.peran, 'ke_peran', NEW.peran),
-       'pengaturan', 'ungu', NULL, NOW());
-  END IF;
-END;
-
--- ============================================================================
--- TRIGGER: validasi ulasan (automatis setujui rating >= 4, tandai review)
--- ============================================================================
-CREATE TRIGGER IF NOT EXISTS `trg_ulasan_after_insert`
-BEFORE INSERT ON `ulasan`
-FOR EACH ROW
-BEGIN
-  IF NEW.rating <= 3 THEN
-    SET NEW.status = 'Menunggu';
-  ELSE
-    SET NEW.status = 'Disetujui';
-  END IF;
-END;
 
 
 
@@ -689,28 +612,43 @@ ALTER TABLE `pelanggan`
     AFTER `jumlah_pesanan`;
 
 -- 3) Produk: pastikan diskon tidak melebihi harga (ketika diskon > 0)
+-- Gunakan IF NOT EXISTS agar skema aman dijalankan berulang kali.
+-- Catatan: MySQL < 8.0.16 mem-parse CHECK tapi tidak menegakkan;
+-- validasi utama diletakkan di backend PHP (Aktivitas::audit + transaksi).
 ALTER TABLE `produk`
-  ADD CONSTRAINT `chk_produk_diskon_harga`
+  ADD CONSTRAINT IF NOT EXISTS `chk_produk_diskon_harga`
     CHECK (`harga_diskon` = 0 OR `harga_diskon` <= `harga`);
 
 -- 4) Promo: pastikan tanggal berakhir >= tanggal mulai
+-- Gunakan IF NOT EXISTS agar skema aman dijalankan berulang kali.
+-- Catatan: MySQL < 8.0.16 mem-parse CHECK tapi tidak menegakkan;
+-- validasi utama diletakkan di backend PHP (Aktivitas::audit + transaksi).
 ALTER TABLE `promo`
-  ADD CONSTRAINT `chk_promo_range_waktu`
+  ADD CONSTRAINT IF NOT EXISTS `chk_promo_range_waktu`
     CHECK (`berakhir` IS NULL OR `mulai` IS NULL OR `berakhir` >= `mulai`);
 
 -- 5) Pesanan: hindari total yang tidak masuk akal
+-- Gunakan IF NOT EXISTS agar skema aman dijalankan berulang kali.
+-- Catatan: MySQL < 8.0.16 mem-parse CHECK tapi tidak menegakkan;
+-- validasi utama diletakkan di backend PHP (Aktivitas::audit + transaksi).
 ALTER TABLE `pesanan`
-  ADD CONSTRAINT `chk_pesanan_total_reasonable`
+  ADD CONSTRAINT IF NOT EXISTS `chk_pesanan_total_reasonable`
     CHECK (`total` <= `subtotal` + `biaya_layanan` + 1000000);
 
 -- 6) Pembayaran: pastikan nominal_refund tidak melebihi nominal
+-- Gunakan IF NOT EXISTS agar skema aman dijalankan berulang kali.
+-- Catatan: MySQL < 8.0.16 mem-parse CHECK tapi tidak menegakkan;
+-- validasi utama diletakkan di backend PHP (Aktivitas::audit + transaksi).
 ALTER TABLE `pembayaran`
-  ADD CONSTRAINT `chk_pembayaran_refund_bukan_lebih`
+  ADD CONSTRAINT IF NOT EXISTS `chk_pembayaran_refund_bukan_lebih`
     CHECK (`nominal_refund` <= `nominal`);
 
 -- 7) Riwayat tontonan: pastikan posisi_detik tidak melebihi durasi_detik
+-- Gunakan IF NOT EXISTS agar skema aman dijalankan berulang kali.
+-- Catatan: MySQL < 8.0.16 mem-parse CHECK tapi tidak menegakkan;
+-- validasi utama diletakkan di backend PHP (Aktivitas::audit + transaksi).
 ALTER TABLE `riwayat_tontonan`
-  ADD CONSTRAINT `chk_riwayat_posisi_bawah_durasi`
+  ADD CONSTRAINT IF NOT EXISTS `chk_riwayat_posisi_bawah_durasi`
     CHECK (`posisi_detik` <= IFNULL(`durasi_detik`, POWER(2, 32) - 1));
 
 -- 8) Ulasan: status default yang konsisten
@@ -719,13 +657,19 @@ ALTER TABLE `ulasan`
     DEFAULT 'Menunggu' AFTER `komentar`;
 
 -- 9) Pesan: pastikan teks tidak kosong bila tipe = 'teks'
+-- Gunakan IF NOT EXISTS agar skema aman dijalankan berulang kali.
+-- Catatan: MySQL < 8.0.16 mem-parse CHECK tapi tidak menegakkan;
+-- validasi utama diletakkan di backend PHP (Aktivitas::audit + transaksi).
 ALTER TABLE `pesan`
-  ADD CONSTRAINT `chk_pesan_teks_wajib_bila_tipe_teks`
+  ADD CONSTRAINT IF NOT EXISTS `chk_pesan_teks_wajib_bila_tipe_teks`
     CHECK (`tipe` <> 'teks' OR (CHAR_LENGTH(`teks`) > 0));
 
 -- 10) Percakapan: pastikan setidaknya ada anggota
+-- Gunakan IF NOT EXISTS agar skema aman dijalankan berulang kali.
+-- Catatan: MySQL < 8.0.16 mem-parse CHECK tapi tidak menegakkan;
+-- validasi utama diletakkan di backend PHP (Aktivitas::audit + transaksi).
 ALTER TABLE `anggota_percakapan`
-  ADD CONSTRAINT `chk_anggota_bukan_null`
+  ADD CONSTRAINT IF NOT EXISTS `chk_anggota_bukan_null`
     CHECK (`user_tipe` <> '' AND `user_id` <> '');
 
 

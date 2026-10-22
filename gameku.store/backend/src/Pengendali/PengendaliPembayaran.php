@@ -196,7 +196,7 @@ class PengendaliPembayaran extends PengendaliDasar
 
         Aktivitas::audit('ubah_status_pembayaran', 'pembayaran', $id, 'Berhasil', [
             'statusLama' => $lama['status'], 'statusBaru' => $status,
-        ], "Status pembayaran {$id} diubah ke {$status}");
+        ], "Status pembayaran {$id} diubah ke {$status}", true);
         Bantu::sukses(['id' => $id, 'status' => $status], 'Pembayaran diperbarui.');
     }
 

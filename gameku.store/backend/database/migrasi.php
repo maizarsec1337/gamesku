@@ -515,6 +515,17 @@ $migrasi[] = ['M9', 'tabel reseller_pengajuan', function (PDO $pdo): array {
     return ['CREATE TABLE reseller_pengajuan'];
 }];
 
+// M0 — hapus trigger lama (idempoten).
+$migrasi[] = ['M0', 'hapus trigger lama', function (PDO $pdo): array {
+    $ubah = [];
+    $pdo->exec("DROP TRIGGER IF EXISTS `trg_pesanan_after_update`;");
+    $pdo->exec("DROP TRIGGER IF EXISTS `trg_pembayaran_after_update`;");
+    $pdo->exec("DROP TRIGGER IF EXISTS `trg_produk_after_update`;");
+    $pdo->exec("DROP TRIGGER IF EXISTS `trg_admin_after_update`;");
+    $pdo->exec("DROP TRIGGER IF EXISTS `trg_ulasan_after_insert`;");
+    return $ubah;
+}];
+
 // ============================ Jalankan ============================
 
 $totalUbah = 0;

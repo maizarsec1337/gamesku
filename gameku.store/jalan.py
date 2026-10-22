@@ -36,10 +36,10 @@ import signal
 import socket
 import subprocess
 import sys
-import termios
+import msvcrt
 import threading
 import time
-import tty
+
 import webbrowser
 from collections import deque
 from datetime import datetime
@@ -92,6 +92,7 @@ FILEWATCH_TARGETS = [
     os.path.join("frontend", "src", "halaman", "Beranda.jsx"),
     os.path.join("frontend", "vite.config.js"),
     os.path.join("backend", "api", "index.php"),
+    os.path.join("frontend", "src", "layanan", "layananPesanan.js"),
 ]
 # ============================================================
 # ANSI Warna & Simbol
@@ -486,7 +487,7 @@ def pantau_layanan(layanan):
 
 
 # Dashboard & Interaktif
-import select, tty, termios
+import select, msvcrt
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -525,12 +526,10 @@ def draw_status_panel():
 
 def handle_input():
     try:
-        fd = sys.stdin.fileno()
-        old = termios.tcgetattr(fd)
-        tty.setraw(fd)
-        ch = sys.stdin.read(1)
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
-        return ch
+        # Windows: use msvcrt for non-blocking input
+        if msvcrt.kbhit():
+            return msvcrt.getch().decode('utf-8', errors='ignore')
+        return None
     except Exception:
         return None
 
@@ -574,6 +573,7 @@ def watch_files(last_mtimes):
 
 # Main (Dashboard versi 2.0)
 def main():
+    global running
     globals()['filewatch_mtime'] = {}
     globals()['running'] = True
     draw_header()

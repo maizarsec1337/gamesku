@@ -342,11 +342,26 @@ class PengendaliPesanan extends PengendaliDasar
         if (!$lama) Bantu::gagal('Pesanan tidak ditemukan.', 404);
 
         $status = $this->salahDari($this->teks('status', $lama['status']), self::STATUS, $lama['status']);
-        Database::eksekusi('UPDATE pesanan SET status=?, diperbarui_pada=NOW() WHERE id=?', [$status, $id]);
-        Aktivitas::audit('ubah_status_pesanan', 'pesanan', $id, 'Berhasil', [
-            'statusLama' => $lama['status'],
-            'statusBaru' => $status,
-        ], "Status pesanan {$id} diubah ke {$status}");
+
+        $success = Database::transaksi(function () use ($id, $lama, $status) {
+            // UPDATE pesanan di dalam transaksi
+            Database::eksekusi('UPDATE pesanan SET status=?, diperbarui_pada=NOW() WHERE id=?', [$status, $id]);
+
+            // Audit di dalam transaksi — jika gagal, transaksi digulirkan
+            $auditOk = Aktivitas::audit('ubah_status_pesanan', 'pesanan', $id, 'Berhasil', [
+                'statusLama' => $lama['status'],
+                'statusBaru' => $status,
+            ], "Status pesanan {$id} diubah ke {$status}", true);
+
+            if (!$auditOk) {
+                throw new RuntimeException('Gagal mencatat audit status pesanan');
+            }
+            return true;
+        });
+
+        if (!$success) {
+            Bantu::gagal('Gagal memperbarui status pesanan.', 500);
+        }
         Bantu::sukses(['id' => $id, 'status' => $status], 'Status pesanan diperbarui.');
     }
 

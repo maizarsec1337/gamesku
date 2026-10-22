@@ -111,17 +111,20 @@ class PengendaliUlasan extends PengendaliDasar
         $komentar = $this->teksMentah('komentar', '', 5000);
         $id = Bantu::idBaru('uls');
 
+        // Validasi otomatis: rating >= 4 langsung Disetujui, else Menunggu
+        $status = ($rating >= 4) ? 'Disetujui' : 'Menunggu';
+
         Database::eksekusi(
             'INSERT INTO ulasan (id, produk_id, produk_nama, pelanggan_nama, rating, komentar, status)
              VALUES (?,?,?,?,?,?,?)',
-            [$id, $produkId, $produkNama, $pelanggan, $rating, $komentar, 'Menunggu']
+            [$id, $produkId, $produkNama, $pelanggan, $rating, $komentar, $status]
         );
         Aktivitas::audit('kirim_ulasan', 'ulasan', $id, 'Berhasil', [
             'produkId' => $produkId,
             'produkNama' => $produkNama,
             'pelanggan' => $pelanggan,
             'rating' => $rating,
-        ], "Ulasan produk \"{$produkNama}\" dikirim oleh {$pelanggan}");
+        ], "Ulasan produk \"{$produkNama}\" dikirim oleh {$pelanggan} (rating {$rating}, status {$status})");
         Bantu::sukses(['id' => $id, 'status' => 'Menunggu'], 'Ulasan terkirim, menunggu moderasi.', 201);
     }
 

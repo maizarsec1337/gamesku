@@ -31,8 +31,9 @@ class Aktivitas
         string $targetId = '',
         string $hasil = 'Berhasil',
         array $detail = [],
-        string $teks = ''
-    ): void {
+        string $teks = '',
+        bool $throw = false
+    ): bool {
         try {
             $sesi = $_SESSION['admin'] ?? null;
             $ip = RateLimiter::ip();
@@ -53,7 +54,15 @@ class Aktivitas
                 ]
             );
         } catch (Throwable $e) {
-            // Audit bersifat sampingan; jangan rusakkan request utama.
+            // Audit bersifat sampingan; secara default jangan rusakkan request utama.
+            if ($throw) {
+                throw new RuntimeException(
+                    'Pencatatan audit gagal: ' . $e->getMessage(),
+                    (int) $e->getCode(),
+                    $e
+                );
+            }
+            return false;
         }
     }
 

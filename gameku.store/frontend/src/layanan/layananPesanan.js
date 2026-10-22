@@ -1,28 +1,33 @@
-// Layanan pesanan: transaksi masuk toko (mulai kosong, diisi checkout/API).
-
-import { buatKoleksi } from './layananKoleksi.js'
 import { memo } from './penyimpananLokal.js'
-import { STATUS_PESANAN } from '../data/konstanta.js'
 
-const koleksi = buatKoleksi('pesanan', 'psn')
+// Versi-aware memo untuk kompatibilitas dengan useSyncExternalStore
+function memoVersi(hitung) {
+  const simpan = new Map()
+  return (...args) => {
+    const kunci = args.length ? JSON.stringify(args) : ''
+    const ada = simpan.get(kunci)
+    if (ada && ada.v === versi) return ada.nilai
+    const nilai = hitung(...args)
+    simpan.set(kunci, { v: versi, nilai })
+    return nilai
+  }
+}
 
-// Pembacaan (memo: referensi stabil untuk useSyncExternalStore).
-export const daftarPesanan = memo(() => koleksi.daftar())
+const versi = 0
 
-export const ambilPesananId = memo((id) => koleksi.ambil(id))
+// Memo bergantung versi: referensi stabil sampai cache berubah.
+export const daftarPesanan = memoVersi(() => koleksi.daftar())
 
-// Pesanan berhasil — sumber hitungan pendapatan.
-export const pesananBerhasil = memo(() => daftarPesanan().filter((p) => p.status === 'Berhasil'))
+// Pesanan berhasil -- sumber hitungan pendapatan.
+export const pesananBerhasil = memoVersi(() => daftarPesanan().filter((p) => p.status === 'Berhasil'))
 
 // Pesanan terbaru untuk dasbor.
-export const pesananTerbaru = memo((jumlah = 6) =>
-  [...daftarPesanan()]
-    .sort((a, b) => String(b.dibuatPada || '').localeCompare(String(a.dibuatPada || '')))
-    .slice(0, jumlah),
-)
+export const pesananTerbaru = memoVersi((jumlah = 6) => [...daftarPesanan()]
+  .sort((a, b) => String(b.dibuatPada || '').localeCompare(String(a.dibuatPada || '')))
+  .slice(0, jumlah))
 
 // Jumlah pesanan per status (kartu ringkasan).
-export const hitungPerStatus = memo(() => {
+export const hitungPerStatus = memoVersi(() => {
   const hasil = {}
   for (const status of STATUS_PESANAN) hasil[status] = 0
   for (const pesanan of daftarPesanan()) {
@@ -43,6 +48,8 @@ export function tambahPesanan(data) {
     status: STATUS_PESANAN.includes(data.status) ? data.status : 'Menunggu',
     ...data,
   })
+  // Invalidasi cache setelah data berubah
+  versi += 1
   return { berhasil: true, data: baru }
 }
 
@@ -52,17 +59,23 @@ export function ubahStatusPesanan(id, status) {
   }
   const baru = koleksi.perbarui(id, { status })
   if (!baru) return { berhasil: false, pesan: 'Pesanan tidak ditemukan.' }
+  // Invalidasi cache setelah data berubah
+  versi += 1
   return { berhasil: true, data: baru }
 }
 
 // Berlangganan perubahan pesanan (dasbor & sidebar ikut memuat ulang).
-export const subscribePesanan = (dengar) => koleksi.berlangganan(dengar)
+// Ini adalah jembatan untuk useSyncExternalStore di komponen React.
+export function subscribePesanan(dengar) {
+  koleksi.berlangganan(dengar)
+  return () => koleksi.berlangganan(dengar, () => {})
+}
 
+// Default export untuk kompatibilitas
 export default {
   daftar: daftarPesanan,
-  ambil: ambilPesananId,
+  ambil: (id) => daftarPesanan().find((p) => p.id === id),
   subscribe: subscribePesanan,
-  subscribePesanan,
   terbaru: pesananTerbaru,
   berhasil: pesananBerhasil,
   perStatus: hitungPerStatus,

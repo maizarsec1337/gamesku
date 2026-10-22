@@ -46,6 +46,7 @@ export default function App() {
           <Route path="produk/tambah" element={<AdminProdukTambah />} />
           <Route path="pesanan" element={<AdminPesanan />} />
           <Route path="pelanggan" element={<AdminPelanggan />} />
+          <Route path="superadmin" element={<SuperadminDasbor />} />
           <Route path="creator" element={<AdminCreator />} />
           <Route path="kategori" element={<AdminKategori />} />
           <Route path="promo" element={<AdminPromo />} />

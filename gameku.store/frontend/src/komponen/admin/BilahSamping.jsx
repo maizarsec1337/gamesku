@@ -51,6 +51,17 @@ export default function BilahSamping({ terbuka = false, padaTutup = () => {} }) 
   const namaAdmin = sesiServer?.nama || sesiServer?.pengguna || 'Administrator'
   const labelPeran = isSuperadmin ? 'Super Admin' : 'Admin'
 
+  // Menu superadmin hanya tampilakn bila user terverifikasi sebagai superadmin
+  // Email resmi: gameku.myid@gmail.com. Cek di server-side juga via Auth::wajibPeran('superadmin').
+  const menuSuperadmin = isSuperadmin && [
+    { teks: 'Dasbor Super', ke: '/admin', ikon: 'kotak', akhir: true },
+    { teks: 'Pengguna', ke: '/admin/pelanggan', ikon: 'pelanggan' },
+    { teks: 'Reseller', ke: '/admin/reseller', ikon: 'dompet' },
+    { teks: 'CS', ke: '/admin/cs', ikon: 'chat' },
+    { teks: 'Produk & Pesanan', ke: '/admin/produk', ikon: 'kotak' },
+    { teks: 'Pengaturan', ke: '/admin/pengaturan', ikon: 'pengaturan' },
+  ]
+
   const akhiriSesi = async () => {
     await keluar()
     navigate('/admin/login', { replace: true })
@@ -75,27 +86,46 @@ export default function BilahSamping({ terbuka = false, padaTutup = () => {} }) 
       </div>
 
       <nav className="bilah-menu" aria-label="Menu admin">
-        {seksiMenu.map((seksi) => (
-          <div key={seksi.judul}>
-            <div className="bilah-seksi">{seksi.judul}</div>
-            {seksi.tautan.map((tautan) => (
-              <NavLink
-                key={tautan.ke}
-                to={tautan.ke}
-                end={tautan.akhir}
-                className={({ isActive }) =>
-                  `bilah-tautan ${isActive ? 'aktif' : ''}`
-                }
-              >
-                <Ikon nama={tautan.ikon} ukuran={17.5} />
-                <span>{tautan.teks}</span>
-                {tautan.hitung && hitungan[tautan.hitung] > 0 && (
-                  <span className="lencana-jumlah">{hitungan[tautan.hitung]}</span>
-                )}
-              </NavLink>
-            ))}
-          </div>
-        ))}
+        {isSuperadmin ? (
+          menuSuperadmin.map((tautan) => (
+            <NavLink
+              key={tautan.ke}
+              to={tautan.ke}
+              end={tautan.akhir}
+              className={({ isActive }) =>
+                `bilah-tautan ${isActive ? 'aktif' : ''}`
+              }
+            >
+              <Ikon nama={tautan.ikon} ukuran={17.5} />
+              <span>{tautan.teks}</span>
+              {tautan.hitung && hitungan[tautan.hitung] > 0 && (
+                <span className="lencana-jumlah">{hitungan[tautan.hitung]}</span>
+              )}
+            </NavLink>
+          ))
+        ) : (
+          seksiMenu.map((seksi) => (
+            <div key={seksi.judul}>
+              <div className="bilah-seksi">{seksi.judul}</div>
+              {seksi.tautan.map((tautan) => (
+                <NavLink
+                  key={tautan.ke}
+                  to={tautan.ke}
+                  end={tautan.akhir}
+                  className={({ isActive }) =>
+                    `bilah-tautan ${isActive ? 'aktif' : ''}`
+                  }
+                >
+                  <Ikon nama={tautan.ikon} ukuran={17.5} />
+                  <span>{tautan.teks}</span>
+                  {tautan.hitung && hitungan[tautan.hitung] > 0 && (
+                    <span className="lencana-jumlah">{hitungan[tautan.hitung]}</span>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+          ))
+        )}
       </nav>
 
       <div className="bilah-profil">

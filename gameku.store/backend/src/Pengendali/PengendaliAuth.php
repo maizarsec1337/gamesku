@@ -191,12 +191,23 @@ class PengendaliAuth extends PengendaliDasar
             Bantu::gagal('Anda tidak dapat menonaktifkan/menurunkan peran akun sendiri.', 409);
         }
 
-        Database::eksekusi('UPDATE admin SET status = ?, peran = ? WHERE id = ?', [$status, $peran, (int) $id]);
-        Aktivitas::audit('ubah_admin', 'admin', $id, 'Berhasil', [
-            'pengguna' => $lama['pengguna'] ?? '',
-            'status' => $status,
-            'peran' => $peran,
-        ], "Admin '{$lama['pengguna']}' diperbarui");
+        $success = Database::transaksi(function () use ($id, $lama, $status, $peran) {
+            Database::eksekusi('UPDATE admin SET status = ?, peran = ? WHERE id = ?', [$status, $peran, (int) $id]);
+            $auditOk = Aktivitas::audit('ubah_admin', 'admin', $id, 'Berhasil', [
+                'pengguna' => $lama['pengguna'] ?? '',
+                'status' => $status,
+                'peran' => $peran,
+            ], "Admin '{$lama['pengguna']}' diperbarui", true);
+
+            if (!$auditOk) {
+                throw new RuntimeException('Gagal mencatat audit ubah admin');
+            }
+            return true;
+        });
+
+        if (!$success) {
+            Bantu::gagal('Gagal memperbarui admin.', 500);
+        }
         Bantu::sukses(['id' => (int) $id, 'status' => $status, 'peran' => $peran], 'Admin diperbarui.');
     }
 
