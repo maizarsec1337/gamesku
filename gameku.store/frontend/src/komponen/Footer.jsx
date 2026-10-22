@@ -14,8 +14,8 @@ export default function Footer() {
       <div className="wadah kaki-isi">
         <div className="kaki-utama">
           <div className="kaki-merek">
-            <span className="logo-mini"><span className="logo-gamesku" style={{width:26,height:26,fontSize:15}} aria-hidden="true">G</span>Gamesku</span>
-            <p>Gaming store — top-up, voucher, dan konten digital dari kreator kurasi. Cepat, aman, instan.</p>
+            <Link className="logo-mini" to="/" aria-label="Gamesku — beranda"><span className="logo-gamesku" aria-hidden="true">G</span>Gamesku</Link>
+            <p>Item kecil. Petualangan besar. Temukan skin, dunia baru, dan konten digital untuk gaya bermainmu.</p>
             <div className="kaki-sosial">
               <a href="https://discord.gg/gamesku" target="_blank" rel="noreferrer" aria-label="Discord">Discord</a>
               <a href="https://youtube.com/@gamesku" target="_blank" rel="noreferrer" aria-label="YouTube">YouTube</a>

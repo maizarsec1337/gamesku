@@ -41,6 +41,7 @@ import threading
 import time
 
 import webbrowser
+from php_runtime import perintah_php
 from collections import deque
 from datetime import datetime
 from urllib.error import HTTPError, URLError
@@ -65,7 +66,7 @@ PHP_CMD = shutil.which("php")  # None bila PHP tidak terpasang
 
 # --strictPort: Vite gagal kalau port 5173 tidak tersedia (terbaca jelas di log).
 FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--strictPort"]
-BACKEND_CMD = [PHP_CMD or "php", "-S", f"localhost:{BACKEND_PORT}", "-t", ".", "api/index.php"]
+BACKEND_CMD = (perintah_php() if PHP_CMD else ["php"]) + ["-S", f"localhost:{BACKEND_PORT}", "-t", ".", "api/index.php"]
 
 # CREATE_NO_WINDOW mencegah jendela CMD baru di Windows. POSIX pakai start_new_session.
 FLAG_POPEN = (

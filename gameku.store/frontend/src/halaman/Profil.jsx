@@ -54,7 +54,7 @@ export default function HalamanProfil() {
   // `dari` diteruskan agar setelah backend buyer siap, login sukses bisa
   // kembali ke halaman tujuan sebelumnya (kontrak: state.dari).
   if (status !== 'masuk') {
-    return <HalamanMasuk />
+    return <HalamanMasuk tertanam />
   }
 
   return (

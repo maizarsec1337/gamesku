@@ -7,7 +7,7 @@ import ChatbotAI from './ChatbotAI.jsx'
 // Tata letak utama marketplace (navigasi atas + navigasi bawah + footer + chatbot).
 export default function TataLetak() {
   return (
-    <>
+    <div className="etalase">
       <Navigasi />
       <main className="isi-halaman">
         <Outlet />
@@ -15,7 +15,7 @@ export default function TataLetak() {
       <Footer />
       <NavigasiBawah />
       <ChatbotAI />
-    </>
+    </div>
   )
 }
 

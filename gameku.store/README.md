@@ -12,7 +12,7 @@ gamesku.store/
 
 ```bash
 # Terminal 1 — backend PHP
-php -S localhost:8000 -t backend backend/api/index.php
+python php_runtime.py
 
 # Terminal 2 — frontend Vite
 cd frontend
@@ -22,6 +22,19 @@ npm run dev
 
 Buka `http://localhost:5173`. Request `/api` dari frontend
 diteruskan otomatis ke backend PHP di port 8000.
+
+Di Windows, `mulai.bat` menjalankan keduanya. Launcher mengaktifkan ekstensi PHP
+yang tersedia (termasuk `pdo_mysql`) tanpa mengubah `php.ini` global.
+Menjalankan Vite saja tidak menjalankan backend PHP.
+
+Streamku membaca katalog asli dari `backend/api/data_anime_lengkap.json` melalui
+`/api/anime`. Produk membaca MySQL sesuai `backend/config/config.php`.
+Periksa `/api/sehat`: `database` harus bernilai `tersambung` untuk katalog produk.
+Jika memakai MySQL InfinityFree gratis, backend PHP harus berjalan di hosting
+yang sama; koneksi langsung dari komputer lokal tidak didukung. Gunakan MySQL
+lokal dengan salinan data sendiri untuk pengembangan, atau backend aktif melalui
+variabel `API_PROXY` sebelum menjalankan Vite. Jangan mengganti hostname dengan
+tebakan atau memasukkan kredensial database ke frontend.
 
 ## Build produksi terpadu (satu folder deployment)
 

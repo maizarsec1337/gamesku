@@ -8,6 +8,7 @@ import { gradasiOtomatis } from '../data/konstanta.js'
 import { useWishlist } from '../konteks/konteksWishlist.js'
 import { useKeranjang } from '../konteks/konteksKeranjang.js'
 import Ikon from './Ikon.jsx'
+import VisualItem from './VisualItem.jsx'
 import '../css/detail.css'
 
 export default function DetailProduk({ produk }) {
@@ -47,7 +48,7 @@ export default function DetailProduk({ produk }) {
             {String(produk.thumbnail || '').trim() ? (
               <img src={produk.thumbnail} alt={produk.nama} loading="lazy" decoding="async" width="800" height="500" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
             ) : (
-              <><span className="pola-kotak" aria-hidden="true" /><span className="ikon-besar" aria-hidden="true"><Ikon nama="toko" ukuran={56} /></span></>
+              <><span className="pola-kotak" aria-hidden="true" /><span className="ikon-besar" aria-hidden="true"><VisualItem jenis={produk.jenis} ukuran={80} /></span></>
             )}
             {persen > 0 && <span className="lencana lencana-kuning" style={{ position: 'absolute', top: 10, left: 10 }}>-{persen}%</span>}
           </div>
@@ -61,20 +62,10 @@ export default function DetailProduk({ produk }) {
                 Versi Minecraft: {produk.versiMinecraft}.
               </p>
             )}
-            {produk.thumbnail && (
-              <p className="subjudul-halaman" style={{ marginTop: 8 }}>
-                Thumbnail: {produk.thumbnail}
-              </p>
-            )}
             {produk.preview?.length > 0 && (
-              <p className="subjudul-halaman" style={{ marginTop: 8 }}>
-                Preview: {produk.preview.join(', ')}
-              </p>
-            )}
-            {produk.fileProduk && (
-              <p className="subjudul-halaman" style={{ marginTop: 8 }}>
-                File produk: {produk.fileProduk}
-              </p>
+              <div className="preview-produk" aria-label="Preview produk">
+                {produk.preview.map((url, i) => <img key={`${url}-${i}`} src={url} alt={`Preview ${produk.nama} ${i + 1}`} loading="lazy" />)}
+              </div>
             )}
           </div></article>
         </div>

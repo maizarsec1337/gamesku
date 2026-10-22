@@ -39,18 +39,19 @@ export default function Kategori({ ringkas = false }) {
       <div className="wadah">
         {!ringkas && (
           <div className="judul-bagian">
-            <div><h2>Jelajahi Kategori</h2><p>{isi.length} layanan terpopuler Gamesku.</p></div>
+            <div><span className="arena-section-label">PICK YOUR PLAY</span><h2>Temukan duniamu.</h2><p>Mulai dari kategori yang paling kamu suka.</p></div>
             <Link className="tautan-lihat" to="/kategori">Semua<Ikon nama="panahKanan" ukuran={14} /></Link>
           </div>
         )}
         <div className="rel-kategori">
-          {isi.map((k) => (
-            <Link key={k.kunci} className="kartu-jelajah" to={k.ke}>
+          {isi.map((k, i) => (
+            <Link key={k.kunci} className="kartu-jelajah" to={k.ke} style={{ '--kategori-aksen': ['#c8f56b', '#b6a0ff', '#ffba82', '#80d9d1'][i % 4] }}>
               <span className="kategori-ikon" aria-hidden="true"><Ikon nama={k.ikon} ukuran={20} /></span>
               <span className="kategori-teks">
                 <strong>{k.nama}</strong>
                 <small>{k.jumlah === null ? 'Gamesku' : `${k.jumlah} produk`}</small>
               </span>
+              <span className="kategori-panah" aria-hidden="true">↗</span>
             </Link>
           ))}
         </div>

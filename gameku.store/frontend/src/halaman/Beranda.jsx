@@ -16,17 +16,17 @@ import { daftarProdukDariApi } from '../layanan/layananProdukApi.js'
 import { GalatAnime } from '../layanan/layananAnime.js'
 
 const SHORTCUT = [
-  { nama: 'Top Up', ikon: 'unduhCepat', ke: '/store' },
+  { nama: 'Semua Item', ikon: 'unduhCepat', ke: '/store' },
   { nama: 'Promo', ikon: 'promo', ke: '/promo' },
   { nama: 'Gratis', ikon: 'gratis', ke: '/gratis' },
   { nama: 'Bantuan', ikon: 'perisai', ke: '/bantuan' },
 ]
 
 const keunggulan = [
-  { ikon: 'unduhCepat', judul: 'Proses Instan', deskripsi: 'Pesanan diproses otomatis setelah bayar.' },
-  { ikon: 'perisai', judul: 'Bayar Aman', deskripsi: 'Transaksi terenkripsi & mudah dilacak.' },
-  { ikon: 'kreator', judul: 'Kreator Kurasi', deskripsi: 'Produk dipilih manual oleh tim.' },
-  { ikon: 'promo', judul: 'Promo Mingguan', deskripsi: 'Diskon top-up & voucher favorit.' },
+  { ikon: 'unduhCepat', judul: 'Temukan gaya kamu', deskripsi: 'Jelajahi item dari berbagai kategori dalam satu tempat.' },
+  { ikon: 'perisai', judul: 'Detail yang jelas', deskripsi: 'Cek deskripsi dan versi produk sebelum memilih.' },
+  { ikon: 'kreator', judul: 'Ruang untuk kreator', deskripsi: 'Temukan karya yang memberi warna baru ke permainanmu.' },
+  { ikon: 'hati', judul: 'Simpan favoritmu', deskripsi: 'Kumpulkan pilihan di wishlist sambil menjelajah.' },
 ]
 
 export default function Beranda() {
@@ -123,14 +123,14 @@ export default function Beranda() {
       <Kategori />
       <FlashSale daftar={promo} />
       <div className="reveal">
-        <BagianProduk judul="Produk Populer" subjudul="Paling diburu pemain minggu ini." daftar={populer} tautan="/store" />
+        <BagianProduk judul="Pilihan untuk next level." subjudul="Jelajahi item dan penawaran dari katalog kami." daftar={populer} tautan="/store" />
       </div>
       <section className="bagian reveal" aria-label="Katalog produk">
         <div className="wadah">
           <div className="judul-bagian">
             <div>
               <h2>Katalog Produk</h2>
-              <p>{semua.length ? `${semua.length} produk aktif dari database.` : 'Katalog langsung dari database.'}</p>
+              <p>{semua.length ? `${semua.length} item untuk melengkapi petualanganmu.` : 'Cari sesuatu yang cocok dengan gaya bermainmu.'}</p>
             </div>
             <Link className="tautan-lihat" to="/store">Lihat Semua<Ikon nama="panahKanan" ukuran={14} /></Link>
           </div>
@@ -147,7 +147,7 @@ export default function Beranda() {
             <KeadaanKosong
               ikon="kotak"
               judul="Katalog belum terisi"
-              deskripsi="Belum ada produk aktif di database. Admin dapat menerbitkan produk dari dashboard agar tampil di sini."
+              deskripsi="Koleksi baru sedang disiapkan. Jelajahi kategori atau kembali lagi nanti."
               teksTombol="Buka Store"
               tautanTombol="/store"
             />

@@ -17,7 +17,7 @@ function emailValid(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)
 }
 
-export default function HalamanMasuk() {
+export default function HalamanMasuk({ tertanam = false }) {
   const navigasi = useNavigate()
   const lokasi = useLocation()
   const tujuan = lokasi.state?.dari || '/profil'
@@ -104,7 +104,7 @@ export default function HalamanMasuk() {
       </div>
 
       {/* Bar atas: logo Gameku (aset yang sudah ada) + tautan kembali. */}
-      <header className="gk-login-atas">
+      {!tertanam && <header className="gk-login-atas">
         <div className="gk-login-atas-isi">
           <Link className="logo" to="/" aria-label="Gamesku — beranda">
             <span className="logo-gameku" aria-hidden="true">G</span>
@@ -118,7 +118,7 @@ export default function HalamanMasuk() {
             Kembali ke toko
           </Link>
         </div>
-      </header>
+      </header>}
 
       <main className="gk-login-utama">
         <div className="gk-login-grid">

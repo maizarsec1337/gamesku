@@ -8,6 +8,7 @@ import { gradasiOtomatis } from '../data/konstanta.js'
 import { useWishlist } from '../konteks/konteksWishlist.js'
 import { useKeranjang } from '../konteks/konteksKeranjang.js'
 import Ikon from './Ikon.jsx'
+import VisualItem from './VisualItem.jsx'
 
 export default function KartuProduk({ produk, modeFlash = false }) {
   const { disukai, alihkanSuka } = useWishlist()
@@ -28,7 +29,7 @@ export default function KartuProduk({ produk, modeFlash = false }) {
   ) : (
     <>
       <span className="pola-kotak" aria-hidden="true" />
-      <span className="ikon-besar" aria-hidden="true"><Ikon nama="toko" ukuran={42} /></span>
+      <span className="ikon-besar" aria-hidden="true"><VisualItem jenis={produk.jenis} ukuran={48} /></span>
     </>
   )
 
