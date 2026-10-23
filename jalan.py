@@ -15,7 +15,9 @@ from __future__ import annotations
 
 import atexit
 import ctypes
+import hashlib
 import os
+import json
 import shutil
 import signal
 import socket
@@ -56,7 +58,120 @@ BACKEND_HEALTH_URL = "http://localhost:%d/api/sehat" % BACKEND_PORT
 NPM_CMD = shutil.which("npm")
 PHP_CMD = shutil.which("php")  # None bila PHP tidak terpasang
 
-# --strictPort: Vite gagal kalau port 5173 tidak tersedia.
+# ============================================================
+# Warna tema premium dark (ALVIN JMBOD)
+# ============================================================
+# Warna utama: Hitam, Graphite, Ungu, Cyan
+COLOR_BG = "#121216"      # Hitam dalam - latar utama
+COLOR_BG2 = "#1e1e2e"     # Graphite - card/latar secondary
+COLOR_BG3 = "#252535"     # Ungu-abu - elemen detail
+COLOR_FG = "#e0e0e8"      # Teks utama
+COLOR_SUBTLE = "#787888"  # Teks secondary
+COLOR_ACCENT = "#00d4aa"  # Cian hijau tua - aksen utama
+COLOR_ACCENT2 = "#00f5c4" # Cian terang - hover/active
+COLOR_WARNING = "#ffab00" # Kuning peringatan
+COLOR_ERROR = "#ff5f57"   # Merah error
+COLOR_SUCCESS = "#00d4aa" # Hijau sukses
+COLOR_INFO = "#7fdbff"    # Biru info
+COLOR_BORDER = "#3e3e52"  # Border separator
+COLOR_RING = "#664aff"    # Ungu krem - fokus/indikator
+
+# ============================================================
+# Authentifikasi (hash password dengan salt, tidak plaintext)
+# ============================================================
+SALT_ROUNDS = 150000  # PBKDF2 rounds - seimbang keamanan & performa
+USER_DATA_FILE = os.path.join(ROOT_DIR, ".credentials.json")
+
+# Akun default yang harus ada setelah instalasi pertama
+DEFAULT_USERS = {
+    "adminravi": "admin123",
+    "maizardev": "admin123",
+}
+
+def _hash_password(password: str, salt: bytes) -> str:
+    """Hash password menggunakan PBKDF2-HMAC-SHA256."""
+    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, SALT_ROUNDS).hex()
+
+def _generate_salt() -> bytes:
+    """Generate salt unik untuk setiap akun."""
+    return os.urandom(16)
+
+def _load_credentials() -> dict:
+    """Load credentials dari file lokal. Kembalikan dict username -> {salt, hash}."""
+    try:
+        if os.path.exists(USER_DATA_FILE):
+            with open(USER_DATA_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # Validasi format
+            if isinstance(data, dict):
+                validated = {}
+                for username, entry in data.items():
+                    if isinstance(entry, dict) and "salt" in entry and "hash" in entry:
+                        validated[username] = {
+                            "salt": base64.b64decode(entry["salt"]) if isinstance(entry["salt"], str) else entry["salt"],
+                            "hash": entry["hash"],
+                        }
+                return validated
+        return {}
+    except Exception:
+        return {}
+
+def _save_credentials(creds: dict) -> None:
+    """Simpan credentials terhash ke file lokal."""
+    try:
+        # Encode salt as base64 untuk simpan di JSON
+        save_data = {}
+        for username, entry in creds.items():
+            save_data[username] = {
+                "salt": base64.b64encode(entry["salt"]).decode("ascii") if entry.get("salt") else "",
+                "hash": entry["hash"],
+            }
+        # Tulis ke file sementara lalu rename untuk atomicity
+        tmp_file = USER_DATA_FILE + ".tmp"
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            json.dump(save_data, f, indent=2)
+        os.replace(tmp_file, USER_DATA_FILE)
+    except Exception as e:
+        print("[WARNING] Gagal menyimpan kredensial: {}.".format(e))
+
+def _init_default_users() -> None:
+    """Inisialisasi akun default jika file kredensial belum ada."""
+    creds = _load_credentials()
+    if not creds:
+        # Buat akun default dengan hash password
+        for username, password in DEFAULT_USERS.items():
+            salt = _generate_salt()
+            password_hash = _hash_password(password, salt)
+            creds[username] = {"salt": salt, "hash": password_hash}
+        _save_credentials(creds)
+        print("[AUTH] Akun default terinisialisasi.")
+    return creds
+
+def verify_password(username: str, password: str, creds: dict) -> bool:
+    """Verifikasi username/password against stored credentials.
+
+    Returns True jika valid, False jika salah.
+    Tidak mencetak password ke log atau terminal.
+    """
+    if username not in creds:
+        return False
+
+    entry = creds[username]
+    stored_salt = entry["salt"]
+    stored_hash = entry["hash"]
+
+    computed_hash = _hash_password(password, stored_salt)
+
+    # Constant-time comparison to prevent timing attacks
+    return computed_hash == stored_hash
+# Tipografi
+FONT_TITLE = ("Segoe UI", 28, "bold")
+FONT_SUBTITLE = ("Segoe UI", 11)
+FONT_BODY = ("Segoe UI", 10)
+FONT_BORDER = ("Segoe UI", 9)
+FONT_SMALL = ("Segoe UI", 8)
+FONT_CAPTION = ("Segoe UI", 10, "bold")
+FONT_SANS = ("Segoe UI", 9)
 FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--strictPort"]
 
 # Backend hanya dijalankan jika PHP tersedia.
@@ -333,39 +448,53 @@ class ControlCenterApp(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("Gameku Store Control Center")
-        self.geometry("1200x800")
-        self.minsize(1000, 600)
+        self.title("ALVIN JMBOD — Desktop Control Center")
+        self.geometry("1600x980")
+        self.minsize(1400, 800)
 
-        # Configure dark theme
+        # Configure premium dark theme
         self.configure(bg=COLOR_BG)
 
         # Initialize process manager
         self.manager = ProcessManager(app_gui=self)
 
-        # Track running frames
-        self.current_frame = None
+        # State tracking
+        self.current_page = "overview"
+        self.running_services = set()
+        self.log_scroll_pos = 0
+        self.paused_log_scroll = False
 
         # ============ Layout Configuration ============
-        # Grid weights
+        # Grid weights: sidebar 280px, main content fills rest
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        # Create sidebar
+        # Create header
+        self._create_header()
+
+        # Create sidebar navigation
         self._create_sidebar()
 
-        # Create content area
-        self._create_content_area()
+        # Create main content area
+        self.main_content = tk.Frame(self, bg=COLOR_BG2)
+        self.main_content.grid(row=0, column=1, sticky="nsew", padx=0, pady=0)
+        self.main_content.grid_rowconfigure(0, weight=1)
+        self.main_content.grid_columnconfigure(0, weight=1)
 
-        # Create status bar
-        self._create_status_bar()
+        # Create content frames (cards/panels)
+        self._create_content_panels()
 
         # Initialize display
         self._update_process_status("frontend", STATUS_STOPPED)
         self._update_process_status("backend", STATUS_STOPPED)
+        self._refresh_clock()
 
         # Protocol untuk menutup aplikasi
         self.protocol("WM_DELETE_WINDOW", self._on_closing)
+
+        # Animated entrance fade
+        self.alpha = 0
+        self._fade_in(0, self.lift)
     def _create_sidebar(self):
         """Create sidebar frame with service buttons."""
         self.sidebar = tk.Frame(self, bg=COLOR_BG2, width=200)
@@ -449,38 +578,112 @@ class ControlCenterApp(tk.Tk):
             font=("Segoe UI", 9),
         )
         self.lbl_status.grid(row=4, column=0, padx=5, pady=5)
-    def _create_content_area(self):
-        """Create content area with service panels."""
-        self.content_area = tk.Frame(self, bg=COLOR_BG)
-        self.content_area.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
-        self.content_area.grid_rowconfigure(0, weight=1)
-        self.content_area.grid_columnconfigure(0, weight=1)
+    def _create_content_panels(self):
+        """Create content frames that switch between premium pages."""
+        self.pages_frame = tk.Frame(self.main_content, bg=COLOR_BG2)
+        self.pages_frame.grid(row=0, column=0, sticky="nsew")
+        self.pages_frame.grid_rowconfigure(0, weight=1)
+        self.pages_frame.grid_columnconfigure(0, weight=1)
 
-        # Placeholder label
-        self.placeholder_label = tk.Label(
-            self.content_area,
-            text="Pilih layanan di kiri untuk dimulai",
-            bg=COLOR_BG,
-            fg=COLOR_INFO,
-            font=("Segoe UI", 12),
-            pady=50,
-        )
-        self.placeholder_label.grid(row=0, column=0, pady=20)
+        # Initialize all page frames
+        for page in ["overview", "services", "console", "files", "errors", "settings", "about"]:
+            self.pages[page] = tk.Frame(self.pages_frame, bg=COLOR_BG2)
+            self.pages[page].grid(row=0, column=0, sticky="nsew")
+            self.show_page("overview")
     def _create_status_bar(self):
-        """Create status bar at the bottom of the window."""
-        self.status_bar = tk.Frame(self, bg=COLOR_BORDER, height=25)
-        self.status_bar.grid(row=1, column=0, columnspan=2, sticky="ew")
-        self.status_bar.grid_columnconfigure(0, weight=1)
+        """Create premium status bar."""
+        self.status_bar = tk.Frame(self, bg=COLOR_BORDER, height=30)
+        self.status_bar.grid(row=1, column=0, columnspan=2, sticky="ew", padx=0, pady=0)
+        self.status_bar.grid_columnconfigure(2, weight=1)
 
-        self.status_label = tk.Label(
-            self.status_bar,
-            text="Siap",
-            bg=COLOR_BORDER,
-            fg=COLOR_INFO,
-            font=("Segoe UI", 9),
-            anchor="w",
-        )
-        self.status_label.grid(row=0, column=0, sticky="w", padx=5)
+        self.status_label = tk.Label(self.status_bar, text="Siap",
+                                      bg=COLOR_BORDER, fg=COLOR_INFO,
+                                      font=FONT_BORDER, anchor="w")
+        self.status_label.grid(row=0, column=0, sticky="w", padx=12)
+        self.summary_label = tk.Label(self.status_bar, text="",
+                                       bg=COLOR_BORDER, fg=COLOR_SUBTLE,
+                                       font=FONT_SMALL, anchor="center")
+        self.summary_label.grid(row=0, column=1, sticky="ew", padx=8)
+        self.uptime_label = tk.Label(self.status_bar, text="0h 0m",
+                                      bg=COLOR_BORDER, fg=COLOR_SUBTLE,
+                                      font=FONT_SMALL, anchor="e")
+        self.uptime_label.grid(row=0, column=3, sticky="e", padx=12)
+    def _create_header(self):
+        """Create premium header with branding, status, and time."""
+        self.header = tk.Frame(self, height=80, bg=COLOR_BG, relief="flat", borderwidth=0)
+        self.header.grid(row=0, column=1, sticky="ew", padx=0, pady=0)
+        self.header.grid_columnconfigure(4, weight=1)
+        self.header.pack_propagate(False)
+
+        # Left: Branding
+        tk.Label(self.header, text="ALVIN JMBOD", bg=COLOR_BG, fg=COLOR_ACCENT,
+                 font=FONT_TITLE).grid(row=0, column=0, padx=28, pady=(12, 0))
+
+        # Center: System status
+        status_frame = tk.Frame(self.header, bg=COLOR_BG)
+        status_frame.grid(row=0, column=1, padx=40, pady=12, sticky="w")
+        self.header_status = tk.Label(status_frame, text="Status: Siap",
+                                      bg=COLOR_BG, fg=COLOR_SUCCESS,
+                                      font=FONT_SUBTITLE)
+        self.header_status.pack(side="left")
+
+        # Right: Time and settings
+        right_frame = tk.Frame(self.header, bg=COLOR_BG)
+        right_frame.grid(row=0, column=4, padx=28, pady=12, sticky="e")
+        self.header_time = tk.Label(right_frame, text="--:--:--",
+                                    bg=COLOR_BG, fg=COLOR_SUBTLE,
+                                    font=FONT_SUBTITLE)
+        self.header_time.pack(side="left")
+        settings_btn = tk.Button(self.header, text="⚙", bg=COLOR_BG, fg=COLOR_ACCENT,
+                                  font=("Segoe UI", 12), cursor="hand2", relief="flat",
+                                  command=self.show_settings)
+        settings_btn.grid(row=0, column=5, padx=4)
+
+    def _create_sidebar(self):
+        """Create modern sidebar navigation with icons and animations."""
+        self.sidebar = tk.Frame(self, width=280, bg=COLOR_BG, relief="flat", borderwidth=0)
+        self.sidebar.grid(row=0, column=0, sticky="ns", padx=0, pady=0)
+        self.sidebar.grid_rowconfigure(8, weight=1)
+        self.sidebar.pack_propagate(False)
+
+        # Sidebar title area
+        tk.Label(self.sidebar, text="ALVIN JMBOD", bg=COLOR_BG, fg=COLOR_ACCENT,
+                 font=FONT_TITLE).grid(row=0, column=0, padx=24, pady=(24, 6))
+        subtitle = tk.Label(self.sidebar, text="Desktop Control Center", bg=COLOR_BG, fg=COLOR_SUBTLE,
+                            font=FONT_SUBTITLE)
+        subtitle.grid(row=1, column=0, padx=24, pady=(0, 24))
+        ttk.Separator(self.sidebar, orient="horizontal").grid(row=2, column=0, sticky="ew", padx=24)
+
+        # Navigation buttons
+        nav_data = [
+            ("overview", "🏠  Overview"),
+            ("services", "🔧  Services"),
+            ("console", ">_  Live Console"),
+            ("files", "📁  File Activity"),
+            ("errors", "⚠  Errors & Diagnostics"),
+            ("settings", "⚙  Settings"),
+            ("about", "ℹ  About ALVIN JMBOD"),
+        ]
+        self.nav_buttons = {}
+        for i, (page, label) in enumerate(nav_data):
+            btn = tk.Button(self.sidebar, text=label, bg=COLOR_BG, fg=COLOR_SUBTLE,
+                           font=FONT_BODY, anchor="w", cursor="hand2", relief="flat",
+                           width=26, justify="left",
+                           command=lambda p=page: self.show_page(p))
+            btn.grid(row=3+i, column=0, sticky="ew", padx=12, pady=4)
+            self.nav_buttons[page] = btn
+        self.nav_buttons["overview"].configure(fg=COLOR_ACCENT)
+
+        # System info at bottom
+        info_frame = tk.Frame(self.sidebar, bg=COLOR_BG2, height=60)
+        info_frame.grid(row=10, column=0, sticky="se", padx=24, pady=12)
+        info_frame.grid_columnconfigure(0, weight=1)
+        info_frame.pack_propagate(False)
+        tk.Label(info_frame, text="ALVIN JMBOD v2.0", bg=COLOR_BG2, fg=COLOR_SUBTLE,
+                 font=FONT_SMALL).grid(row=0, column=0, sticky="w")
+        tk.Label(info_frame, text="Desktop Control Center", bg=COLOR_BG2, fg=COLOR_SUBTLE,
+                 font=FONT_SMALL).grid(row=1, column=0, sticky="w", pady=2)
+
     def _on_frontend_toggle(self):
         """Toggle frontend start/stop."""
         if self.manager.frontend and self.manager.frontend.status == STATUS_RUNNING:
@@ -731,18 +934,34 @@ def show_login():
     # Result flag
     login_success = [False]
 
-    def attempt_login():
+    def attempt_login(btn, status_var):
+        """Attempt login with proper authentication."""
         username = username_entry.get().strip()
         password = password_entry.get().strip()
-        # Validate credentials
-        valid_users = {
-            "adminravi": "admin123",
-            "maizardev": "admin123",
-        }
-        if username in valid_users and valid_users[username] == password:
+
+        # Input validation
+        if not username:
+            status_var.set("Username wajib diisi")
+            return
+
+        if not password:
+            status_var.set("Password wajib diisi")
+            return
+
+        # Disable button during authentication
+        btn.config(state="disabled", text="Mengautentikasi...")
+        status_var.set("Mengautentikasi...")
+
+        # Verify credentials using hash-based authentication
+        is_valid = verify_password(username, password, creds)
+
+        if is_valid:
             login_success[0] = True
             login_win.destroy()
         else:
+            # Reset button state
+            btn.config(state="normal", text="Masuk")
+            status_var.set("Gagal: Username atau password salah")
             messagebox.showerror("Login Gagal", "Username atau password salah!", parent=login_win)
 
     # Login button
@@ -760,12 +979,104 @@ def show_login():
     return login_success[0]
 
 
+def show_splash():
+    """Show brief splash screen with ALVIN JMBOD logo and light loading animation."""
+    splash = tk.Tk()
+    splash.overrideredirect(True)  # Remove window decorations
+    splash.configure(bg=COLOR_BG)
+    
+    # Centered on screen
+    splash.update_idletasks()
+    w, h = 400, 200
+    x = (splash.winfo_screenwidth() // 2) - (w // 2)
+    y = (splash.winfo_screenheight() // 2) - (h // 2)
+    splash.geometry(f"{w}x{h}+{x}+{y}")
+    
+    # ALVIN JMBOD text with animation effect
+    title = tk.Label(splash, text="ALVIN JMBOD", bg=COLOR_BG, fg=COLOR_ACCENT,
+                     font=("Segoe UI", 28, "bold"))
+    title.pack(pady=(40, 10))
+    
+    # Subtitle
+    subtitle = tk.Label(splash, text="Desktop Control Center", bg=COLOR_BG, fg=COLOR_SUBTLE,
+                        font=("Segoe UI", 12))
+    subtitle.pack()
+    
+    # Loading animation
+    frame = tk.Frame(splash, bg=COLOR_BG)
+    frame.pack(pady=20)
+    
+    dots = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠫"]
+    dot_idx = [0]
+    
+    def update_dots():
+        dot_label.configure(text=f"  {dots[dot_idx[0]]}")
+        dot_idx[0] = (dot_idx[0] + 1) % len(dots)
+        splash.after(100, update_dots)
+    
+    dot_label = tk.Label(frame, text="  ", bg=COLOR_BG, fg=COLOR_ACCENT,
+                         font=("Segoe UI", 10))
+    dot_label.pack()
+    update_dots()
+    
+    # Auto-close after 3 seconds
+    splash.after(3000, splash.destroy)
+    splash.mainloop()
+
 if __name__ == "__main__":
-    # Show login panel first
+    # Show login panel
     if not show_login():
         # User cancelled or failed login - exit gracefully
         sys.exit(0)
     
-    # Proceed to main application
+    # Proceed to main application with premium design
     app = ControlCenterApp()
     app.mainloop()
+
+
+# ============================================================
+# Splash Screen
+# ============================================================
+# def show_splash() removed
+    """Show brief splash screen with ALVIN JMBOD logo and light loading animation."""
+    splash = tk.Tk()
+    splash.overrideredirect(True)  # Remove window decorations
+    splash.configure(bg=COLOR_BG)
+    
+    # Centered on screen
+    splash.update_idletasks()
+    w, h = 400, 200
+    x = (splash.winfo_screenwidth() // 2) - (w // 2)
+    y = (splash.winfo_screenheight() // 2) - (h // 2)
+    splash.geometry(f"{w}x{h}+{x}+{y}")
+    
+    # ALVIN JMBOD text with animation effect
+    title = tk.Label(splash, text="ALVIN JMBOD", bg=COLOR_BG, fg=COLOR_ACCENT,
+                     font=("Segoe UI", 28, "bold"))
+    title.pack(pady=(40, 10))
+    
+    # Subtitle
+    subtitle = tk.Label(splash, text="Desktop Control Center", bg=COLOR_BG, fg=COLOR_SUBTLE,
+                        font=("Segoe UI", 12))
+    subtitle.pack()
+    
+    # Loading animation
+    frame = tk.Frame(splash, bg=COLOR_BG)
+    frame.pack(pady=20)
+    
+    dots = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠫"]
+    dot_idx = [0]
+    
+    def update_dots():
+        dot_label.configure(text=f"  {dots[dot_idx[0]]}")
+        dot_idx[0] = (dot_idx[0] + 1) % len(dots)
+        splash.after(100, update_dots)
+    
+    dot_label = tk.Label(frame, text="  ", bg=COLOR_BG, fg=COLOR_ACCENT,
+                         font=("Segoe UI", 10))
+    dot_label.pack()
+    update_dots()
+    
+    # Auto-close after 3 seconds
+    splash.after(3000, splash.destroy)
+    splash.mainloop()
