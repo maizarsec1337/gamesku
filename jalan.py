@@ -638,6 +638,19 @@ class ControlCenterApp(tk.Tk):
                                   font=("Segoe UI", 12), cursor="hand2", relief="flat",
                                   command=self.show_settings)
         settings_btn.grid(row=0, column=5, padx=4)
+        # Start clock refresh after GUI is fully setup
+        self._refresh_clock()
+    
+    def _refresh_clock(self):
+        """Update the header time label with current system time."""
+        try:
+            now = datetime.now()
+            formatted = now.strftime("%H:%M:%S")
+            self.header_time.config(text=formatted)
+        except Exception:
+            self.header_time.config(text="--:--:--")
+        # Schedule next update in 1 second
+        self.after(1000, self._refresh_clock)
 
     def _create_sidebar(self):
         """Create modern sidebar navigation with icons and animations."""
@@ -934,7 +947,7 @@ def show_login():
     # Result flag
     login_success = [False]
 
-    def attempt_login(btn, status_var):
+    def attempt_login():
         """Attempt login with proper authentication."""
         username = username_entry.get().strip()
         password = password_entry.get().strip()
@@ -949,7 +962,7 @@ def show_login():
             return
 
         # Disable button during authentication
-        btn.config(state="disabled", text="Mengautentikasi...")
+        btn_login.config(state="disabled", text="Mengautentikasi...")
         status_var.set("Mengautentikasi...")
 
         # Verify credentials using hash-based authentication
@@ -960,13 +973,13 @@ def show_login():
             login_win.destroy()
         else:
             # Reset button state
-            btn.config(state="normal", text="Masuk")
+            btn_login.config(state="normal", text="Masuk")
             status_var.set("Gagal: Username atau password salah")
             messagebox.showerror("Login Gagal", "Username atau password salah!", parent=login_win)
 
     # Login button
     btn_login = tk.Button(login_win, text="Masuk", bg=COLOR_ACCENT, fg="white",
-                          font=("Segoe UI", 10, "bold"), width=15, command=attempt_login)
+                          font=("Segoe UI", 10, "bold"), width=15, command=lambda: attempt_login())
     btn_login.pack(pady=10)
 
     # Focus on username field
