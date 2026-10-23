@@ -51,8 +51,19 @@ if ($config['check_php_syntax']) {
         glob(__DIR__ . '/src/Pengendali/*.php') ?: [],
         glob(__DIR__ . '/api/*.php') ?: [],
         glob(__DIR__ . '/database/*.php') ?: [],
+        glob(__DIR__ . '/security-service/**/*.php') ?: [],
         [__DIR__ . '/security-check.php'],
     );
+    // Sertakan semua berkas PHP di security-service (rekursif).
+    $ssDir = __DIR__ . '/security-service';
+    if (is_dir($ssDir)) {
+        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($ssDir));
+        foreach ($it as $f) {
+            if ($f->isFile() && $f->getExtension() === 'php') {
+                $targets[] = $f->getPathname();
+            }
+        }
+    }
     if (empty($targets)) {
         report('warn', 'PHP Syntax', 'Tidak ada berkas PHP ditemukan.', $results);
     }

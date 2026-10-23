@@ -12,7 +12,12 @@ ini_set('error_log', __DIR__ . '/../logs/error.log');
 
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
-// Autoload kelas di src/ dan src/Pengendali/.
+// Integrasi security-service ke lifecycle backend.
+require_once __DIR__ . '/../security-service/autoload.php';
+if (class_exists('BackendIntegration')) {
+    BackendIntegration::boot();
+}
+
 spl_autoload_register(function ($kelas) {
     $jalur = [
         __DIR__ . '/' . $kelas . '.php',

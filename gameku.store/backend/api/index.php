@@ -71,6 +71,7 @@ $kelasPeta = [
     'pesan'     => 'PengendaliPesan',
     'anime'     => 'PengendaliAnime',
     'chat'      => 'PengendaliChat',
+    'keamanan'  => 'PengendaliKeamanan',
 ];
 
 if (!isset($kelasPeta[$sumber])) {
