@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Gameku Store — Desktop Development Control Center (Windows GUI).
-
+Gameku Store — Desktop Control Center (Windows GUI)
 Aplikasi desktop untuk mengelola frontend (Vite) dan backend (PHP)
 secara bersamaan dengan live shell, deteksi error, dan pemantauan
+perubahan file. Tidak memerlukan terminal sebagai antarmuka utama.eteksi error, dan pemantauan
 perubahan file. Tidak memerlukan terminal sebagai antarmuka utama.
 
 Ditulis ulang dari versi terminal (jalan.py lama disimpan sebagai
@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import atexit
 import ctypes
-import errno
 import os
 import shutil
 import signal
@@ -62,7 +61,7 @@ FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--strictPort"]
 
 # Backend hanya dijalankan jika PHP tersedia.
 if PHP_CMD:
-    BACKEND_CMD = perintah_php() + ["-S", "localhost:%d" % BACKEND_PORT, "-t", ".", "api/index.php"]
+    BACKEND_CMD = PHP_CMD + ["-S", "localhost:%d" % BACKEND_PORT, "-t", ".", "api/index.php"]
 else:
     BACKEND_CMD = ["echo", "Backend PHP dinonaktifkan - instal PHP untuk menjalankan backend"]
 
@@ -73,8 +72,8 @@ FLAG_POPEN = (
     else {"start_new_session": True}
 )
 
-WAKTU_TUNGGU_FRONTEND = 90   # detik
-WAKTU_TUNGGU_BACKEND = 30    # detik
+WAKTU_TUNGGU_FRONTEND = 90   # detik — detik
+WAKTU_TUNGGU_BACKEND = 30    # detik — detik
 
 INTERVAL_HEALTH = 5      # detik — cek health endpoint
 INTERVAL_FILEWATCH = 2   # detik — cek perubahan file sumber
@@ -679,6 +678,94 @@ class ControlCenterApp(tk.Tk):
         """Handle window close event."""
         self._stop_all_services()
         self.destroy()
+
+
+def show_login():
+    """Show login panel before main application.
+    
+    Returns True if login successful, False otherwise.
+    Akun yang terdaftar:
+    - adminravi / admin123
+    - maizardev / admin123
+    """
+    login_win = tk.Toplevel()
+    login_win.title("ALVIN JMBOD")
+    login_win.geometry("350x250")
+    login_win.resizable(False, False)
+    login_win.configure(bg=COLOR_BG)
+    login_win.transient()  # stay on top of main app
+    login_win.grab_set()
+
+    # Center the login window
+    login_win.update_idletasks()
+    width = 350
+    height = 250
+    x = (login_win.winfo_screenwidth() // 2) - (width // 2)
+    y = (login_win.winfo_screenheight() // 2) - (height // 2)
+    login_win.geometry(f"{width}x{height}+{x}+{y}")
+
+    # Title
+    title_label = tk.Label(login_win, text="ALVIN JMBOD", bg=COLOR_BG, fg=COLOR_FG,
+                           font=("Segoe UI", 16, "bold"))
+    title_label.pack(pady=(20, 10))
+
+    # Subtitle
+    subtitle = tk.Label(login_win, text="Control Center Application", bg=COLOR_BG, fg=COLOR_ACCENT,
+                        font=("Segoe UI", 10))
+    subtitle.pack()
+
+    # Frame for inputs
+    frame = tk.Frame(login_win, bg=COLOR_BG)
+    frame.pack(pady=10, padx=20, fill="x")
+
+    # Username
+    tk.Label(frame, text="Username:", bg=COLOR_BG, fg=COLOR_FG, font=("Segoe UI", 10)).grid(row=0, column=0, sticky="w", pady=5)
+    username_entry = tk.Entry(frame, font=("Segoe UI", 10), width=25)
+    username_entry.grid(row=0, column=1, pady=5)
+
+    # Password
+    tk.Label(frame, text="Password:", bg=COLOR_BG, fg=COLOR_FG, font=("Segoe UI", 10)).grid(row=1, column=0, sticky="w", pady=5)
+    password_entry = tk.Entry(frame, font=("Segoe UI", 10), width=25, show="*")
+    password_entry.grid(row=1, column=1, pady=5)
+
+    # Result flag
+    login_success = [False]
+
+    def attempt_login():
+        username = username_entry.get().strip()
+        password = password_entry.get().strip()
+        # Validate credentials
+        valid_users = {
+            "adminravi": "admin123",
+            "maizardev": "admin123",
+        }
+        if username in valid_users and valid_users[username] == password:
+            login_success[0] = True
+            login_win.destroy()
+        else:
+            messagebox.showerror("Login Gagal", "Username atau password salah!", parent=login_win)
+
+    # Login button
+    btn_login = tk.Button(login_win, text="Masuk", bg=COLOR_ACCENT, fg="white",
+                          font=("Segoe UI", 10, "bold"), width=15, command=attempt_login)
+    btn_login.pack(pady=10)
+
+    # Focus on username field
+    username_entry.focus_set()
+    username_entry.select_range(0, tk.END)
+
+    # Wait for window to close, then check result
+    login_win.wait_window()
+
+    return login_success[0]
+
+
 if __name__ == "__main__":
+    # Show login panel first
+    if not show_login():
+        # User cancelled or failed login - exit gracefully
+        sys.exit(0)
+    
+    # Proceed to main application
     app = ControlCenterApp()
     app.mainloop()
