@@ -18,6 +18,18 @@ class PengendaliReseller extends PengendaliDasar
             return;
         }
 
+        // Dashboard & riwayat pesanan reseller (hanya reseller approved).
+        if ($id === 'dashboard' || $id === 'dasbor') {
+            if ($metode !== 'GET') $this->metodeTakDiizinkan();
+            $this->dashboard();
+            return;
+        }
+        if ($id === 'pesanan' || $id === 'riwayat') {
+            if ($metode !== 'GET') $this->metodeTakDiizinkan();
+            $this->pesananReseller();
+            return;
+        }
+
         if ($id === null) {
             switch (strtoupper($metode)) {
                 case 'GET':  $this->daftar(); break;
@@ -160,6 +172,104 @@ class PengendaliReseller extends PengendaliDasar
             Database::eksekusi('ROLLBACK');
             Bantu::gagal('Gagal membatalkan pengajuan.', 500);
         }
+    }
+
+    // ---------- Reseller Dashboard (approved only) ----------
+
+    // Pastikan sesi pembeli adalah reseller yang disetujui; kembalikan ajuan.
+    private function wajibResellerDisetujui(): array
+    {
+        $sesi = $this->identitasPembeli();
+        $ajuan = Database::satu(
+            'SELECT id, status, nama, email, username, whatsapp, catatan, dibuat_pada, diperbarui_pada
+             FROM reseller_pengajuan WHERE pelanggan_id = ? ORDER BY dibuat_pada DESC, id DESC LIMIT 1',
+            [$sesi['id']]
+        );
+        if (!$ajuan || ($ajuan['status'] ?? '') !== 'approved') {
+            SecurityLog::catat('akses_ditolak', 'warn', 'Dashboard reseller diakses tanpa approval.', [
+                'pelanggan_id' => $sesi['id'],
+                'status'       => $ajuan['status'] ?? 'not_registered',
+            ]);
+            Bantu::gagal('Dashboard reseller hanya tersedia untuk reseller yang telah disetujui.', 403);
+        }
+        return ['sesi' => $sesi, 'ajuan' => $ajuan];
+    }
+
+    // GET /api/reseller/dashboard — ringkasan akun reseller + pesanan miliknya (data nyata).
+    public function dashboard(): void
+    {
+        $info = $this->wajibResellerDisetujui();
+        $sesi = $info['sesi'];
+
+        $stat = Database::satu(
+            "SELECT COUNT(*) AS jumlah, COALESCE(SUM(CASE WHEN status='Berhasil' THEN total ELSE 0 END),0) AS total_berhasil,
+                    COALESCE(SUM(total),0) AS total_semua
+             FROM pesanan WHERE pelanggan_id = ?",
+            [$sesi['id']]
+        );
+
+        $terbaru = Database::banyak(
+            'SELECT id, produk_ringkas, kategori, metode, total, status, dibuat_pada
+             FROM pesanan WHERE pelanggan_id = ? ORDER BY dibuat_pada DESC, id DESC LIMIT 10',
+            [$sesi['id']]
+        );
+
+        Bantu::sukses([
+            'ajuan'   => $this->petakan($info['ajuan']),
+            'statistik' => [
+                'jumlahPesanan'   => (int) ($stat['jumlah'] ?? 0),
+                'totalBerhasil'   => (int) ($stat['total_berhasil'] ?? 0),
+                'totalSemua'      => (int) ($stat['total_semua'] ?? 0),
+            ],
+            // Komisi/harga reseller khusus belum dikonfigurasi di sistem; tidak difabrikasi.
+            'catatan' => 'Harga reseller, komisi, dan katalog khusus belum dikonfigurasi; nilai yang ditampilkan adalah data pesanan nyata.',
+            'pesananTerbaru' => array_map(fn($r) => [
+                'id'      => (string) $r['id'],
+                'produk'  => (string) ($r['produk_ringkas'] ?? ''),
+                'kategori'=> (string) ($r['kategori'] ?? ''),
+                'metode'  => (string) ($r['metode'] ?? ''),
+                'total'   => (int) ($r['total'] ?? 0),
+                'status'  => (string) ($r['status'] ?? ''),
+                'dibuatPada' => $r['dibuat_pada'] ?? null,
+            ], $terbaru),
+        ]);
+    }
+
+    // GET /api/reseller/pesanan — riwayat pesanan milik reseller yang login (data nyata).
+    public function pesananReseller(): void
+    {
+        $info = $this->wajibResellerDisetujui();
+        $sesi = $info['sesi'];
+
+        $baris = Database::banyak(
+            'SELECT id, produk_ringkas, kategori, metode, subtotal, biaya_layanan, potongan, total, status, catatan, dibuat_pada, diperbarui_pada
+             FROM pesanan WHERE pelanggan_id = ? ORDER BY dibuat_pada DESC, id DESC LIMIT 200',
+            [$sesi['id']]
+        );
+
+        $hasil = [];
+        foreach ($baris as $r) {
+            $item = Database::banyak(
+                'SELECT produk_id AS produkId, nama, harga, jumlah, subtotal FROM pesanan_item WHERE pesanan_id = ? ORDER BY id ASC',
+                [$r['id']]
+            );
+            $hasil[] = [
+                'id'            => (string) $r['id'],
+                'produk'        => (string) ($r['produk_ringkas'] ?? ''),
+                'kategori'      => (string) ($r['kategori'] ?? ''),
+                'metode'        => (string) ($r['metode'] ?? ''),
+                'subtotal'      => (int) ($r['subtotal'] ?? 0),
+                'biayaLayanan'  => (int) ($r['biaya_layanan'] ?? 0),
+                'potongan'      => (int) ($r['potongan'] ?? 0),
+                'total'         => (int) ($r['total'] ?? 0),
+                'status'        => (string) ($r['status'] ?? ''),
+                'catatan'       => (string) ($r['catatan'] ?? ''),
+                'dibuatPada'    => $r['dibuat_pada'] ?? null,
+                'diperbaruiPada'=> $r['diperbarui_pada'] ?? null,
+                'item'          => $item,
+            ];
+        }
+        Bantu::sukses($hasil);
     }
 
     // ---------- Admin (Super Admin) ----------

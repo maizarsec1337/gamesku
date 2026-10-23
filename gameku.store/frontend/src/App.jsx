@@ -14,6 +14,7 @@ import HalamanWishlist from './halaman/Wishlist.jsx'
 import HalamanProfil from './halaman/Profil.jsx'
 import HalamanMasuk from './halaman/Masuk.jsx'
 import HalamanReseller from './halaman/ResellerAjuan.jsx'
+import DasborReseller from './halaman/DasborReseller.jsx'
 import HalamanBantuan from './halaman/Bantuan.jsx'
 import TidakDitemukan from './halaman/TidakDitemukan.jsx'
 // Rute admin Gamesku (dashboard CMS).
@@ -77,6 +78,7 @@ export default function App() {
           <Route path="/wishlist" element={<HalamanWishlist />} />
           <Route path="/profil" element={<HalamanProfil />} />
           <Route path="/profil/reseller" element={<HalamanReseller />} />
+          <Route path="/profil/reseller/dashboard" element={<DasborReseller />} />
           <Route path="/bantuan" element={<HalamanBantuan />} />
           <Route path="/kreator" element={<HalamanBantuan />} />
           <Route path="/syarat" element={<HalamanBantuan />} />

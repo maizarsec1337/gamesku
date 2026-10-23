@@ -122,8 +122,11 @@ export default function ResellerAjuan() {
           <div>
             <strong>Selamat! Anda telah menjadi Reseller GameKU.</strong>
             <p className="subjudul-halaman" style={{ margin: 0 }}>
-              Akses reseller Anda sudah aktif. Hubungi tim untuk informasi lanjutan.
+              Akses reseller Anda sudah aktif. Buka dashboard untuk melihat katalog, pesanan, dan ringkasan.
             </p>
+            <Link className="tombol" to="/profil/reseller/dashboard" style={{ marginTop: 12, display: 'inline-flex' }}>
+              <Ikon nama="toko" ukuran={15} /> Buka Dashboard Reseller
+            </Link>
           </div>
         </div></div>
       </div></section>

@@ -59,6 +59,16 @@ export async function statusReseller() {
   return minta('/reseller/saya')
 }
 
+// Ringkasan dashboard reseller (hanya reseller approved) — data nyata dari backend.
+export async function dashboardReseller() {
+  return minta('/reseller/dashboard')
+}
+
+// Riwayat pesanan milik reseller yang login (hanya reseller approved).
+export async function pesananReseller() {
+  return minta('/reseller/pesanan')
+}
+
 // Kirim pengajuan reseller. Hanya butuh kontak + catatan; nama/email/username
 // diisi backend dari sesi. Mencegah double-submit lewat flag yang dikunci di
 // state komponen (lihat PengajuanReseller.jsx).
@@ -82,4 +92,4 @@ export async function batalReseller(id) {
   })
 }
 
-export default { statusReseller, kirimReseller, batalReseller }
+export default { statusReseller, kirimReseller, batalReseller, dashboardReseller, pesananReseller }
