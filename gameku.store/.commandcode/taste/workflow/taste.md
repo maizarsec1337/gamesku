@@ -1,0 +1,21 @@
+- When preventing duplicate submissions/creation (double-click, concurrency), wrap the check-then-insert in a transaction, detect the DB unique-key violation, and return 409 — keeping the constraint itself as the final backstop rather than relying on the application check alone. Confidence: 0.8
+- Prioritizes a Windows-first development environment: terminal tooling and launchers must be compatible with Windows Terminal and PowerShell, and must not assume Unix-style shells, paths, or process behavior. Confidence: 0.85
+- When building process launchers/monitors: only manage (start/stop/restart) processes the launcher itself spawned, shut down owned processes gracefully on exit, and never kill unrelated processes; detect crashes of owned processes rather than silently assuming they're healthy. Confidence: 0.8# Taste — Workflow & File Organization
+
+- Never create audit files, check scripts, reports, logs, or helper tools inside the application project root — keep all such artifacts in a separate folder OUTSIDE the repo (e.g. a sibling `{project}-tools/` folder). Confidence: 0.9
+- Do not create `cline`, `audit`, or other tooling folders inside the application project; the tools folder must stay separate from source code, config, database, and deployment files, and deleting it must never break the app. Confidence: 0.85
+- Before relocating a file, audit each one's real references/dependencies (package.json scripts, CI workflows, imports, config) rather than trusting the filename; leave it in place and report why if unsure. Confidence: 0.8
+- File moves must be conservative: no mass deletion, no dangerous wildcards, preserve original filenames, and never overwrite an existing file at the destination. Confidence: 0.75
+- During housekeeping/tidy-up tasks, do not change source code, frontend/backend/API/routing/auth/business logic, database/schema/data, dependencies, or deployment config. Confidence: 0.75
+- Never create a duplicate database configuration. Confidence: 0.75
+- Debug from evidence, not assumptions: reproduce the actual error, inspect the real responses/logs/state, and identify the true source before proposing a fix. Confidence: 0.85
+- Distinguish the responsible layer when diagnosing failures — separate proxy/dev-server, web server, application code (e.g. PHP), database, and frontend errors rather than lumping them together. Confidence: 0.8
+- Fix the root cause instead of masking the symptom — do not just suppress or hide an error (e.g. a 502 message); trace and resolve the underlying cause. Confidence: 0.85
+- Ensure backend responses are consistent and shape-compatible so the frontend can reliably parse and handle them. Confidence: 0.7
+- When the real dependency is missing from the environment (e.g. no DB server), don't stop: fix what is fixable in the environment itself (enable PHP extensions via `php.ini`, dedupe config lines, start missing local servers) and keep pushing until the remaining blocker is provably external. Confidence: 0.8
+- Prefer targeted, fast environment probes (services, registry uninstall keys, common install paths, ports, `php -m`, `PDO::getAvailableDrivers()`) over slow recursive filesystem searches. Confidence: 0.75
+- Distinguish distinct HTTP statuses in frontend error handling (connection failure, 401, 403, 422, 500, 502/503/504) — never show 502 as a catch-all for every error type. Confidence: 0.8
+- Verify guards over real HTTP when possible (assert 401/403/404 status codes with curl against a live backend) instead of relying on unit-level assertions alone. Confidence: 0.75
+- For PHP edits, run `php -l` on the modified file and the project's test/security-check suites plus the frontend build before reporting results. Confidence: 0.8
+- If a test harness must be created for verification, place it outside the repo and make it exercise the real production source files rather than reimplemented copies. Confidence: 0.75
+- When preventing duplicate submissions/creation (double-click, concurrency), wrap the check-then-insert in a transaction, detect the DB unique-key violation, and return 409 — keeping the constraint itself as the final backstop rather than relying on the application check alone. Confidence: 0.8

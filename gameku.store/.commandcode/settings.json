@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "powershell",
+      "Shell(php backend/tests/jalankan.php)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

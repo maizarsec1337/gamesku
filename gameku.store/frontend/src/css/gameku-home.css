@@ -1,0 +1,65 @@
+/* Gamesku home: hero carousel + aksi cepat + kategori + flash sale (tema dark neon). */
+/* Aksi cepat — satu bilah terpadu berisi 4 pintasan, bukan 4 kartu terpisah.
+   Dibedakan dari grid kategori di bawahnya supaya keduanya tidak terbaca
+   sebagai dua daftar yang sama. */
+.gk-short{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:16px;background:#0E1730;border:1px solid #263663;border-radius:16px;overflow:hidden}
+.gk-short a{display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 4px;font-size:11.5px;font-weight:700;color:#F4F7FF;border-left:1px solid #1C2B52;transition:background var(--trans),transform 120ms ease}
+.gk-short a:first-child{border-left:0}
+.gk-short a:hover{background:rgba(67,221,245,.09)}
+.gk-short a:active{transform:scale(.96);background:rgba(67,221,245,.16)}
+.gk-short .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(67,221,245,.12);color:#43DDF5}
+/* Kategori — 3 kolom di HP agar mudah dipindai; 5 kolom sejak tablet supaya
+   9 kategori jatuh jadi 5 + 4 (dua baris seimbang, bukan baris pincang).
+   CATATAN: kelas kartu sengaja bernama .kartu-jelajah, bukan .kartu-kategori —
+   .kartu-kategori sudah dipakai panel admin (admin-tabel.css) dan file ini
+   dimuat di semua halaman, jadi aturan toko sempat menimpa kartu kategori admin. */
+.rel-kategori{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.kartu-jelajah{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-height:112px;padding:14px 8px;border-radius:14px;background:#101A35;border:1px solid #263663;text-align:center;transition:border-color 180ms ease,background 180ms ease,transform 140ms ease}
+.kartu-jelajah:hover{border-color:rgba(67,221,245,.55);background:#132046}
+.kartu-jelajah:active{transform:scale(.97)}
+.kategori-teks{display:flex;flex-direction:column;gap:3px;min-width:0}
+.kartu-jelajah strong{font-size:12.5px;font-weight:800;line-height:1.3}
+.kartu-jelajah small{font-size:11px;color:#A7B2D0}
+.kategori-ikon{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:rgba(67,221,245,.12);border:1px solid rgba(67,221,245,.32);color:#43DDF5}
+.flash{background:linear-gradient(135deg,#101A35,#16224A);border:1px solid #263663;border-radius:20px;padding:16px;color:#F4F7FF;margin-top:6px;position:relative;overflow:hidden}
+.flash-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.flash-head h2{font-size:15.5px;font-weight:800;display:flex;align-items:center;gap:7px}
+.flash-timer{display:flex;gap:5px;align-items:center;font-weight:800;font-size:12px}
+.flash-timer b{background:#F044D8;color:#0B0D1E;border-radius:8px;padding:4px 7px;min-width:30px;text-align:center}
+.flash-row{display:flex;gap:10px;overflow-x:auto;padding:12px 2px 4px;scrollbar-width:none}
+.flash-row::-webkit-scrollbar{display:none}
+.flash-card{flex:0 0 136px;background:#101A35;border:1px solid #263663;border-radius:14px;overflow:hidden;color:#F4F7FF}
+.flash-card .img{aspect-ratio:16/9;display:grid;place-items:center;color:#F4F7FF;font-size:30px;position:relative;overflow:hidden}
+.flash-card .img .diskon{position:absolute;top:6px;left:6px;background:#F044D8;color:#0B0D1E;font-size:10.5px;font-weight:800;border-radius:999px;padding:3px 8px}
+.flash-card .bd{padding:8px 9px}
+.flash-card .nm{font-size:12px;font-weight:700;line-height:1.35;min-height:32px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.flash-card .hg{font-size:13px;font-weight:800;color:#43DDF5}
+.flash-card .cr{font-size:11px;color:#A7B2D0;text-decoration:line-through}
+.flash-card .cta-mini{margin-top:6px;width:100%;background:rgba(67,221,245,.12);color:#43DDF5;font-weight:800;font-size:11.5px;border-radius:9px;padding:8px;min-height:34px;transition:background var(--trans)}
+.flash-card .cta-mini:hover{background:rgba(67,221,245,.2)}
+
+/* Responsif home: aksi cepat, kategori, dan flash sale melebar mengikuti kontainer. */
+@media (min-width:768px){
+  .rel-kategori{grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+  .gk-short a{padding-block:14px}
+}
+@media (min-width:1024px){
+  /* Aksi cepat jadi satu baris mendatar; kategori jadi chip mendatar dengan ikon
+     di kiri — jauh lebih nyaman dipindai di layar lebar daripada kartu vertikal
+     yang ikut melebar mengikuti kolom. */
+  .gk-short a{flex-direction:row;justify-content:center;gap:10px;padding:15px 8px;font-size:13px}
+  .gk-short .ic{width:32px;height:32px;border-radius:10px}
+  .rel-kategori{grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+  .kartu-jelajah{flex-direction:row;align-items:center;justify-content:flex-start;text-align:left;padding:16px;gap:13px;min-height:84px}
+  .kategori-teks{align-items:flex-start}
+  .kartu-jelajah strong{font-size:13.5px}
+  .kartu-jelajah small{font-size:11.5px}
+  .kategori-ikon{width:46px;height:46px}
+  .flash{padding:20px}
+  .flash-head h2{font-size:17px}
+  .flash-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;overflow:visible;padding:14px 0 4px}
+  .flash-card{flex:none;width:auto}
+}
+@media (min-width:1440px){
+  .flash-row{grid-template-columns:repeat(6,1fr)}
+}

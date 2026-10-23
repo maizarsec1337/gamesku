@@ -1,0 +1,106 @@
+/* Gamesku — kartu produk ringkas, gambar proporsional, badge neon (tema dark). */
+.kartu-produk{background:#101A35!important;border:1px solid #263663!important;border-radius:14px!important;box-shadow:0 4px 16px -10px rgba(0,0,0,.5)!important;position:relative}
+.kartu-produk:active{transform:scale(.97)}
+.kartu-produk:hover{transform:translateY(-2px)!important;box-shadow:0 12px 24px -14px rgba(67,221,245,.35)!important;border-color:#33477F!important}
+.gambar-produk{aspect-ratio:1/1!important;border-radius:12px 12px 0 0}
+.gambar-produk img{width:100%;height:100%;object-fit:cover}
+.gambar-produk .ikon-besar{font-size:42px!important}
+.baris-badge .lencana-merah,.flash-card .img .diskon{background:#F044D8!important;color:#0B0D1E!important;border:1px solid #F044D8!important}
+.badan-produk{padding:10px!important}
+.kategori-produk{color:#A7B2D0!important;font-size:10px!important}
+.nama-produk{font-size:12.5px!important;min-height:34px!important;line-height:1.35!important;color:#F4F7FF!important}
+.harga-produk strong{color:#43DDF5!important;font-size:13.5px!important}
+.harga-gratis{color:#43DDF5!important;font-weight:800}
+.tombol-suka{width:32px!important;height:32px!important;border-radius:10px!important;background:rgba(11,13,30,.9)!important;color:#43DDF5!important;box-shadow:0 4px 10px -6px rgba(0,0,0,.6)}
+.tombol-suka.aktif{color:#F044D8!important}
+.tambah-kecil{margin-top:8px;width:100%;background:rgba(67,221,245,.12);color:#43DDF5;font-weight:800;font-size:12px;border-radius:10px;padding:9px;min-height:38px;display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(67,221,245,.3);transition:background var(--trans)}
+.tambah-kecil:hover{background:rgba(67,221,245,.2)}
+.tambah-kecil:active{transform:scale(.95);background:#F044D8;color:#0B0D1E}
+.spanduk-promo{background:linear-gradient(120deg,#101A35,#16224A)!important;border:1px solid #263663!important}
+.cari-besar{background:#0D1530!important;border:1.5px solid #263663!important;color:#A7B2D0!important}
+.cari-besar input{color:#F4F7FF!important}
+.pil{color:#A7B2D0!important;background:#101A35!important}
+.pil-aktif{background:linear-gradient(135deg,#43DDF5,#BD54F5)!important;color:#0B0D1E!important;border-color:#43DDF5!important}
+.galeri-utama{border-radius:16px!important}
+.galeri-utama img{width:100%;height:100%;object-fit:cover}
+.harga-detail strong{color:#43DDF5!important;font-size:24px!important}
+/* Section Streamku: navy transparan dengan glass tipis + border halus supaya
+   menyatu dengan latar gelap halaman. Kartu anime tetap solid (#101A35) di
+   atasnya, jadi kontras poster dan judul tidak berkurang. */
+.streamku{
+  margin-top:6px;border-radius:20px;padding:18px;color:#fff;position:relative;overflow:hidden;
+  background:
+    radial-gradient(115% 140% at 0% 0%,rgba(67,221,245,.13),transparent 58%),
+    radial-gradient(105% 130% at 100% 100%,rgba(189,84,245,.13),transparent 62%),
+    linear-gradient(135deg,rgba(16,26,53,.72),rgba(22,34,74,.52));
+  border:1px solid rgba(67,221,245,.22);
+  box-shadow:0 18px 42px -26px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.05);
+  -webkit-backdrop-filter:blur(10px) saturate(125%);
+  backdrop-filter:blur(10px) saturate(125%);
+}
+.streamku h2{font-size:17px;font-weight:800;letter-spacing:-.01em;line-height:1.3}
+.streamku p{font-size:12.5px;color:#B3BDDA;margin-top:5px;line-height:1.6}
+.streamku .cta{margin-top:12px;display:inline-flex;background:#F044D8;color:#0B0D1E;font-weight:800;font-size:12.5px;border-radius:10px;padding:0 14px;min-height:42px;align-items:center;gap:7px;flex:none;transition:background 160ms ease,transform 120ms ease}
+.streamku .cta:hover{background:#F45FE0}
+.streamku .cta:active{transform:scale(.96)}
+.streamku-ringkas{padding:16px}
+.streamku-atas{display:flex;flex-direction:column;gap:16px}
+.streamku-teks{display:flex;flex-direction:column;align-items:flex-start}
+/* Rel poster: di HP menggulir mendatar supaya poster tetap besar dan tepi kartu
+   berikutnya mengintip; lebar 44% membuat 3 kartu tidak jatuh jadi baris pincang. */
+.streamku-mini{display:grid;grid-auto-flow:column;grid-auto-columns:44%;gap:10px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;padding-bottom:2px}
+.streamku-mini::-webkit-scrollbar{display:none}
+.streamku-mini>*{scroll-snap-align:start}
+.flash-sub{font-size:12.5px;color:#A7B2D0;margin-top:4px}
+.flash-cta{margin-top:12px}
+.gk-pil-kategori{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.gk-pil-kategori .pil{padding:8px 14px;border-radius:999px;border:1.5px solid #263663;background:#101A35;font-weight:700;font-size:12.5px;color:#A7B2D0;min-height:36px}
+.gk-pil-kategori .pil:hover{border-color:rgba(67,221,245,.5);color:#F4F7FF}
+.gk-pil-kategori .pil-aktif,.gk-pil-kategori .pil-aktif:hover{background:linear-gradient(135deg,#43DDF5,#BD54F5);color:#0B0D1E;border-color:#43DDF5}
+/* Keunggulan — blok terbuka tanpa kartu. Empat kotak ber-border di sini akan
+   mengulang bahasa visual kartu produk dan membuat halaman terasa penuh garis. */
+.gk-kenapa{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 16px}
+.gk-kenapa-kartu{display:grid;gap:5px;align-content:start}
+.gk-kenapa-kartu strong{font-size:13.5px;color:#F4F7FF}
+.gk-kenapa-kartu p{font-size:12px;color:#A7B2D0;line-height:1.55}
+.gk-kenapa-ikon{width:38px;height:38px;margin-bottom:3px;border-radius:12px;display:grid;place-items:center;background:rgba(67,221,245,.12);color:#43DDF5;border:1px solid rgba(67,221,245,.3)}
+/* Kerangka muat katalog — mengikuti bentuk kartu produk agar tidak "melompat". */
+.skel{position:relative;overflow:hidden;border-radius:14px;background:#101A35;border:1px solid #263663;aspect-ratio:1/1.62;min-height:200px}
+.skel::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#16224A 25%,#1E2C55 50%,#16224A 75%);background-size:200% 100%;animation:skel 1.1s linear infinite}
+@keyframes skel{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skel::before{animation:none}}
+
+/* Responsif kartu & section pada tablet/desktop. */
+@media (min-width:768px){
+  .streamku-atas{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,600px);align-items:center;gap:28px}
+  .streamku-mini{grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-columns:auto;overflow:visible;scroll-snap-type:none;padding-bottom:0}
+  .gk-kenapa{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+}
+@media (min-width:1024px){
+  .badan-produk{padding:12px!important}
+  .nama-produk{font-size:13.5px!important;min-height:38px!important}
+  .harga-produk strong{font-size:15px!important}
+  .kategori-produk{font-size:10.5px!important}
+  .gambar-produk .ikon-besar{font-size:48px!important}
+  .tambah-kecil{font-size:12.5px;min-height:40px}
+  .streamku{padding:24px 28px}
+  .streamku h2{font-size:23px;max-width:13em}
+  .streamku p{font-size:13.5px;max-width:38ch}
+  .gk-kenapa-kartu strong{font-size:14.5px}
+  .gk-kenapa-kartu p{font-size:12.5px}
+}
+
+/* ===== Animasi ringan (transisi halus, bukan gerakan berlebihan) =====
+   Semua transisi otomatis dinetralkan oleh aturan * di global.css saat
+   pengguna memilih prefers-reduced-motion. Zoom gambar hanya aktif pada
+   perangkat dengan hover (bukan sentuh) agar tidak mengganggu scroll. */
+.kartu-produk{transition:transform 200ms ease,box-shadow 200ms ease}
+.gambar-produk img{transition:transform 350ms ease}
+.tombol-suka,.tambah-kecil,.pil,.gk-short a{transition:background 180ms ease,color 180ms ease,border-color 180ms ease,box-shadow 180ms ease,transform 140ms ease}
+@media (hover:hover) and (pointer:fine){
+  .kartu-produk:hover .gambar-produk img{transform:scale(1.05)}
+}
+@media (hover:hover){
+  .flash-card{transition:transform 200ms ease,box-shadow 200ms ease}
+  .flash-card:hover{transform:translateY(-2px);box-shadow:0 12px 22px -14px rgba(0,0,0,.45)}
+}

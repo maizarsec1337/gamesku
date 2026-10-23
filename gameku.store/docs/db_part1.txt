@@ -1,0 +1,19 @@
+﻿
+## Gameku.store — Rancangan Database Lengkap (TAHAP 3)
+
+> Dokumen rancangan untuk review. **JANGAN dijalankan** ke database aktif.
+> Fokus: SQL, integritas, keamanan, migrasi bertahap.
+> Sedikitkan backend/frontend.
+
+
+## 1. Ringkasan Arsitektur
+
+### 1.1 Driver & Storage
+
+- **MySQL 5.7+ / MariaDB 10.2+** — InnoDB, `utf8mb4_unicode_ci`
+- `AUTO_INCREMENT` untuk kolom integer (admin, pesanan_item, aktivitas)
+- `VARCHAR(40)` untuk ID semantik (prefix-time-rnd) dipakai di `instal.php` / `Bantu::idBaru()`
+- Connector: PDO MySQL, `ATTR_EMULATE_PREPARES => false`
+- `SET NAMES utf8mb4` / `CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+- **Prinsip Desain**: additive only; zero DROP TABLE / TRUNCATE / DELETE; non-destructive FK (ON DELETE SET NULL / RESTRICT / CASCADE); snapshot vs live; ownership; idempotency.
+

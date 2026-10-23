@@ -1,0 +1,11 @@
+/* Lapisan final: pengaman mobile-only (shell 430px) + safe-area, berlaku < 768px. */
+@media (max-width: 767px) {
+  .kaki-utama,
+  .tata-detail { grid-template-columns: 1fr; }
+  .navigasi-atas,
+  .cari-kepala { display: none; }
+  .baris-cari-mobile { display: block; }
+  .kaki-isi { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+  .isi-halaman { padding-bottom: calc(var(--tinggi-bawah) + 26px + env(safe-area-inset-bottom)); }
+}
+.keadaan-kosong-ikon { font-size: 0 !important; margin-bottom: 10px; }
