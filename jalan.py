@@ -930,6 +930,10 @@ def show_login():
                         font=("Segoe UI", 10))
     subtitle.pack()
 
+    # Status variable for login feedback
+    status_var = tk.StringVar()
+    status_var.set("")
+
     # Frame for inputs
     frame = tk.Frame(login_win, bg=COLOR_BG)
     frame.pack(pady=10, padx=20, fill="x")
