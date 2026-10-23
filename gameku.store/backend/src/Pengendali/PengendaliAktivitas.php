@@ -6,6 +6,8 @@ class PengendaliAktivitas extends PengendaliDasar
     public function tangani(string $metode, ?string $id, ?string $sub): void
     {
         Auth::wajib();
+        // Hanya superadmin yang boleh membaca dan mengelola jejak aktivitas.
+        Auth::wajibPeran('superadmin');
         switch ($metode) {
             case 'GET':
                 $jumlah = min(200, max(1, Bantu::angka('batas', 50)));

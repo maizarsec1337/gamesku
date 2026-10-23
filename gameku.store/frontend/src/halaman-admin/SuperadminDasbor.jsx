@@ -24,7 +24,7 @@ const WARNA_STAT = { produk: 'hijau', pesanan: 'hijau', pelanggan: 'biru', penda
 // Superadmin dashboard — semua statistik berasal dari database sebenarnya.
 // Hanya akun yang ditetapkan (gameku.myid@gmail.com) yang boleh mengakses.
 const IKON_SUPER = { pengguna: 'pelanggan', reseller: 'dompet', cs: 'chat', produk: 'kotak', pendapatan: 'dompet' }
-const WARNA_SUPER = { pengguna: 'biru', reseller: 'hijau', cs: 'coklat', produk: 'hijau', pendapatan: 'cokbat' }
+const WARNA_SUPER = { pengguna: 'biru', reseller: 'hijau', cs: 'coklat', produk: 'hijau', pendapatan: 'coklat' }
 
 const IKON_USER = { pelanggan: 'pelanggan', reseller: 'dompet', cs: 'chat' }
 const WARNA_USER = { pelanggan: 'biru', reseller: 'hijau', cs: 'cokbat' }

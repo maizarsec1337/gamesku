@@ -179,6 +179,11 @@ export async function unggahMediaApi(berkas, jenis = 'Thumbnail') {
 export const daftarAktivitasApi = (batas) => minta(`/aktivitas${susunKueri({ batas })}`)
 export const kosongkanAktivitasApi = () => tulis('DELETE', '/aktivitas')
 
+// ===================== Manajemen Admin User (Superadmin only) ====================
+export const daftarAdminApi = () => minta('/auth/admin')
+export const ubahAdminApi = (id, data) => tulis('PUT', `/auth/admin/${encodeURIComponent(id)}`, data)
+export const hapusAdminApi = (id) => tulis('DELETE', `/auth/admin/${encodeURIComponent(id)}`)
+
 // ===================== Reseller (admin / superadmin) =====================
 export const daftarResellerApi = (params) => minta(`/reseller${susunKueri(params)}`)
 export const ambilResellerApi = (id) => minta(`/reseller/${encodeURIComponent(id)}`)
@@ -225,6 +230,9 @@ export default {
   hapusMediaApi,
   daftarAktivitasApi,
   kosongkanAktivitasApi,
+  daftarAdminApi,
+  ubahAdminApi,
+  hapusAdminApi,
   daftarResellerApi,
   ambilResellerApi,
   ubahStatusResellerApi,

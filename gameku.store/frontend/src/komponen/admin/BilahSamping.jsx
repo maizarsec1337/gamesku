@@ -54,8 +54,9 @@ export default function BilahSamping({ terbuka = false, padaTutup = () => {} }) 
   // Menu superadmin hanya tampilakn bila user terverifikasi sebagai superadmin
   // Email resmi: gameku.myid@gmail.com. Cek di server-side juga via Auth::wajibPeran('superadmin').
   const menuSuperadmin = isSuperadmin && [
-    { teks: 'Dasbor Super', ke: '/admin', ikon: 'kotak', akhir: true },
-    { teks: 'Pengguna', ke: '/admin/pelanggan', ikon: 'pelanggan' },
+    { teks: 'Dasbor Super', ke: '/admin/superadmin', ikon: 'kotak', akhir: true },
+    { teks: 'Pengguna', ke: '/admin/superadmin/pengguna', ikon: 'pelanggan' },
+    { teks: 'Audit Log', ke: '/admin/superadmin/audit', ikon: 'centangLingkaran' },
     { teks: 'Reseller', ke: '/admin/reseller', ikon: 'dompet' },
     { teks: 'CS', ke: '/admin/cs', ikon: 'chat' },
     { teks: 'Produk & Pesanan', ke: '/admin/produk', ikon: 'kotak' },

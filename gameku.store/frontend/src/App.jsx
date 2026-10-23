@@ -32,6 +32,8 @@ import AdminMedia from './halaman-admin/AdminMedia.jsx'
 import AdminPengaturan from './halaman-admin/AdminPengaturan.jsx'
 import AdminReseller from './halaman-admin/AdminReseller.jsx'
 import SuperadminDasbor from './halaman-admin/SuperadminDasbor.jsx'
+import SuperadminPengguna from './halaman-admin/SuperadminPengguna.jsx'
+import SuperadminAudit from './halaman-admin/SuperadminAudit.jsx'
 
 // Rute aplikasi (admin + toko depan).
 export default function App() {
@@ -48,6 +50,8 @@ export default function App() {
           <Route path="pesanan" element={<AdminPesanan />} />
           <Route path="pelanggan" element={<AdminPelanggan />} />
           <Route path="superadmin" element={<SuperadminDasbor />} />
+          <Route path="superadmin/pengguna" element={<SuperadminPengguna />} />
+          <Route path="superadmin/audit" element={<SuperadminAudit />} />
           <Route path="creator" element={<AdminCreator />} />
           <Route path="kategori" element={<AdminKategori />} />
           <Route path="promo" element={<AdminPromo />} />
