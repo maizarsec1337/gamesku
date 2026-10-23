@@ -1,12 +1,27 @@
-import { memo } from './penyimpananLokal.js'
 import { buatKoleksi } from './layananKoleksi.js'
+import { memo } from './penyimpananLokal.js'
 import { STATUS_PESANAN } from '../data/konstanta.js'
 
 // Versi-aware memo untuk kompatibilitas dengan useSyncExternalStore
-const koleksi = buatKoleksi('pesanan', 'psn')
+function memoVersi(hitung) {
+  const simpan = new Map()
+  return (...args) => {
+    const kunci = args.length ? JSON.stringify(args) : ''
+    const ada = simpan.get(kunci)
+    if (ada && ada.v === versi) return ada.nilai
+    const nilai = hitung(...args)
+    simpan.set(kunci, { v: versi, nilai })
+    return nilai
+  }
+}
+
+let versi = 0
+
+// Membuat koleksi pesanan untuk localStorage
+const koleksi = buatKoleksi('pesanan', 'pes')
 
 // Memo bergantung versi: referensi stabil sampai cache berubah.
-export const daftarPesanan = memo(() => koleksi.daftar())
+export const daftarPesanan = memoVersi(() => koleksi.daftar())
 
 // Pesanan berhasil -- sumber hitungan pendapatan.
 export const pesananBerhasil = memo(() => daftarPesanan().filter((p) => p.status === 'Berhasil'))

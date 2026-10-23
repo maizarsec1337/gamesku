@@ -64,9 +64,21 @@ BACKEND_HEALTH_URL = f"http://localhost:{BACKEND_PORT}/api/sehat"
 NPM_CMD = shutil.which("npm")
 PHP_CMD = shutil.which("php")  # None bila PHP tidak terpasang
 
+# Validasi: jika PHP tidak ditemukan, catat peringetan tetapi tetap bisa melanjutkan
+# (backend akan dinonaktifkan dengan jelas di dashboard)
+if PHP_CMD is None:
+    print('PERINGATAN: PHP executable tidak ditemukan di PATH. Backend akan dinonaktifkan.')
+    print('Untuk menjalankan backend: pastikan PHP terinstall dan di-add ke PATH, atau jalankan: `php -S localhost:8000 -t backend backend/api/index.php`')
+
 # --strictPort: Vite gagal kalau port 5173 tidak tersedia (terbaca jelas di log).
 FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--strictPort"]
-BACKEND_CMD = (perintah_php() if PHP_CMD else ["php"]) + ["-S", f"localhost:{BACKEND_PORT}", "-t", ".", "api/index.php"]
+
+# Backend hanya dijalankan jika PHP tersedia; jika tidak, tandai saja sebagai non-aktif
+if PHP_CMD:
+    BACKEND_CMD = (perintah_php() if PHP_CMD else [PHP_CMD]) + ["-S", f"localhost:{BACKEND_PORT}", "-t", ".", "api/index.php"]
+else:
+    # Command dummy yang akan gagal dengan jelas di validasi proses
+    BACKEND_CMD = ["echo", "Backend PHP dinonaktifkan - instal PHP untuk menjalankan backend"]
 
 # CREATE_NO_WINDOW mencegah jendela CMD baru di Windows. POSIX pakai start_new_session.
 FLAG_POPEN = (
