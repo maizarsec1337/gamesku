@@ -1,0 +1,114 @@
+/* =====================================================================
+   ChatbotAI — tema putih–biru Gamesku, responsif, animasi ringan.
+   Panel TIDAK mengunci scroll halaman; hanya .cb-pesan yang menggulir.
+   ===================================================================== */
+
+/* ---------- Tombol melayang (FAB) ---------- */
+/* Tema gelap navy dengan aksen cyan: menyatu dengan latar Gamesku, tidak
+   mencolok, tetapi tetap terbaca di atas konten terang maupun gelap. */
+.cb-fab{
+  position:fixed;z-index:70;right:14px;
+  bottom:calc(var(--tinggi-bawah) + 16px + env(safe-area-inset-bottom));
+  display:grid;place-items:center;
+  width:54px;height:54px;border-radius:999px;
+  background:linear-gradient(145deg,#16224A,#0B0D1E);
+  color:#8CECFA;border:1px solid rgba(67,221,245,.34);
+  box-shadow:0 14px 32px -14px rgba(0,0,0,.85),inset 0 1px 0 rgba(140,236,250,.16);
+  transition:transform 180ms ease,box-shadow 180ms ease,border-color 180ms ease,color 180ms ease,background 180ms ease;
+}
+.cb-fab:hover{
+  color:#43DDF5;border-color:rgba(67,221,245,.6);
+  background:linear-gradient(145deg,#1B2A5C,#101A35);
+  box-shadow:0 18px 36px -16px rgba(67,221,245,.5),inset 0 1px 0 rgba(140,236,250,.24);
+  transform:translateY(-2px);
+}
+.cb-fab:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(67,221,245,.55),0 14px 32px -14px rgba(0,0,0,.85)}
+.cb-fab:active{transform:scale(.94)}
+.cb-fab-aktif{color:#D9B4FA;border-color:rgba(189,84,245,.5);background:linear-gradient(145deg,#241A4A,#0B0D1E)}
+
+/* ---------- Panel ---------- */
+.cb-panel{
+  position:fixed;z-index:70;
+  left:10px;right:10px;
+  bottom:calc(var(--tinggi-bawah) + 62px + env(safe-area-inset-bottom));
+  max-height:min(76vh,560px);
+  display:flex;flex-direction:column;
+  background:#fff;color:#0F172A;
+  border:1px solid #DBEAFE;border-radius:18px;
+  box-shadow:0 30px 60px -28px rgba(15,23,42,.5);
+  overflow:hidden;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transform:translateY(16px) scale(.98);
+  transition:opacity 200ms ease,transform 200ms ease,visibility 200ms;
+}
+.cb-panel-buka{opacity:1;visibility:visible;pointer-events:auto;transform:none}
+
+/* ---------- Kepala panel ---------- */
+.cb-kepala{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg,#43DDF5,#BD54F5);color:#0B0D1E}
+.cb-avatar{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(11,13,30,.16);flex-shrink:0}
+.cb-kepala-teks{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.cb-kepala-teks strong{font-size:14.5px;font-weight:800}
+.cb-kepala-teks span{font-size:11px;color:rgba(11,13,30,.72)}
+.cb-tutup{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#0B0D1E;flex-shrink:0;transition:background 160ms ease}
+.cb-tutup:hover{background:rgba(11,13,30,.14)}
+
+/* ---------- Daftar pesan ---------- */
+.cb-pesan{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:14px;display:flex;flex-direction:column;gap:10px;background:#F8FAFF;scrollbar-width:thin}
+.cb-balon{max-width:86%;padding:10px 12px;border-radius:14px;font-size:13.5px;line-height:1.55;animation:cbMuncul 220ms ease}
+.cb-balon p{margin:0}
+.cb-judul{display:block;font-size:12.5px;margin-bottom:3px;letter-spacing:.01em}
+.cb-asisten{align-self:flex-start;background:#fff;border:1px solid #E2E8F0;color:#0F172A;border-bottom-left-radius:5px}
+.cb-pengguna{align-self:flex-end;background:#2563EB;color:#fff;border-bottom-right-radius:5px}
+.cb-galat{background:#FEF2F2;border-color:#FECACA;color:#B91C1C}
+.cb-tautan{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:12.5px;font-weight:800;color:#1D4ED8}
+.cb-tautan:hover{text-decoration:underline}
+.cb-saran{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.cb-saran button{font-size:11.5px;font-weight:700;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:999px;padding:6px 11px;transition:background 160ms ease}
+.cb-saran button:hover{background:#DBEAFE}
+
+/* Indikator proses (mengetik) */
+.cb-mengetik{display:inline-flex;gap:4px;align-items:center;padding:12px 14px}
+.cb-mengetik span{width:7px;height:7px;border-radius:50%;background:#93C5FD;animation:cbTitik 1s infinite ease-in-out}
+.cb-mengetik span:nth-child(2){animation-delay:.15s}
+.cb-mengetik span:nth-child(3){animation-delay:.3s}
+
+/* ---------- Topik cepat ---------- */
+.cb-topik{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px 0;background:#F8FAFF}
+.cb-topik button{font-size:12px;font-weight:700;color:#1D4ED8;background:#fff;border:1px solid #BFDBFE;border-radius:999px;padding:7px 12px;transition:background 160ms ease,border-color 160ms ease}
+.cb-topik button:hover{background:#EFF6FF;border-color:#93C5FD}
+
+/* ---------- Kolom input ---------- */
+.cb-input{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border-top:1px solid #E2E8F0}
+.cb-input input{flex:1;min-width:0;border:1.5px solid #E2E8F0;border-radius:12px;padding:11px 13px;font-size:14px;background:#fff;color:#0F172A;transition:border-color 160ms ease,box-shadow 160ms ease}
+.cb-input input:focus{outline:none;border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.cb-kirim{width:44px;height:44px;flex-shrink:0;border-radius:12px;display:grid;place-items:center;background:#2563EB;color:#fff;transition:background 160ms ease,transform 120ms ease}
+.cb-kirim:hover:not(:disabled){background:#1D4ED8}
+.cb-kirim:active:not(:disabled){transform:scale(.94)}
+.cb-kirim:disabled{opacity:.7;cursor:not-allowed}
+.cb-putar{width:17px;height:17px;border:2px solid rgba(255,255,255,.5);border-top-color:#fff;border-radius:50%;animation:cbPutar .7s linear infinite}
+.cb-petunjuk{margin:0;padding:0 14px 8px;font-size:12px;color:#B91C1C;background:#fff}
+.cb-catatan{margin:0;padding:8px 14px 11px;font-size:11px;color:#64748B;background:#fff;line-height:1.55;border-top:1px dashed #E2E8F0}
+.cb-catatan code{background:#EFF6FF;border:1px solid #DBEAFE;border-radius:6px;padding:1px 5px;font-size:10.5px;color:#1D4ED8}
+
+@keyframes cbMuncul{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes cbTitik{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-4px);opacity:1}}
+@keyframes cbPutar{to{transform:rotate(360deg)}}
+
+/* ---------- Tablet / desktop ---------- */
+@media (min-width:1024px){
+  .cb-fab{right:24px;bottom:24px}
+  .cb-panel{left:auto;right:24px;bottom:96px;width:384px;max-height:min(72vh,560px)}
+}
+/* Mulai 1440px ada margin cukup di sisi kontainer 1320px, jadi tombol bisa
+   duduk di selokan dan tidak lagi menutupi kolom konten paling kanan. */
+@media (min-width:1440px){
+  .cb-fab{right:12px;bottom:20px}
+  .cb-panel{right:12px}
+}
+
+/* Hormati prefers-reduced-motion. */
+@media (prefers-reduced-motion:reduce){
+  .cb-panel,.cb-fab{transition:none}
+  .cb-fab:hover,.cb-fab:active{transform:none}
+  .cb-balon,.cb-mengetik span,.cb-putar{animation:none}
+}
