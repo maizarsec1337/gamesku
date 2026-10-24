@@ -1,0 +1,5 @@
+﻿GET https://gameku.store/assets/index-B5P_i4j4.js => 200 CT=application/javascript; charset=utf-8 len=298077
+GET https://gameku.store/vercel.json => 404
+GET https://gameku.store/.vercel/project.json => 404
+GET https://gameku.store/uploads/ => 404
+GET https://gameku.store/database/instal.php => 200 CT=application/x-httpd-php len=3669

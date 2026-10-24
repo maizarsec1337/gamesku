@@ -1,0 +1,4 @@
+﻿GET /api/sehat GAGAL: The remote server returned an error: (404) Not Found.
+  STATUS: 404
+OPTIONS GAGAL: The remote server returned an error: (404) Not Found.
+  STATUS: 404

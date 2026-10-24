@@ -1,0 +1,41 @@
+﻿== backend\database ==
+instal.php
+migrasi.php
+schema.sql
+== backend\tests ==
+jalankan.php
+uji_bantu.php
+uji_keamanan.php
+uji_rate_limiter.php
+uji_skema.php
+== dist ==
+.vercel
+api
+assets
+config
+database
+image
+src
+uploads
+.env.local
+.gitignore
+.htaccess
+index.html
+ M backend/api/index.php
+ M backend/database/instal.php
+ M backend/database/migrasi.php
+ M backend/database/schema.sql
+ M backend/security-check.php
+ M backend/src/Auth.php
+ M backend/src/Pengendali/PengendaliAuth.php
+ M backend/src/Pengendali/PengendaliPelanggan.php
+ M backend/src/Pengendali/PengendaliPesanan.php
+ M backend/src/bootstrap.php
+ M frontend/src/konteks/gunakanSesiPembeli.js
+?? .commandcode/
+?? _audit_dirs.txt
+?? _audit_env.txt
+?? _audit_filelist.txt
+?? backend/src/Pengendali/PengendaliPembayaran.php
+?? backend/src/Pengendali/PengendaliPesan.php
+?? backend/tests/

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class de 2-banme ni Kawaii Onnanoko to Tomodachi ni Natta Episode 1</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; background:#000; overflow:hidden; }
+
+#pw { width:100vw; height:100vh; position:relative; background:#000; display:flex; align-items:center; justify-content:center; }
+video#v { width:100%; height:100%; object-fit:contain; display:block; background:#000; cursor:pointer; }
+
+/* ── JWPlayer-style control bar ── */
+#ctrl {
+  position:absolute; bottom:0; left:0; right:0;
+  background:linear-gradient(transparent, rgba(0,0,0,0.75) 55%);
+  opacity:0; transition:opacity 0.22s; pointer-events:none; user-select:none;
+}
+#pw:hover #ctrl, #pw.show #ctrl { opacity:1; pointer-events:auto; }
+
+/* Seek bar */
+#seek-wrap {
+  width:100%; height:20px; display:flex; align-items:center; padding:0 12px; cursor:pointer;
+}
+#seek-bg {
+  position:relative; width:100%; height:3px;
+  background:rgba(255,255,255,0.25); border-radius:2px;
+}
+#seek-fill { height:100%; background:#fff; border-radius:2px; width:0%; position:relative; }
+#seek-thumb {
+  position:absolute; right:-7px; top:50%; transform:translateY(-50%);
+  width:14px; height:14px; border-radius:50%; background:#fff;
+  box-shadow:0 0 4px rgba(0,0,0,0.5); transition:transform 0.1s;
+}
+#seek-bg:hover #seek-thumb { transform:translateY(-50%) scale(1.3); }
+
+/* Bottom row */
+#bar {
+  display:flex; align-items:center; padding:3px 10px 10px; gap:0;
+}
+.cb {
+  background:none; border:none; cursor:pointer; padding:5px 8px;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; opacity:0.92; transition:opacity 0.15s; flex-shrink:0;
+}
+.cb:hover { opacity:1; }
+#time-el {
+  color:#fff; font-family:Arial,Helvetica,sans-serif; font-size:13px;
+  letter-spacing:0.02em; white-space:nowrap; padding:0 6px 0 2px; opacity:0.95;
+}
+#spacer { flex:1; }
+
+/* Next ep toast */
+#next-toast {
+  position:fixed; bottom:76px; right:14px;
+  background:rgba(18,18,18,.96); border:1px solid rgba(255,255,255,.13);
+  border-radius:7px; padding:11px 14px; display:none; min-width:190px; z-index:9999;
+  font-family:Arial,sans-serif;
+}
+#next-toast.show { display:block; }
+#next-toast .nt-l { color:rgba(255,255,255,.42); font-size:10px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+#next-toast .nt-t { color:#fff; font-size:12px; margin-bottom:7px; }
+#next-toast button { background:#fff; color:#000; border:none; border-radius:4px; padding:5px 13px; font-size:11px; font-weight:700; cursor:pointer; width:100%; }
+
+/* Loading overlay */
+#loading {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  background:#000; z-index:5; transition:opacity 0.4s;
+}
+#loading.hide { opacity:0; pointer-events:none; }
+.spin {
+  width:40px; height:40px; border:3px solid rgba(255,255,255,.15);
+  border-top-color:#fff; border-radius:50%; animation:sp 0.8s linear infinite;
+}
+@keyframes sp { to { transform:rotate(360deg); } }
+
+/* Error state */
+#err { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:#000; color:#aaa; font-family:Arial; text-align:center; z-index:6; }
+#err.show { display:flex; }
+
+/* Big center play button */
+#center-play {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:90px; height:90px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; z-index:4; transition:opacity .15s, transform .15s;
+  background:none; border:none;
+}
+#center-play:hover { opacity:.85; transform:translate(-50%,-50%) scale(1.05); }
+#center-play.hide { display:none; }
+</style>
+<script data-cfasync="false" async type="text/javascript" src="//tr.geastyetis.com/rENSFz5Ev5dUAqs/132748"></script>
+<script src="https://guardiantempted.com/dd/c6/9a/ddc69a570cdb8b6303fdb92594fce0d3.js"></script>
+</head>
+<body>
+<div id="pw">
+  <!-- Loading spinner -->
+  <div id="loading"><div class="spin"></div></div>
+  <!-- Error state -->
+  <div id="err"><div><div style="font-size:2rem;margin-bottom:10px">⚠</div><div id="err-msg">Video load nahi hui</div></div></div>
+
+  <!-- Big center play button -->
+  <div id="center-play">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><polygon points="5,3 19,12 5,21"/></svg>
+  </div>
+
+  <!-- Video element -->
+  <video id="v" playsinline preload="metadata" aria-label="Class de 2-banme ni Kawaii Onnanoko to Tomodachi ni Natta Episode 1">
+        <source src="https://my.1anime.site/videos/i-made-friends-with-the-second-prettiest-girl-in-my-class-episode-1.mp4" type="video/mp4">
+          </video>
+
+  <!-- Controls -->
+  <div id="ctrl">
+    <!-- Seek bar -->
+    <div id="seek-wrap">
+      <div id="seek-bg">
+        <div id="seek-fill"><div id="seek-thumb"></div></div>
+      </div>
+    </div>
+    <!-- Control bar -->
+    <div id="bar">
+      <!-- Play/Pause -->
+      <button class="cb" id="btn-play">
+        <svg id="ico-play" width="18" height="18" viewBox="0 0 24 24" fill="#fff"><polygon points="5,3 19,12 5,21"/></svg>
+        <svg id="ico-pause" width="18" height="18" viewBox="0 0 24 24" fill="#fff" style="display:none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+      </button>
+      <!-- Mute -->
+      <button class="cb" id="btn-mute">
+        <svg id="ico-vol" width="20" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+        <svg id="ico-muted" width="20" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+        </svg>
+      </button>
+      <!-- Time -->
+      <span id="time-el">00:00 / 00:00</span>
+      <div id="spacer"></div>
+      <!-- Rewind 10 -->
+      <button class="cb" id="btn-rew" title="Rewind 10s">
+        <svg width="22" height="22" viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round">
+          <polyline points="2,6 2,12 8,12"/>
+          <path d="M4.2,17A9,9 0 1,0 4.6,12.5"/>
+          <text x="13" y="15.5" font-size="6.5" fill="#fff" stroke="none" font-family="Arial" font-weight="bold" text-anchor="middle">10</text>
+        </svg>
+      </button>
+      <!-- Forward 10 -->
+      <button class="cb" id="btn-fwd" title="Forward 10s">
+        <svg width="22" height="22" viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round">
+          <polyline points="24,6 24,12 18,12"/>
+          <path d="M21.8,17A9,9 0 1,1 21.4,12.5"/>
+          <text x="13" y="15.5" font-size="6.5" fill="#fff" stroke="none" font-family="Arial" font-weight="bold" text-anchor="middle">10</text>
+        </svg>
+      </button>
+      <!-- CC -->
+      <button class="cb" id="btn-cc" title="Captions">
+        <svg width="22" height="18" viewBox="0 0 24 18" fill="none">
+          <rect x="1" y="1" width="22" height="16" rx="2" stroke="#fff" stroke-width="1.8"/>
+          <text x="12" y="13" font-size="7" fill="#fff" font-family="Arial" font-weight="bold" text-anchor="middle">CC</text>
+        </svg>
+      </button>
+      <!-- Settings -->
+      <button class="cb" id="btn-set" title="Playback Speed">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+      <!-- PiP -->
+      <button class="cb" id="btn-pip" title="Picture in Picture">
+        <svg width="20" height="18" viewBox="0 0 24 20" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round">
+          <rect x="1" y="1" width="22" height="18" rx="2"/>
+          <rect x="11" y="9" width="10" height="7" rx="1" stroke-width="1.5"/>
+        </svg>
+      </button>
+      <!-- Fullscreen -->
+      <button class="cb" id="btn-fs" title="Fullscreen">
+        <svg id="ico-exp" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+          <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+        </svg>
+        <svg id="ico-shr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none">
+          <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+          <line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Speed menu -->
+<div id="speed-menu" style="position:fixed;bottom:60px;right:120px;background:rgba(15,15,15,.96);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 0;display:none;z-index:100;font-family:Arial;min-width:110px;">
+    <div onclick="setSpeed(0.5)" style="padding:7px 16px;color:#fff;font-size:12px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='none'" data-spd="0.5">0.5x</div>
+    <div onclick="setSpeed(0.75)" style="padding:7px 16px;color:#fff;font-size:12px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='none'" data-spd="0.75">0.75x</div>
+    <div onclick="setSpeed(1)" style="padding:7px 16px;color:#fff;font-size:12px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='none'" data-spd="1">Normal</div>
+    <div onclick="setSpeed(1.25)" style="padding:7px 16px;color:#fff;font-size:12px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='none'" data-spd="1.25">1.25x</div>
+    <div onclick="setSpeed(1.5)" style="padding:7px 16px;color:#fff;font-size:12px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='none'" data-spd="1.5">1.5x</div>
+    <div onclick="setSpeed(2)" style="padding:7px 16px;color:#fff;font-size:12px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='none'" data-spd="2">2x</div>
+  </div>
+
+<div id="next-toast">
+  <div class="nt-l">Up Next</div>
+  <div class="nt-t">Class de 2-banme ni Kawaii Onnanoko to Tomodachi ni Natta — Episode 2</div>
+  <button onclick="location.href='/watch?id=344'">Watch Now ›</button>
+</div>
+
+<script>
+(function(){
+  const vid   = document.getElementById('v');
+  const pw    = document.getElementById('pw');
+  const load  = document.getElementById('loading');
+  const errEl = document.getElementById('err');
+  const errMsg= document.getElementById('err-msg');
+
+  // ── AD SYSTEM ──
+  // Rules:
+  // - Session mein max 4 ads total
+  // - Har 2 ads ke beech minimum 60 sec gap
+  // - Ad 1: pehli play pe (agar session fresh ho)
+  // - Ad 2: 10 min pe
+  // - Ad 3: 20 min pe
+  // - Session = sessionStorage (tab band ho to reset)
+  // - Actual popunder Adsterra script (loaded in <head>) fires itself on click
+
+  var AD_MAX       = 4;        // session mein max ads
+  var AD_COOLDOWN  = 60;       // seconds between ads
+
+  // sessionStorage se load karo
+  var adCount     = parseInt(sessionStorage.getItem('ad_count') || '0');
+  var adLastTime  = parseInt(sessionStorage.getItem('ad_last')  || '0');
+  var adMid1Done  = sessionStorage.getItem('ad_mid1') === '1';
+  var adMid2Done  = sessionStorage.getItem('ad_mid2') === '1';
+
+  function canShowAd() {
+    if (adCount >= AD_MAX) return false;                          // max limit
+    var now = Math.floor(Date.now() / 1000);
+    if (adLastTime > 0 && (now - adLastTime) < AD_COOLDOWN) return false; // cooldown
+    return true;
+  }
+
+  function fireAd(label) {
+    if (!canShowAd()) return;
+    adCount++;
+    adLastTime = Math.floor(Date.now() / 1000);
+    sessionStorage.setItem('ad_count', adCount);
+    sessionStorage.setItem('ad_last',  adLastTime);
+    console.log('[Ad] tracked:', label, '| total this session:', adCount);
+  }
+
+  // Ad 1: pehli play pe
+  vid.addEventListener('play', function adFirst() {
+    fireAd('pre-roll');
+    vid.removeEventListener('play', adFirst);
+  });
+
+  // Ad 2 & 3: time based
+  vid.addEventListener('timeupdate', function() {
+    var t = vid.currentTime;
+    if (!adMid1Done && t >= 600) {   // 10 min
+      adMid1Done = true;
+      sessionStorage.setItem('ad_mid1', '1');
+      fireAd('mid-10min');
+    }
+    if (!adMid2Done && t >= 1200) {  // 20 min
+      adMid2Done = true;
+      sessionStorage.setItem('ad_mid2', '1');
+      fireAd('mid-20min');
+    }
+  });
+  // ── END AD SYSTEM ──
+
+
+  // ── Loading states ──
+  vid.addEventListener('canplay', () => load.classList.add('hide'));
+  vid.addEventListener('waiting', () => load.classList.remove('hide'));
+  vid.addEventListener('playing', () => load.classList.add('hide'));
+  vid.addEventListener('error',   () => {
+    load.classList.add('hide');
+    errEl.classList.add('show');
+    const code = vid.error && vid.error.code;
+    const messages = {1:'Playback cancelled',2:'Network error while loading the stream',3:'Video data could not be decoded',4:'This video format or source is unavailable'};
+    errMsg.textContent = messages[code] || 'Stream unavailable';
+  });
+  
+  // ── Controls refs ──
+  const btnPlay  = document.getElementById('btn-play');
+  const icoPlay  = document.getElementById('ico-play');
+  const icoPause = document.getElementById('ico-pause');
+  const centerPlay = document.getElementById('center-play');
+  const btnMute  = document.getElementById('btn-mute');
+  const icoVol   = document.getElementById('ico-vol');
+  const icoMuted = document.getElementById('ico-muted');
+  const timeEl   = document.getElementById('time-el');
+  const seekBg   = document.getElementById('seek-bg');
+  const seekFill = document.getElementById('seek-fill');
+  const seekWrap = document.getElementById('seek-wrap');
+  const btnFs    = document.getElementById('btn-fs');
+  const icoExp   = document.getElementById('ico-exp');
+  const icoShr   = document.getElementById('ico-shr');
+  const speedMenu= document.getElementById('speed-menu');
+
+  function fmt(s){s=Math.floor(s||0);const m=Math.floor(s/60),sc=s%60;return(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc;}
+
+  // Play/Pause
+  btnPlay.onclick = () => vid.paused ? vid.play() : vid.pause();
+  vid.onclick     = () => vid.paused ? vid.play() : vid.pause();
+  centerPlay.onclick = () => vid.play();
+  vid.addEventListener('play',  () => { icoPlay.style.display='none';  icoPause.style.display='block'; centerPlay.classList.add('hide'); });
+  vid.addEventListener('pause', () => { icoPlay.style.display='block'; icoPause.style.display='none'; centerPlay.classList.remove('hide'); });
+
+  // Mute
+  btnMute.onclick = () => {
+    vid.muted = !vid.muted;
+    icoVol.style.display   = vid.muted ? 'none'  : 'block';
+    icoMuted.style.display = vid.muted ? 'block' : 'none';
+  };
+
+  // Time + seek fill
+  vid.addEventListener('timeupdate', () => {
+    const cur=vid.currentTime, dur=vid.duration||0;
+    timeEl.textContent = fmt(cur)+' / '+fmt(dur);
+    if(dur) seekFill.style.width = (cur/dur*100)+'%';
+        if(dur && cur/dur > 0.92) document.getElementById('next-toast').classList.add('show');
+      });
+
+  // Seek
+  let seeking=false;
+  function doSeek(e){
+    const rect=seekBg.getBoundingClientRect();
+    const pct=Math.min(1,Math.max(0,(e.clientX-rect.left)/rect.width));
+    if(vid.duration) vid.currentTime=pct*vid.duration;
+  }
+  seekWrap.addEventListener('mousedown',e=>{seeking=true;doSeek(e);});
+  document.addEventListener('mousemove',e=>{if(seeking)doSeek(e);});
+  document.addEventListener('mouseup',()=>seeking=false);
+
+  // Rewind / Forward
+  document.getElementById('btn-rew').onclick = () => vid.currentTime = Math.max(0,vid.currentTime-10);
+  document.getElementById('btn-fwd').onclick = () => vid.currentTime = Math.min(vid.duration||0,vid.currentTime+10);
+
+  // Fullscreen
+  btnFs.onclick = () => {
+    if(!document.fullscreenElement) pw.requestFullscreen && pw.requestFullscreen();
+    else document.exitFullscreen && document.exitFullscreen();
+  };
+  document.addEventListener('fullscreenchange', () => {
+    const fs=!!document.fullscreenElement;
+    icoExp.style.display=fs?'none':'block';
+    icoShr.style.display=fs?'block':'none';
+  });
+
+  // PiP
+  document.getElementById('btn-pip').onclick = () => {
+    if(document.pictureInPictureElement) document.exitPictureInPicture();
+    else if(vid.requestPictureInPicture) vid.requestPictureInPicture();
+  };
+
+  // CC
+  document.getElementById('btn-cc').onclick = () => {
+    for(let i=0;i<vid.textTracks.length;i++)
+      vid.textTracks[i].mode = vid.textTracks[i].mode==='showing'?'hidden':'showing';
+  };
+
+  // Speed
+  document.getElementById('btn-set').onclick = (e) => {
+    e.stopPropagation();
+    speedMenu.style.display = speedMenu.style.display==='none'?'block':'none';
+  };
+  document.addEventListener('click', () => speedMenu.style.display='none');
+  window.setSpeed = function(s){
+    vid.playbackRate=s;
+    speedMenu.querySelectorAll('[data-spd]').forEach(el=>{
+      el.style.color = parseFloat(el.dataset.spd)===s ? '#a855f7' : '#fff';
+    });
+    speedMenu.style.display='none';
+  };
+
+  // Controls auto-hide
+  let hideTimer;
+  function showCtrl(){ pw.classList.add('show'); clearTimeout(hideTimer); hideTimer=setTimeout(()=>{ if(!vid.paused) pw.classList.remove('show'); },3000); }
+  pw.addEventListener('mousemove', showCtrl);
+  pw.addEventListener('mouseenter', showCtrl);
+  vid.addEventListener('pause', () => { pw.classList.add('show'); clearTimeout(hideTimer); });
+  vid.addEventListener('play', showCtrl);
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if(['Space','ArrowLeft','ArrowRight','KeyM','KeyF'].includes(e.code)) e.preventDefault();
+    if(e.code==='Space')      vid.paused ? vid.play() : vid.pause();
+    if(e.code==='ArrowLeft')  vid.currentTime=Math.max(0,vid.currentTime-10);
+    if(e.code==='ArrowRight') vid.currentTime=Math.min(vid.duration||0,vid.currentTime+10);
+    if(e.code==='KeyM')       btnMute.click();
+    if(e.code==='KeyF')       btnFs.click();
+  });
+
+  // ── HLS / M3U8 Support ──
+  
+    // Auto play only when a valid source exists; browsers may still require user interaction.
+    vid.play().catch(()=>{ centerPlay.classList.remove('hide'); });
+  
+})();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"54a44aef5ff1491b8a877642ca7d19d0","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

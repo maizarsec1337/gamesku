@@ -1,0 +1,299 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <meta name="description" content="">
+    <link rel="shortcut icon" href="/icon.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        #player {
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+
+        #player_loader {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .skip_btn {
+            position: absolute;
+            bottom: 150%;
+            left: 5%;
+            z-index: 5;
+            color: var(--accent-color);
+            border: solid 2px var(--accent-color);
+            border-radius: 0.5rem;
+            outline: none;
+            background: none;
+            font-size: 20px;
+            font-family: "Rubik", Arial, sans-serif;
+            font-weight: 700;
+            padding: 5px 10px;
+            width: 150px;
+            transition: all 0.5s ease-in-out;
+        }
+
+        .skip_btn:hover {
+            color: var(--primary-color);
+            background: var(--third-color);
+            border: solid 2px var(--third-color);
+            transition: all 0.5s ease-in-out;
+        }
+
+        @media (max-width: 700px) {
+            .skip_btn {
+                font-size: 15px;
+                width: 100px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .skip_btn {
+                font-size: 10px;
+                width: 75px;
+            }
+        }
+
+        #player {
+            overflow: hidden;
+        }
+
+        .jwplayer.jw-skin-netflix .jw-title-primary {
+            margin-top: 3rem !important;
+        }
+
+        .jw-title {
+            padding-top: 0px !important;
+        }
+
+        .jwplayer.jw-skin-netflix .jw-settings-menu .jw-submenu-topbar {
+            display: block !important;
+        }
+
+        .jw-controlbar .jw-tooltip,
+        .jw-settings-menu .jw-tooltip,
+        .jw-time-tip {
+            background: #181919 !important;
+        }
+
+        .jwplayer.jw-skin-netflix .jw-settings-menu {
+            z-index: 11 !important;
+        }
+
+        .jw-text-track-cue {
+            padding-inline: 8px !important;
+        }
+
+        .jwplayer.jw-skin-netflix.jw-state-idle .jw-display-icon-container .jw-svg-icon-play {
+            background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0Ij48cGF0aCBmaWxsPSJub25lIiBkPSJNMCAwaDI0djI0SDB6Ii8+PHBhdGggZD0iTTE5LjM3NiAxMi40MTZMOC43NzcgMTkuNDgyQS41LjUgMCAwIDEgOCAxOS4wNjZWNC45MzRhLjUuNSAwIDAgMSAuNzc3LS40MTZsMTAuNTk5IDcuMDY2YS41LjUgMCAwIDEgMCAuODMyeiIgZmlsbD0icmdiYSgyMjksOSwyMCwxKSIvPjwvc3ZnPg==);
+            background-size: contain !important;
+            fill: #f00 !important;
+        }
+
+        .jw-slider-horizontal.jw-chapter-slider-time .jw-timesegment-resetter {
+            border-radius: 10000px !important;
+            overflow: hidden !important;
+        }
+
+        .jw-knob {
+            transform: translate(-50%, -50%) scale(1) !important;
+        }
+
+        .jwplayer.jw-skin-netflix .jw-controlbar .jw-slider-time .jw-slider-container .jw-buffer {
+            background-color: #cdcdcdc9 !important;
+        }
+
+        .ad-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 18px;
+            z-index: 999;
+            display: none;
+        }
+    </style>
+
+</head>
+
+<body onload="loading()">
+    <div class="content-center">
+        <div class="load-circle">
+            <div></div>
+            <div></div>
+        </div>
+    </div>
+    <div class="wrap">
+        <div id="player"></div>
+        <div class="ad-loading" id="adLoading">Loading Ad...</div>
+    </div>
+    <script>
+        const loader = document.querySelector(".load-circle").closest(".content-center");
+
+        function loading() {
+            loader.style.display = "none";
+        }
+    </script>
+
+    <script src="https://cdn.jwplayer.com/libraries/IDzF9Zmk.js"></script>
+
+    <script>
+        let tracks = [];
+        const playerInstance = jwplayer("player").setup({
+            skin: {
+                name: "netflix",
+            },
+            playbackRateControls: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2],
+            playlist: [{
+                sources: [],
+                tracks: tracks,
+                image: "",
+                autostart: false,
+                mute: false,
+            }],
+
+            captions: {
+                color: "#ffffff",
+                fontFamily: "Arial",
+                fontOpacity: 100,
+                edgeStyle: "none",
+                backgroundColor: "#000000",
+                windowColor: "#ffffff",
+                windowOpacity: 0,
+                backgroundOpacity: 100,
+                fontSize: 15,
+            },
+
+            logo: {
+                "file": "/icon.png",
+                "link": "yourdomain.com",
+                "hide": "true",
+                "position": "top-left"
+            },
+
+            advertising: {
+                client: "vast",
+                schedule: {
+                    "preroll": {
+                        offset: "pre",
+                        tag: "//dn.gorgeirido.com/rCt2Y9LntKb/132748"
+                    },
+                    "midroll-1": {
+                        offset: "50%",
+                        tag: "//dn.gorgeirido.com/rCt2Y9LntKb/132748"
+                    },
+                    "postroll": {
+                        offset: "post",
+                        tag: "//dn.gorgeirido.com/rCt2Y9LntKb/132748"
+                    }
+                }
+            }
+        });
+
+        const adLoading = document.getElementById('adLoading');
+
+        playerInstance.on('adRequest', function(event) {
+            console.log('Ad request sent');
+            adLoading.style.display = 'block';
+        });
+
+        playerInstance.on('adStarted', function(event) {
+            console.log('Ad started playing');
+            adLoading.style.display = 'none';
+        });
+
+        playerInstance.on('adImpression', function(event) {
+            console.log('Ad impression tracked');
+            console.log('Ad tag:', event.tag);
+        });
+
+        playerInstance.on('adComplete', function(event) {
+            console.log('Ad completed successfully');
+        });
+
+        playerInstance.on('adSkipped', function(event) {
+            console.log('Ad skipped by user');
+        });
+
+        playerInstance.on('adError', function(event) {
+            console.log('Ad error occurred:', event.message);
+            adLoading.style.display = 'none';
+        });
+
+        playerInstance.on('adClick', function(event) {
+            console.log('Ad clicked');
+        });
+
+        playerInstance.on('adTime', function(event) {
+            console.log('Ad time:', event.position, '/', event.duration);
+        });
+
+        playerInstance.on('adPlay', function(event) {
+            console.log('Ad resumed');
+        });
+
+        playerInstance.on('adPause', function(event) {
+            console.log('Ad paused');
+        });
+
+        playerInstance.on("ready", function() {
+            console.log('Player ready with ads enabled');
+
+            const playerContainer = playerInstance.getContainer();
+            const buttonContainer = playerContainer.querySelector(".jw-button-container");
+            const spacer = buttonContainer.querySelector(".jw-spacer");
+            const player = playerInstance;
+            const rewindContainer = playerContainer.querySelector(".jw-display-icon-rewind");
+            const forwardContainer = rewindContainer.cloneNode(true);
+            const forwardDisplayButton = forwardContainer.querySelector(".jw-icon-rewind");
+            forwardDisplayButton.style.transform = "scaleX(-1)";
+            forwardDisplayButton.ariaLabel = "Forward 10 Seconds";
+            const nextContainer = playerContainer.querySelector(".jw-display-icon-next");
+            nextContainer.parentNode.insertBefore(forwardContainer, nextContainer);
+            playerContainer.querySelector(".jw-display-icon-next").style.display = "none";
+            const rewindControlBarButton = buttonContainer.querySelector(".jw-icon-rewind");
+            rewindControlBarButton.ariaLabel = "Backward 10 Seconds";
+            const forwardControlBarButton = rewindControlBarButton.cloneNode(true);
+            forwardControlBarButton.style.transform = "scaleX(-1)";
+            forwardControlBarButton.ariaLabel = "Forward 10 Seconds";
+            rewindControlBarButton.parentNode.insertBefore(
+                forwardControlBarButton, rewindControlBarButton.nextElementSibling,
+            );
+            [forwardDisplayButton, forwardControlBarButton].forEach((button) => {
+                button.onclick = () => {
+                    player.seek(player.getPosition() + 10);
+                };
+            });
+
+            if (window.innerWidth < 800 && window.innerWidth > 450) {
+                playerInstance.setCaptions({
+                    backgroundOpacity: 75,
+                    fontSize: 18,
+                });
+            } else if (window.innerWidth < 450) {
+                playerInstance.setCaptions({
+                    backgroundOpacity: 100,
+                });
+            }
+        });
+
+        function setPlayerHeight() {
+            playerInstance.resize(window.innerWidth, window.innerHeight);
+        }
+
+        setPlayerHeight();
+        window.addEventListener("resize", setPlayerHeight);
+    </script>
+
+    <script data-cfasync="false" async type="text/javascript" src="//dn.gorgeirido.com/rCt2Y9LntKb/132748"></script>
+</body>
+
+</html>

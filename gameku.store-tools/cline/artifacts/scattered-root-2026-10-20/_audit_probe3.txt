@@ -1,0 +1,13 @@
+﻿https://maizar.my.id/aes.js => 200 CT=application/javascript [CHALLENGE]
+    var slowAES={aes:{keySize:{SIZE_128:16,SIZE_192:24,SIZE_256:32},sbox:[99,124,119,123,242,107,111,197,48,1,103,43,254,215,171,118,202,130,201,125,250,89,71,240,1
+https://maizar.my.id/ => 200 CT=text/html [CHALLENGE]
+    <html><body><script type="text/javascript" src="/aes.js" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))})
+https://maizar.my.id/api/sehat?i=1 => 200 CT=text/html [CHALLENGE]
+    <html><body><script type="text/javascript" src="/aes.js" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))})
+https://maizar.my.id/api/produk?i=1 => 200 CT=text/html [CHALLENGE]
+    <html><body><script type="text/javascript" src="/aes.js" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))})
+HASIL ?i=1 tanpa cookie => 200 CT=text/html ACAO=[]
+challenge #1 : a=f655ba9d09a112d4968c63579db590b4 b=98344c2eee86c3994890592585b49f80 c=25b509cc7dadcdb532275647f94524cc
+challenge #2 : a=f655ba9d09a112d4968c63579db590b4 b=98344c2eee86c3994890592585b49f80 c=25b509cc7dadcdb532275647f94524cc
+DNS sql302.infinityfree.com: 
+TCP sql302:3306 => False  (RemoteAddress=)

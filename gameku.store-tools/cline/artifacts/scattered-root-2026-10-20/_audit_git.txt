@@ -1,0 +1,140 @@
+﻿071bfd6 upd by maizar dev hapus yang ga guna
+194107d UPD by ARV
+6e61cf8 Update Home New
+5e46675 update backend by maizar dev wk
+718a6bd update backend by maizar dev
+fa92660 Update Home Streamku
+2b9dcbd Update Responsive Mobile
+625570e upd stream by maizar dev
+ gameku.store/backend/api/index.php                 |   2 +
+ gameku.store/backend/database/instal.php           |  34 +-
+ gameku.store/backend/database/migrasi.php          | 464 +++++++++++++++++++--
+ gameku.store/backend/database/schema.sql           |   6 +-
+ gameku.store/backend/security-check.php            | 412 +++++++++---------
+ gameku.store/backend/src/Auth.php                  |  77 +++-
+ .../backend/src/Pengendali/PengendaliAuth.php      | 100 ++++-
+ .../backend/src/Pengendali/PengendaliPelanggan.php |  54 ++-
+ .../backend/src/Pengendali/PengendaliPesanan.php   |  12 +
+ gameku.store/backend/src/bootstrap.php             |   6 +-
+ .../frontend/src/konteks/gunakanSesiPembeli.js     |   2 +-
+ 11 files changed, 911 insertions(+), 258 deletions(-)
+diff --git a/gameku.store/backend/api/index.php b/gameku.store/backend/api/index.php
+index 05b5959..294d54a 100644
+--- a/gameku.store/backend/api/index.php
++++ b/gameku.store/backend/api/index.php
+@@ -61,6 +61,8 @@ $kelasPeta = [
+     'ulasan'    => 'PengendaliUlasan',
+     'media'     => 'PengendaliMedia',
+     'aktivitas' => 'PengendaliAktivitas',
++    'pembayaran'=> 'PengendaliPembayaran',
++    'pesan'     => 'PengendaliPesan',
+     'anime'     => 'PengendaliAnime',
+     'chat'      => 'PengendaliChat',
+ ];
+diff --git a/gameku.store/backend/database/instal.php b/gameku.store/backend/database/instal.php
+index 9437557..7cdf7d0 100644
+--- a/gameku.store/backend/database/instal.php
++++ b/gameku.store/backend/database/instal.php
+@@ -5,7 +5,7 @@ require_once __DIR__ . '/../src/Bantu.php';
+ 
+ $cfg = require __DIR__ . '/../config/config.php';
+ 
+-$opsi = ['pengguna' => 'admin', 'sandi' => 'admin123', 'nama' => 'Administrator'];
++$opsi = ['pengguna' => 'admin', 'sandi' => '', 'nama' => 'Administrator'];
+ foreach ($argv ?? [] as $arg) {
+     if (strpos($arg, '--') === 0) {
+         [$k, $v] = array_pad(explode('=', substr($arg, 2), 2), 2, '');
+@@ -73,15 +73,35 @@ if ((int) $ada > 0 && !in_array('--paksa', $argv ?? [], true)) {
+     echo "[3/3] Admin sudah ada ({$ada}). Lewati pembuatan admin default.\n";
+     echo "       (pakai --paksa untuk menambah admin baru walau sudah ada.)\n";
+ } else {
+-    $hash = password_hash($opsi['sandi'], PASSWORD_DEFAULT);
++    // Sandi: pakai yang diberikan, atau buat acak kuat (dicetak SEKALI di sini).
++    $sandiDiberikan = trim((string) $opsi['sandi']) !== '';
++    if ($sandiDiberikan && strlen((string) $opsi['sandi']) < 8) {
++        fwrite(STDERR, "[WARNING] Sandi yang diberikan kurang dari 8 karakter.\n");
++    }
++    $sandi = $sandiDiberikan ? (string) $opsi['sandi'] : bin2hex(random_bytes(9)); // 18 karakter
++
++    $hash = password_hash($sandi, PASSWORD_DEFAULT);
+     $stmt = $pdo->prepare(
+-        "INSERT INTO `admin` (pengguna, nama, email, sandi_hash, status) VALUES (?, ?, ?, ?, 'Aktif')"
++        "INSERT INTO `admin` (pengguna, nama, email, sandi_hash, status, peran)
++         VALUES (?, ?, ?, ?, 'Aktif', 'superadmin')"
+     );
+     $stmt->execute([$opsi['pengguna'], $opsi['nama'], $opsi['pengguna'] . '@gamesku.store', $hash]);
+-    // Peringatan: password default lemah, harus diganti setelah login pertama.
+-    fwrite(STDERR, "\n[WARNING] Password default admin '*********' TERPATENGAN lemah.\n");
+-    fwrite(STDERR, "         Ganti password melalui endpoint /api/auth/daftar atau\n");
+-    fwrite(STDERR, "         database/instal.php --paksa sesegera mungkin setelah login pertama.\n\n");
++
++    if ($sandiDiberikan) {
++        fwrite(STDERR, "\n[WARNING] Sandi admin dibuat dari nilai yang Anda berikan.\n");
++        fwrite(STDERR, "          Ganti segera setelah login pertama (endpoint /api/auth/admin/{id}).\n\n");
++    } else {
++        // Cetak SEKALI ke stdout agar bisa disalin admin. Tidak disimpan di mana pun.
++        echo "\n";
++        echo "  +--------------------------------------------------------------+\n";
++        echo "  | Akun superadmin dibuat. Salin sandi ini SEKARANG (tidak      |\n";
++        echo "  | ditampilkan lagi):                                           |\n";
++        echo "  +--------------------------------------------------------------+\n";
++        echo "    pengguna : {$opsi['pengguna']}\n";
++        echo "    sandi    : {$sandi}\n";
++        echo "  +--------------------------------------------------------------+\n";
++        echo "  Simpan di pengelola sandi, lalu login dan ganti bila perlu.\n\n";
++    }
+ }
+ 
+ echo "\nSelesai. Jalankan server dari folder backend:\n";
+diff --git a/gameku.store/backend/database/migrasi.php b/gameku.store/backend/database/migrasi.php
+index 3c887de..c8dc7ab 100644
+--- a/gameku.store/backend/database/migrasi.php
++++ b/gameku.store/backend/database/migrasi.php
+@@ -1,9 +1,16 @@
+ <?php
+-// Migrasi skema untuk instalasi yang sudah ada (idempoten & aman dijalankan ulang).
++// Runner migrasi skema berversi untuk gamesku.store.
+ // Pakai: php database/migrasi.php
+ //
+-// Saat ini menambahkan:
+-//   1. pesanan.idempotency_key (+ unique key) ΓÇö cegah pesanan ganda saat retry.
++// Prinsip:
++//   - ADDITIVE ONLY  : hanya CREATE TABLE / ADD COLUMN / ADD INDEX.
++//   - NON-DESTRUKTIF : tidak ada DROP TABLE / DROP COLUMN / TRUNCATE / DELETE.
++//   - IDEMPOTEN      : dijalankan berkali-kali = no-op (dijaga INFORMATION_SCHEMA
++//                      + tabel `schema_migrations`).
++//   - AMAN PARSIAL   : tiap langkah dicek keberadaannya sebelum dijalankan,
++//                      sehingga eksekusi ulang tidak berhenti karena "duplicate".
++//
++// Catatan: MySQL 5.7 mengabaikan CHECK constraint; validasi tetap di aplikasi.
+ 
+ require_once __DIR__ . '/../src/Bantu.php';
+ 
+@@ -25,10 +32,20 @@ try {
+ }
+ 
+ echo "== Migrasi skema gamesku ==\n";
++echo "Database: {$nama} @ {$host}:{$port}\n\n";
++
++// ============================ Helper pemeriksa ============================
++
++function tabelAda(PDO $pdo, string $tabel): bool
++{
++    $stmt = $pdo->prepare(
++        'SELECT COUNT(*) FROM information_schema.tables
++         WHERE table_schema = DATABASE() AND table_name = ?'
++    );
++    $stmt->execute([$tabel]);
++    return (int) $stmt->fetchColumn() > 0;
++}
+ 
+-/**
+- * Tambah kolom bila belum ada.
+- */
+ function kolomAda(PDO $pdo, string $tabel, string $kolom): bool
+ {
+     $stmt = $pdo->prepare(
+@@ -39,9 +56,6 @@ function kolomAda(PDO $pdo, string $tabel, string $kolom): bool
+     return (int) $stmt->fetchColumn() > 0;
+ }
+ 

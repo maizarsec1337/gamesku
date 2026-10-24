@@ -1,0 +1,15 @@
+﻿GET https://maizar.my.id/api/sehat => 200 CT=text/html
+  ACAO: []
+  ACAM: []
+  ACAC: []
+  BODY: <html><body><script type="text/javascript" src="/aes.js" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f+
+GET https://maizar.my.id/api/produk => 200 CT=text/html
+  ACAO: []
+  ACAM: []
+  ACAC: []
+  BODY: <html><body><script type="text/javascript" src="/aes.js" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f+
+OPTIONS => 200
+  ACAO: []
+  ACAM: []
+  ACAH: []
+  ACAC: []

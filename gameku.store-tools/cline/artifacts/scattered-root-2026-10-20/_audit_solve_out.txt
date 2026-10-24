@@ -1,0 +1,18 @@
+[1] GET /api/sehat tanpa cookie => 200 CT=text/html
+    challenge a=f655ba9d09a112d4968c63579db590b4 b=98344c2eee86c3994890592585b49f80 c=25b509cc7dadcdb532275647f94524cc
+    __test = e84330a69c6df373fc2fd2a2827a5f0d
+[2] https://maizar.my.id/api/sehat +cookie => 200 CT=application/json; charset=utf-8
+    ACAO=null ACAC=null ACAM=null
+    BODY={"ok":true,"data":{"layanan":"gamesku-store","waktu":"2026-10-20T00:38:47-04:00","database":"gagal"},"pesan":""}
+[2] https://maizar.my.id/api/sehat?i=1 +cookie => 200 CT=application/json; charset=utf-8
+    ACAO=null ACAC=null ACAM=null
+    BODY={"ok":true,"data":{"layanan":"gamesku-store","waktu":"2026-10-20T00:38:47-04:00","database":"gagal"},"pesan":""}
+[2] https://maizar.my.id/api/produk +cookie => 500 CT=application/json; charset=utf-8
+    ACAO=null ACAC=null ACAM=null
+    BODY={"ok":false,"pesan":"Koneksi database gagal. Periksa konfigurasi server."}
+[3] OPTIONS (cookie=false) => 200 CT=text/html
+    ACAO=null ACAM=null ACAH=null
+    BODY=<html><body><script type="text/javascript" src="/aes.js" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}function toHex(){for(var d=[],
+[3] OPTIONS (cookie=true) => 204 CT=null
+    ACAO=null ACAM=null ACAH=null
+    BODY=

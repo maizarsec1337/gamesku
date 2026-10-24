@@ -1,0 +1,40 @@
+﻿===== https://gameku.store/config/config.php (status 200) =====
+<?php
+// Konfigurasi utama aplikasi (nilai dapat dioverride lewat environment GAMEKU_*).
+// SATU-SATUNYA file konfigurasi database — seluruh backend membaca file ini
+// (lihat src/Database.php dan src/bootstrap.php). Jangan duplikasi ke file lain.
+
+// Larang akses langsung via web: file ini hanya boleh di-include, bukan dibuka
+// lewat HTTP (Apache maupun PHP built-in server).
+if (PHP_SAPI !== 'cli'
+    && isset($_SERVER['SCRIPT_FILENAME'])
+    && realpath($_SERVER['SCRIPT_FILENAME']) =
+===== https://gameku.store/api/index.php (status 200) =====
+<?php
+// Front controller: semua request /api/* diteruskan ke pengendali.
+
+require_once __DIR__ . '/../src/bootstrap.php';
+
+$uri  = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$jalur = rawurldecode($uri);
+
+// Larang akses web ke direktori internal (berisi kredensial/ error).
+// Server PHP built-in mengabaikan .htaccess, jadi perlindungan harus ada di sini
+// DITEMPATKAN SEBELUM penyajian berkas statis agar tidak terlewati.
+if ($jalur === '/config' || strpos($jalur,
+===== https://gameku.store/database/schema.sql (status 200) =====
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- PENGGUNA
+CREATE TABLE IF NOT EXISTS `admin` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `pengguna` VARCHAR(60) NOT NULL,
+  `nama` VARCHAR(120) NOT NULL DEFAULT '',
+  `email` VARCHAR(150) NOT NULL DEFAULT '',
+  `sandi_hash` VARCHAR(255) NOT NULL,
+  `status` ENUM('Aktif','Nonaktif') NOT NULL DEFAULT 'Aktif',
+  `peran` VARCHAR(20) NOT NULL DEFAULT 'admin',
+  `dibuat_pada` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `masuk_ter

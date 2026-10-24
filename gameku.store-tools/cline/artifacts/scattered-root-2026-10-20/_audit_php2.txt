@@ -1,0 +1,4 @@
+﻿C:\xampp\php\php.exe => False
+C:\php\php.exe => False
+C:\Program Files\PHP\php.exe => False
+C:\tools\php\php.exe => False

@@ -1,0 +1,18 @@
+﻿cookie __test = 89801fd4972c1c44cde58c83342196d7
+GET+COOKIE => 200 CT=application/json; charset=utf-8
+ACAO: 
+ACAC: 
+BODY: {"ok":true,"data":{"layanan":"gamesku-store","waktu":"2026-10-19T22:44:13-04:00","database":"gagal"},"pesan":""}
+OPTIONS => 204
+  Connection: keep-alive
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Pragma: no-cache
+  X-XSS-Protection: 1; mode=block
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+  Date: Tue, 20 Oct 2026 02:44:13 GMT
+  Expires: Tue, 20 Oct 2026 02:44:13 GMT
+  Server: openresty

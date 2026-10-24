@@ -1,0 +1,21 @@
+﻿=== Headers https://gameku.store/ ===
+Access-Control-Allow-Origin: *
+Age: 42518
+Content-Disposition: inline
+Strict-Transport-Security: max-age=63072000
+X-Vercel-Cache: HIT
+X-Vercel-Id: sin1::lzc2x-1792456293064-b238f47bc58b
+Accept-Ranges: bytes
+Content-Length: 981
+Cache-Control: public, max-age=0, must-revalidate
+Content-Type: text/html; charset=utf-8
+Date: Tue, 20 Oct 2026 00:31:33 GMT
+ETag: "fe1bc3c13eb8600aef4d22e646a15f40"
+Last-Modified: Mon, 19 Oct 2026 12:42:54 GMT
+Server: Vercel
+GET /config/config.php => 200 | CT=application/x-httpd-php | len=3657
+GET /src/bootstrap.php => 200 | CT=application/x-httpd-php | len=7964
+GET /.env.local => 404
+GET /database/schema.sql => 200 | CT=application/x-sql | len=19220
+GET /api/index.php => 200 | CT=application/x-httpd-php | len=2772
+GET /assets/ => 404

@@ -1,0 +1,40 @@
+﻿=== ROOT gameku.store ===
+.agents
+backend
+dist
+frontend
+.gitignore
+package-lock.json
+promt.txt
+README.md
+temp_admin_dasbor.jsx
+=== backend ===
+api
+config
+database
+src
+uploads
+.htaccess
+CLOUDFLARE.md
+DEPLOYMENT.md
+package.json
+README.md
+security-check.php
+security-check.ps1
+SECURITY_AUDIT_REPORT.md
+=== python ===
+python: Python 3.13.15
+=== node/npm ===
+node: v24.21.0
+npm: 11.19.0
+=== where python/php ===
+python -> C:\Users\maizar\AppData\Local\Programs\Python\Python313\python.exe
+py -> C:\Windows\py.exe
+=== kandidat php ===
+=== port ===
+=== vite bin ===
+vite.cmd: True
+vite.js: True
+=== dist ===
+dist ada: True
+backend config.php ada: True
