@@ -13,9 +13,9 @@ dist-ssr
 *.local
 
 # Backend Gameku.store
-backend/uploads/*
-!backend/uploads/.gitkeep
-backend/config/config.php
+gameku.store/backend/uploads/*
+!gameku.store/backend/uploads/.gitkeep
+gameku.store/backend/config/config.php
 
 # Berkas sementara / laporan lokal
 daftar-*.txt
@@ -44,3 +44,13 @@ cline/artifacts/
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets & credentials (NEVER commit)
+.credentials.json
+.env
+.env.*
+*.pem
+*.key
+secrets/
+config/config.php
+gameku.store/backend/config/config.php

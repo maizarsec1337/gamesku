@@ -1,6 +1,0 @@
-Credentials loaded: 2 users
-
-adminravi / admin123 valid: True
-maizardev / admin123 valid: True
-adminravi / wrongpassword valid: False
-nonexistent / admin123 valid: False

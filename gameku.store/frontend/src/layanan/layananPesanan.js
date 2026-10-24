@@ -46,6 +46,7 @@ export function tambahPesanan(data) {
   if (!data || !data.pelanggan || !data.produk) {
     return { berhasil: false, pesan: 'Pesanan perlu data pelanggan dan produk.' }
   }
+  versi += 1
   const baru = koleksi.tambah({
     tanggal: data.tanggal || new Date().toISOString(),
     total: Math.max(0, Number(data.total) || 0),
@@ -60,6 +61,7 @@ export function ubahStatusPesanan(id, status) {
   if (!STATUS_PESANAN.includes(status)) {
     return { berhasil: false, pesan: `Status "${status}" tidak dikenal.` }
   }
+  versi += 1
   const baru = koleksi.perbarui(id, { status })
   if (!baru) return { berhasil: false, pesan: 'Pesanan tidak ditemukan.' }
   return { berhasil: true, data: baru }

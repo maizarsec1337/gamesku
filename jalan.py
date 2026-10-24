@@ -47,9 +47,10 @@ except Exception:  # pragma: no cover - fallback jika php_runtime tidak ada
 # Konfigurasi (diverifikasi dari repository)
 # ============================================================
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
-BACKEND_DIR = os.path.join(ROOT_DIR, "backend")
-LOG_DIR = os.path.join(ROOT_DIR, "logs")
+APP_DIR = os.path.join(ROOT_DIR, "gameku.store")
+FRONTEND_DIR = os.path.join(APP_DIR, "frontend")
+BACKEND_DIR = os.path.join(APP_DIR, "backend")
+LOG_DIR = os.path.join(APP_DIR, "logs")
 
 FRONTEND_PORT = 5173
 BACKEND_PORT = 8000
