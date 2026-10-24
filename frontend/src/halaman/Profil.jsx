@@ -50,9 +50,6 @@ export default function HalamanProfil() {
     )
   }
 
-  // Belum login → tampilkan halaman login premium langsung di /profil.
-  // `dari` diteruskan agar setelah backend buyer siap, login sukses bisa
-  // kembali ke halaman tujuan sebelumnya (kontrak: state.dari).
   if (status !== 'masuk') {
     return <HalamanMasuk tertanam />
   }

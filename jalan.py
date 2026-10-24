@@ -28,6 +28,8 @@ import time
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from collections import deque
+import argparse
+import random
 from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -76,11 +78,52 @@ COLOR_INFO = "#7fdbff"    # Biru info
 COLOR_BORDER = "#3e3e52"  # Border separator
 COLOR_RING = "#664aff"    # Ungu krem - fokus/indikator
 
+# Tipografi yang dipakai oleh layout utama.
+# Didefinisikan di level modul agar semua frame Tkinter dapat
+# menggunakannya saat aplikasi mulai dibuat.
+FONT_TITLE = ("Segoe UI", 18, "bold")
+FONT_SUBTITLE = ("Segoe UI", 10, "bold")
+FONT_BODY = ("Segoe UI", 10)
+FONT_SMALL = ("Segoe UI", 9)
+FONT_BORDER = ("Segoe UI", 9, "bold")
+
 # ============================================================
 # Authentifikasi (hash password dengan salt, tidak plaintext)
 # ============================================================
 SALT_ROUNDS = 150000  # PBKDF2 rounds - seimbang keamanan & performa
 USER_DATA_FILE = os.path.join(ROOT_DIR, ".credentials.json")
+# Kredensial disimpan setelah hash dengan salt unik
+# Diload dari .credentials.json atau generated dari DEFAULT_USERS
+CREDENTIALS_FILE = os.path.join(ROOT_DIR, ".credentials.json")
+
+def _load_credentials():
+    """Load credentials from JSON file, generate from defaults if not exists."""
+    if os.path.exists(CREDENTIALS_FILE):
+        with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    # Generate from DEFAULT_USERS if file doesn't exist
+    creds = {}
+    for username, password in DEFAULT_USERS.items():
+        salt = os.urandom(16).hex()
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt), SALT_ROUNDS)
+        creds[username] = {"hash": dk.hex(), "salt": salt}
+    with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
+        json.dump(creds, f, indent=2)
+    return creds
+
+def _verify_password(username, password, creds):
+    """Verify password using PBKDF2-HMAC-SHA256 with stored hash/salt."""
+    if username not in creds:
+        return False
+    stored = creds[username]
+    dk = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        bytes.fromhex(stored["salt"]),
+        SALT_ROUNDS,
+    )
+    return dk.hex() == stored["hash"]
+
 
 # Akun default yang harus ada setelah instalasi pertama
 DEFAULT_USERS = {
@@ -88,110 +131,7 @@ DEFAULT_USERS = {
     "maizardev": "admin123",
 }
 
-def _hash_password(password: str, salt: bytes) -> str:
-    """Hash password menggunakan PBKDF2-HMAC-SHA256."""
-    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, SALT_ROUNDS).hex()
-
-def _generate_salt() -> bytes:
-    """Generate salt unik untuk setiap akun."""
-    return os.urandom(16)
-
-def _load_credentials() -> dict:
-    """Load credentials dari file lokal. Kembalikan dict username -> {salt, hash}."""
-    try:
-        if os.path.exists(USER_DATA_FILE):
-            with open(USER_DATA_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            # Validasi format
-            if isinstance(data, dict):
-                validated = {}
-                for username, entry in data.items():
-                    if isinstance(entry, dict) and "salt" in entry and "hash" in entry:
-                        validated[username] = {
-                            "salt": base64.b64decode(entry["salt"]) if isinstance(entry["salt"], str) else entry["salt"],
-                            "hash": entry["hash"],
-                        }
-                return validated
-        return {}
-    except Exception:
-        return {}
-
-def _save_credentials(creds: dict) -> None:
-    """Simpan credentials terhash ke file lokal."""
-    try:
-        # Encode salt as base64 untuk simpan di JSON
-        save_data = {}
-        for username, entry in creds.items():
-            save_data[username] = {
-                "salt": base64.b64encode(entry["salt"]).decode("ascii") if entry.get("salt") else "",
-                "hash": entry["hash"],
-            }
-        # Tulis ke file sementara lalu rename untuk atomicity
-        tmp_file = USER_DATA_FILE + ".tmp"
-        with open(tmp_file, "w", encoding="utf-8") as f:
-            json.dump(save_data, f, indent=2)
-        os.replace(tmp_file, USER_DATA_FILE)
-    except Exception as e:
-        print("[WARNING] Gagal menyimpan kredensial: {}.".format(e))
-
-def _init_default_users() -> None:
-    """Inisialisasi akun default jika file kredensial belum ada."""
-    creds = _load_credentials()
-    if not creds:
-        # Buat akun default dengan hash password
-        for username, password in DEFAULT_USERS.items():
-            salt = _generate_salt()
-            password_hash = _hash_password(password, salt)
-            creds[username] = {"salt": salt, "hash": password_hash}
-        _save_credentials(creds)
-        print("[AUTH] Akun default terinisialisasi.")
-    return creds
-
-def verify_password(username: str, password: str, creds: dict) -> bool:
-    """Verifikasi username/password against stored credentials.
-
-    Returns True jika valid, False jika salah.
-    Tidak mencetak password ke log atau terminal.
-    """
-    if username not in creds:
-        return False
-
-    entry = creds[username]
-    stored_salt = entry["salt"]
-    stored_hash = entry["hash"]
-
-    computed_hash = _hash_password(password, stored_salt)
-
-    # Constant-time comparison to prevent timing attacks
-    return computed_hash == stored_hash
-# Tipografi
-FONT_TITLE = ("Segoe UI", 28, "bold")
-FONT_SUBTITLE = ("Segoe UI", 11)
-FONT_BODY = ("Segoe UI", 10)
-FONT_BORDER = ("Segoe UI", 9)
-FONT_SMALL = ("Segoe UI", 8)
-FONT_CAPTION = ("Segoe UI", 10, "bold")
-FONT_SANS = ("Segoe UI", 9)
-FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--strictPort"]
-
-# Backend hanya dijalankan jika PHP tersedia.
-if PHP_CMD:
-    BACKEND_CMD = PHP_CMD + ["-S", "localhost:%d" % BACKEND_PORT, "-t", ".", "api/index.php"]
-else:
-    BACKEND_CMD = ["echo", "Backend PHP dinonaktifkan - instal PHP untuk menjalankan backend"]
-
-# CREATE_NO_WINDOW mencegah jendela CMD baru di Windows.
-FLAG_POPEN = (
-    {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
-    if os.name == "nt"
-    else {"start_new_session": True}
-)
-
-WAKTU_TUNGGU_FRONTEND = 90   # detik — detik
-WAKTU_TUNGGU_BACKEND = 30    # detik — detik
-
-INTERVAL_HEALTH = 5      # detik — cek health endpoint
-INTERVAL_FILEWATCH = 2   # detik — cek perubahan file sumber
+# Kredensial disimpan setelah hash dengan salt unik
 MAX_LOG_LINES = 2000     # batas baris log per layanan (hindari memory leak)
 
 # File sumber yang dipantau untuk perubahan (relative to ROOT_DIR)
@@ -207,17 +147,38 @@ FILEWATCH_TARGETS = [
 # Direktori yang diabaikan saat memantau perubahan file
 IGNORE_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".next"}
 
-# Warna tema dark
-COLOR_BG = "#1e1e2e"
-COLOR_BG2 = "#2a2a3e"
-COLOR_FG = "#cdd6f4"
-COLOR_ACCENT = "#89b4fa"
-COLOR_SUCCESS = "#a6e3a1"
-COLOR_WARNING = "#fab387"
-COLOR_ERROR = "#f38ba8"
-COLOR_INFO = "#74c7ec"
-COLOR_PANEL_BG = "#313244"
-COLOR_BORDER = "#45475a"
+# Parse command line arguments for project directory
+parser = argparse.ArgumentParser(description='ALVIN JMBOD Desktop Control Center')
+parser.add_argument('--directory', '-d', default=None, help='Project directory (default: directory containing jalan.py)')
+args = parser.parse_args()
+
+# Determine the project directory
+if args.directory:
+    PROJECT_DIR = os.path.abspath(args.directory)
+else:
+    # Use the directory containing this script
+    PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Change to the project directory to ensure relative paths work correctly
+os.chdir(PROJECT_DIR)
+
+# Recalculate ROOT_DIR after changing directory
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Palet ungu gelap untuk seluruh jendela, termasuk layar login.
+COLOR_BG = "#100d1e"
+COLOR_BG2 = "#171329"
+COLOR_BG3 = "#211a39"
+COLOR_PANEL_BG = "#211a39"
+COLOR_FG = "#f3efff"
+COLOR_SUBTLE = "#a69dbd"
+COLOR_ACCENT = "#a78bfa"
+COLOR_ACCENT2 = "#c7b7ff"
+COLOR_SUCCESS = "#74dec3"
+COLOR_WARNING = "#f4be79"
+COLOR_ERROR = "#fb839a"
+COLOR_INFO = "#bbaaff"
+COLOR_BORDER = "#352b50"
 
 LEVEL_COLORS = {
     "INFO": COLOR_INFO,
@@ -233,6 +194,13 @@ STATUS_STOPPED = "STOPPED"
 STATUS_STARTING = "STARTING"
 STATUS_RUNNING = "RUNNING"
 STATUS_ERROR = "ERROR"
+FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--strictPort"]
+BACKEND_CMD = (perintah_php() + ["-S", f"localhost:{BACKEND_PORT}", "-t", ".", "api/index.php"]) if PHP_CMD else []
+FLAG_POPEN = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)} if os.name == "nt" else {"start_new_session": True}
+WAKTU_TUNGGU_FRONTEND = 90
+WAKTU_TUNGGU_BACKEND = 30
+INTERVAL_HEALTH = 5
+INTERVAL_FILEWATCH = 2
 # ============================================================
 # Class ProcessEntry — menyimpan informasi satu proses
 # ============================================================
@@ -270,7 +238,6 @@ class ProcessManager:
             self._tampilkan_status("Frontend sudah berjalan.")
             return
 
-        self._bersihkan_log("frontend")
         self.frontend = ProcessEntry("frontend", FRONTEND_CMD, cwd=FRONTEND_DIR)
 
         try:
@@ -297,7 +264,6 @@ class ProcessManager:
             self._tampilkan_status("Backend sudah berjalan.")
             return
 
-        self._bersihkan_log("backend")
         self.backend = ProcessEntry("backend", BACKEND_CMD, cwd=BACKEND_DIR)
 
         if PHP_CMD is None:
@@ -327,8 +293,6 @@ class ProcessManager:
         """Menunggu Vite siap (melalui health check atau port)."""
         dari = time.time()
         while time.time() - dari < WAKTU_TUNGGU_FRONTEND:
-            if not self.running:
-                return
             # Cek proses masih hidup
             if self.frontend.proc.poll() is not None:
                 self._handle_process_exit("frontend")
@@ -347,8 +311,6 @@ class ProcessManager:
         """Menunggu PHP server siap."""
         dari = time.time()
         while time.time() - dari < WAKTU_TUNGGU_BACKEND:
-            if not self.running:
-                return
             # Cek proses masih hidup
             if self.backend.proc.poll() is not None:
                 self._handle_process_exit("backend")
@@ -386,11 +348,15 @@ class ProcessManager:
         """ menghentikan frontend."""
         if self.frontend and self.frontend.proc:
             self._tampilkan_status("Menghentikan frontend...")
-            self.frontend.proc.terminate()
-            try:
-                self.frontend.proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.frontend.proc.kill()
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/PID", str(self.frontend.proc.pid), "/T", "/F"],
+                               capture_output=True, **FLAG_POPEN)
+            else:
+                self.frontend.proc.terminate()
+                try:
+                    self.frontend.proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.frontend.proc.kill()
             self.frontend.proc = None
             self.frontend.status = STATUS_STOPPED
             self._tampilkan_status("Frontend dihentikan.")
@@ -449,8 +415,8 @@ class ControlCenterApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("ALVIN JMBOD — Desktop Control Center")
-        self.geometry("1600x980")
-        self.minsize(1400, 800)
+        self.geometry("1280x820")
+        self.minsize(980, 680)
 
         # Configure premium dark theme
         self.configure(bg=COLOR_BG)
@@ -463,10 +429,16 @@ class ControlCenterApp(tk.Tk):
         self.running_services = set()
         self.log_scroll_pos = 0
         self.paused_log_scroll = False
+        self.pages = {}
+        self.file_snapshots = {}
+        self.started_at = time.monotonic()
+        self.rain_enabled = True
+        self.rain_job = None
+        self._pulse_on = False
 
         # ============ Layout Configuration ============
         # Grid weights: sidebar 280px, main content fills rest
-        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
         # Create header
@@ -477,168 +449,288 @@ class ControlCenterApp(tk.Tk):
 
         # Create main content area
         self.main_content = tk.Frame(self, bg=COLOR_BG2)
-        self.main_content.grid(row=0, column=1, sticky="nsew", padx=0, pady=0)
+        self.main_content.grid(row=1, column=1, sticky="nsew", padx=0, pady=0)
         self.main_content.grid_rowconfigure(0, weight=1)
         self.main_content.grid_columnconfigure(0, weight=1)
 
         # Create content frames (cards/panels)
         self._create_content_panels()
+        self._create_status_bar()
 
         # Initialize display
         self._update_process_status("frontend", STATUS_STOPPED)
         self._update_process_status("backend", STATUS_STOPPED)
-        self._refresh_clock()
 
         # Protocol untuk menutup aplikasi
         self.protocol("WM_DELETE_WINDOW", self._on_closing)
 
-        # Animated entrance fade
-        self.alpha = 0
-        self._fade_in(0, self.lift)
+        self.attributes("-alpha", 0.0)
+        self._fade_started = time.monotonic()
+        self.after(16, self._fade_in)
+        self.after(1000, self._poll_services)
+        self.after(100, self._animate_rain)
+        self.after(650, self._animate_indicator)
     def _create_sidebar(self):
-        """Create sidebar frame with service buttons."""
-        self.sidebar = tk.Frame(self, bg=COLOR_BG2, width=200)
-        self.sidebar.grid(row=0, column=0, sticky="ns")
-        self.sidebar.grid_rowconfigure(0, weight=1)
+        self.sidebar = tk.Frame(self, bg=COLOR_BG2, width=224)
+        self.sidebar.grid(row=0, column=0, rowspan=2, sticky="nsew")
+        self.sidebar.grid_propagate(False)
+        self.sidebar.grid_columnconfigure(0, weight=1)
+        self.sidebar.grid_rowconfigure(3, weight=1)
 
-        # Sidebar title
-        title_label = tk.Label(
-            self.sidebar,
-            text="Gameku Store",
-            bg=COLOR_BG2,
-            fg=COLOR_ACCENT,
-            font=("Segoe UI", 14, "bold"),
-            pady=20,
-        )
-        title_label.grid(row=0, column=0, padx=10, pady=5)
+        brand = tk.Frame(self.sidebar, bg=COLOR_BG2)
+        brand.grid(row=0, column=0, sticky="ew", padx=22, pady=(29, 26))
+        tk.Label(brand, text="◆  GAMEKU", bg=COLOR_BG2, fg=COLOR_ACCENT2,
+                 font=("Segoe UI", 16, "bold")).pack(anchor="w")
+        tk.Label(brand, text="CONTROL CENTER", bg=COLOR_BG2, fg=COLOR_SUBTLE,
+                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(3, 0))
 
-        # Divider
-        ttk.Separator(self.sidebar, orient="horizontal").grid(
-            row=1, column=0, sticky="ew", padx=10
-        )
+        tk.Label(self.sidebar, text="WORKSPACE", bg=COLOR_BG2, fg=COLOR_SUBTLE,
+                 font=("Segoe UI", 9, "bold")).grid(row=1, column=0, sticky="w", padx=22)
+        nav = tk.Frame(self.sidebar, bg=COLOR_BG2)
+        nav.grid(row=2, column=0, sticky="ew", padx=12, pady=(10, 0))
+        self.nav_buttons = {}
+        for page, label in (("overview", "◈   Overview"), ("services", "▣   Services"),
+                            ("console", ">_   Console"), ("files", "▤   Files"),
+                            ("errors", "◇   Diagnostics"), ("settings", "⚙   Settings"),
+                            ("about", "○   About")):
+            button = tk.Button(nav, text=label, bg=COLOR_BG2, fg=COLOR_SUBTLE,
+                               activebackground=COLOR_BG3, activeforeground=COLOR_FG,
+                               font=("Segoe UI", 10), anchor="w", relief="flat",
+                               cursor="hand2", padx=15, pady=11,
+                               command=lambda p=page: self.show_page(p))
+            button.pack(fill="x", pady=2)
+            button.bind("<Enter>", lambda event, name=page: event.widget.configure(
+                bg=COLOR_BG3, fg=COLOR_ACCENT2))
+            button.bind("<Leave>", lambda event, name=page: event.widget.configure(
+                bg=COLOR_BG3 if name == self.current_page else COLOR_BG2,
+                fg=COLOR_ACCENT2 if name == self.current_page else COLOR_SUBTLE))
+            self.nav_buttons[page] = button
 
-        # Buttons frame
-        btn_frame = tk.Frame(self.sidebar, bg=COLOR_BG2)
-        btn_frame.grid(row=2, column=0, sticky="ns", padx=10, pady=10)
-        btn_frame.grid_columnconfigure((0, 1, 2), weight=1)
+        controls = tk.Frame(self.sidebar, bg=COLOR_BG2)
+        controls.grid(row=4, column=0, sticky="ew", padx=18, pady=(8, 20))
+        tk.Frame(controls, bg=COLOR_BORDER, height=1).pack(fill="x", pady=(0, 18))
+        tk.Label(controls, text="QUICK CONTROL", bg=COLOR_BG2, fg=COLOR_SUBTLE,
+                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 10))
+        self.btn_frontend = self._action_button(controls, "Start Frontend", self._on_frontend_toggle)
+        self.btn_backend = self._action_button(controls, "Start Backend", self._on_backend_toggle)
+        self.btn_stop_all = self._action_button(controls, "Stop All", self._on_stop_all, danger=True)
+        self.lbl_status = tk.Label(controls, text="Semua layanan berhenti", bg=COLOR_BG2,
+                                   fg=COLOR_SUBTLE, font=FONT_SMALL, wraplength=185)
+        self.lbl_status.pack(anchor="w", pady=(12, 0))
 
-        # FRONTEND button
-        self.btn_frontend = tk.Button(
-            btn_frame,
-            text="FRONTEND",
-            bg=COLOR_ERROR,
-            fg="white",
-            font=("Segoe UI", 10, "bold"),
-            cursor="hand2",
-            command=self._on_frontend_toggle,
-            width=20,
-            height=1,
-        )
-        self.btn_frontend.grid(row=0, column=0, padx=5, pady=5)
-
-        # BACKEND button
-        self.btn_backend = tk.Button(
-            btn_frame,
-            text="BACKEND",
-            bg=COLOR_WARNING,
-            fg="white",
-            font=("Segoe UI", 10, "bold"),
-            cursor="hand2",
-            command=self._on_backend_toggle,
-            width=20,
-            height=1,
-        )
-        self.btn_backend.grid(row=1, column=0, padx=5, pady=5)
-
-        # STOP ALL button
-        self.btn_stop_all = tk.Button(
-            btn_frame,
-            text="STOP ALL",
-            bg=COLOR_ERROR,
-            fg="white",
-            font=("Segoe UI", 10, "bold"),
-            cursor="hand2",
-            command=self._on_stop_all,
-            width=20,
-            height=1,
-        )
-        self.btn_stop_all.grid(row=2, column=0, padx=5, pady=5)
-
-        # Divider
-        ttk.Separator(btn_frame, orient="horizontal").grid(
-            row=3, column=0, sticky="ew", padx=5, pady=5
-        )
-
-        # Status info
-        self.lbl_status = tk.Label(
-            btn_frame,
-            text="Semua layanan berhenti",
-            bg=COLOR_BG2,
-            fg=COLOR_INFO,
-            font=("Segoe UI", 9),
-        )
-        self.lbl_status.grid(row=4, column=0, padx=5, pady=5)
+    def _action_button(self, parent, text, command, danger=False):
+        button = tk.Button(parent, text=text, command=command, relief="flat", cursor="hand2",
+                           bg=COLOR_BG3 if danger else COLOR_ACCENT,
+                           fg=COLOR_ERROR if danger else COLOR_BG,
+                           activebackground=COLOR_ACCENT2, activeforeground=COLOR_BG,
+                           font=("Segoe UI", 10, "bold"), pady=9)
+        button.pack(fill="x", pady=4)
+        resting = COLOR_BG3 if danger else COLOR_ACCENT
+        button.bind("<Enter>", lambda event: event.widget.configure(bg=COLOR_ACCENT2, fg=COLOR_BG))
+        button.bind("<Leave>", lambda event: event.widget.configure(
+            bg=resting, fg=COLOR_ERROR if danger else COLOR_BG))
+        return button
     def _create_content_panels(self):
-        """Create content frames that switch between premium pages."""
-        self.pages_frame = tk.Frame(self.main_content, bg=COLOR_BG2)
+        """Build a lightweight dashboard; rain is drawn only in the hero canvas."""
+        self.pages_frame = tk.Frame(self.main_content, bg=COLOR_BG)
         self.pages_frame.grid(row=0, column=0, sticky="nsew")
         self.pages_frame.grid_rowconfigure(0, weight=1)
         self.pages_frame.grid_columnconfigure(0, weight=1)
-
-        # Initialize all page frames
         for page in ["overview", "services", "console", "files", "errors", "settings", "about"]:
-            self.pages[page] = tk.Frame(self.pages_frame, bg=COLOR_BG2)
+            self.pages[page] = tk.Frame(self.pages_frame, bg=COLOR_BG)
             self.pages[page].grid(row=0, column=0, sticky="nsew")
-            self.show_page("overview")
+
+        overview = self.pages["overview"]
+        self.rain_canvas = tk.Canvas(overview, height=200, bg="#18122d", highlightthickness=0)
+        self.rain_canvas.pack(fill="x", padx=26, pady=(25, 0))
+        self.rain_canvas.bind("<Configure>", self._reset_rain)
+        self.rain_drops = []
+        self.hero_title = self.rain_canvas.create_text(34, 62, text="Your workspace, in motion.",
+                              fill=COLOR_FG, anchor="w", font=("Segoe UI", 24, "bold"))
+        self.rain_canvas.create_text(36, 103, text="Kelola development server dengan tenang dari satu tempat.",
+                                     fill=COLOR_SUBTLE, anchor="w", font=FONT_BODY)
+        self.rain_canvas.create_text(36, 165, text="●  LIVE CONTROL   /   GAMEKU STORE",
+                                     fill=COLOR_ACCENT2, anchor="w", font=("Segoe UI", 9, "bold"))
+
+        content = tk.Frame(overview, bg=COLOR_BG)
+        content.pack(fill="both", expand=True, padx=26, pady=24)
+        tk.Label(content, text="System overview", bg=COLOR_BG, fg=COLOR_FG,
+                 font=("Segoe UI", 18, "bold")).pack(anchor="w")
+        tk.Label(content, text="Pantau layanan dan buka proyek dengan cepat.", bg=COLOR_BG,
+                 fg=COLOR_SUBTLE, font=FONT_BODY).pack(anchor="w", pady=(3, 18))
+        cards = tk.Frame(content, bg=COLOR_BG)
+        cards.pack(fill="x")
+        cards.grid_columnconfigure((0, 1), weight=1, uniform="cards")
+        self.frontend_card, self.frontend_value = self._service_card(cards, 0, "FRONTEND", "Vite development server", FRONTEND_URL)
+        self.backend_card, self.backend_value = self._service_card(cards, 1, "BACKEND", "PHP API server", BACKEND_URL)
+
+        quick = tk.Frame(content, bg=COLOR_BG3, padx=20, pady=18)
+        quick.pack(fill="x", pady=(20, 0))
+        tk.Label(quick, text="Quick links", bg=COLOR_BG3, fg=COLOR_FG,
+                 font=FONT_SUBTITLE).pack(anchor="w")
+        tk.Label(quick, text="Buka layanan yang sedang aktif di browser.", bg=COLOR_BG3,
+                 fg=COLOR_SUBTLE, font=FONT_SMALL).pack(anchor="w", pady=(3, 10))
+        row = tk.Frame(quick, bg=COLOR_BG3)
+        row.pack(anchor="w")
+        for label, url in (("↗  Frontend", FRONTEND_URL), ("↗  Backend API", BACKEND_URL)):
+            tk.Button(row, text=label, command=lambda target=url: webbrowser.open(target),
+                      bg=COLOR_BG2, fg=COLOR_ACCENT2, activebackground=COLOR_ACCENT,
+                      relief="flat", cursor="hand2", padx=14, pady=8,
+                      font=FONT_BODY).pack(side="left", padx=(0, 10))
+
+        for page, title, detail in (
+            ("services", "Services", "Gunakan Quick Control di kiri untuk mengelola server."),
+            ("console", "Console", "Status proses dan pesan diagnostik ditampilkan di bagian bawah jendela."),
+            ("files", "Files", f"Project directory: {ROOT_DIR}"),
+            ("errors", "Diagnostics", "Periksa status layanan dan dependensi yang tersedia."),
+            ("settings", "Settings", "Sesuaikan tampilan dan lihat alamat server."),
+            ("about", "About", "Gameku Store · Desktop Control Center"),
+        ):
+            frame = self.pages[page]
+            tk.Label(frame, text=title, bg=COLOR_BG, fg=COLOR_FG,
+                     font=("Segoe UI", 24, "bold")).pack(anchor="w", padx=34, pady=(34, 6))
+            tk.Label(frame, text=detail, bg=COLOR_BG, fg=COLOR_SUBTLE,
+                     font=FONT_BODY, wraplength=680, justify="left").pack(anchor="w", padx=34)
+            panel = tk.Frame(frame, bg=COLOR_BG3, padx=24, pady=20)
+            panel.pack(fill="x", padx=34, pady=25)
+            if page == "settings":
+                tk.Checkbutton(panel, text="Animasi hujan ringan", variable=self._rain_var(),
+                               command=self._toggle_rain, bg=COLOR_BG3, fg=COLOR_FG,
+                               selectcolor=COLOR_BG2, activebackground=COLOR_BG3,
+                               activeforeground=COLOR_FG, font=FONT_BODY).pack(anchor="w")
+            elif page == "services":
+                tk.Label(panel, text=f"Frontend  {FRONTEND_URL}\nBackend   {BACKEND_URL}",
+                         bg=COLOR_BG3, fg=COLOR_FG, font=FONT_BODY,
+                         justify="left").pack(anchor="w")
+            elif page == "errors":
+                tk.Label(panel, text=f"npm: {'tersedia' if NPM_CMD else 'tidak tersedia'}    ·    PHP: {'tersedia' if PHP_CMD else 'tidak tersedia'}",
+                         bg=COLOR_BG3, fg=COLOR_FG, font=FONT_BODY).pack(anchor="w")
+            else:
+                tk.Label(panel, text=detail, bg=COLOR_BG3, fg=COLOR_FG,
+                         font=FONT_BODY, wraplength=640, justify="left").pack(anchor="w")
+        self.show_page("overview")
+
+    def _rain_var(self):
+        self.rain_var = tk.BooleanVar(value=self.rain_enabled)
+        return self.rain_var
+
+    def _toggle_rain(self):
+        self.rain_enabled = self.rain_var.get()
+        if not self.rain_enabled:
+            for item, *_ in self.rain_drops:
+                self.rain_canvas.delete(item)
+            self.rain_drops.clear()
+        else:
+            self._reset_rain()
+
+    def _service_card(self, parent, column, title, subtitle, url):
+        card = tk.Frame(parent, bg=COLOR_BG3, padx=20, pady=17)
+        card.grid(row=0, column=column, sticky="nsew", padx=(0, 9) if column == 0 else (9, 0))
+        tk.Label(card, text=title, bg=COLOR_BG3, fg=COLOR_SUBTLE,
+                 font=("Segoe UI", 9, "bold")).pack(anchor="w")
+        value = tk.Label(card, text="●  STOPPED", bg=COLOR_BG3, fg=COLOR_SUBTLE,
+                         font=("Segoe UI", 19, "bold"))
+        value.pack(anchor="w", pady=(14, 5))
+        tk.Label(card, text=subtitle, bg=COLOR_BG3, fg=COLOR_FG,
+                 font=FONT_BODY).pack(anchor="w")
+        tk.Label(card, text=url, bg=COLOR_BG3, fg=COLOR_ACCENT2,
+                 font=FONT_SMALL).pack(anchor="w", pady=(10, 0))
+        return card, value
+
+    def _reset_rain(self, event=None):
+        if not self.rain_enabled or not hasattr(self, "rain_canvas"):
+            return
+        for item, *_ in self.rain_drops:
+            self.rain_canvas.delete(item)
+        self.rain_drops.clear()
+        width = max(self.rain_canvas.winfo_width(), 600)
+        height = max(self.rain_canvas.winfo_height(), 200)
+        for _ in range(34):
+            x = random.randrange(width)
+            y = random.randrange(height)
+            length = random.randrange(8, 20)
+            item = self.rain_canvas.create_line(x, y, x - 4, y + length,
+                                                fill=random.choice(("#41345f", "#51416f", "#624f85")), width=1)
+            self.rain_drops.append((item, x, y, length, random.randrange(3, 7)))
+        self.rain_canvas.tag_raise(self.hero_title)
+
+    def _animate_rain(self):
+        if self.rain_enabled and self.current_page == "overview":
+            width = self.rain_canvas.winfo_width()
+            height = self.rain_canvas.winfo_height()
+            updated = []
+            for item, x, y, length, speed in self.rain_drops:
+                y += speed
+                if y > height:
+                    y = -length
+                    x = random.randrange(max(width, 1))
+                self.rain_canvas.coords(item, x, y, x - 4, y + length)
+                updated.append((item, x, y, length, speed))
+            self.rain_drops = updated
+        self.rain_job = self.after(50, self._animate_rain)
+
+    def _animate_indicator(self):
+        self._pulse_on = not self._pulse_on
+        if not self.header_status.cget("text").startswith("●  0"):
+            self.header_status.configure(fg=COLOR_SUCCESS if self._pulse_on else "#4cae9a")
+        self.after(650, self._animate_indicator)
+
+    def _fade_in(self):
+        progress = min(1.0, (time.monotonic() - self._fade_started) / 0.35)
+        self.attributes("-alpha", progress)
+        if progress < 1.0:
+            self.after(30, self._fade_in)
+
+    def show_page(self, page):
+        self.current_page = page
+        self.pages[page].tkraise()
+        for name, button in getattr(self, "nav_buttons", {}).items():
+            button.configure(bg=COLOR_BG3 if name == page else COLOR_BG2,
+                             fg=COLOR_ACCENT2 if name == page else COLOR_SUBTLE)
+
+    def show_settings(self):
+        self.show_page("settings")
+
+    def _set_status_bar(self, message, error=False):
+        if hasattr(self, "status_label"):
+            self.status_label.configure(text=message, fg=COLOR_ERROR if error else COLOR_INFO)
+
+    def _poll_services(self):
+        self.manager.poll_processes()
+        elapsed = int(time.monotonic() - self.started_at)
+        self.uptime_label.configure(text=f"Uptime {elapsed // 3600:02d}:{(elapsed // 60) % 60:02d}:{elapsed % 60:02d}")
+        self.after(1000, self._poll_services)
     def _create_status_bar(self):
-        """Create premium status bar."""
-        self.status_bar = tk.Frame(self, bg=COLOR_BORDER, height=30)
-        self.status_bar.grid(row=1, column=0, columnspan=2, sticky="ew", padx=0, pady=0)
-        self.status_bar.grid_columnconfigure(2, weight=1)
+        """Compact activity strip."""
+        self.status_bar = tk.Frame(self, bg=COLOR_BG2, height=38)
+        self.status_bar.grid(row=2, column=0, columnspan=2, sticky="ew", padx=0, pady=0)
+        self.status_bar.grid_columnconfigure(0, weight=1)
 
         self.status_label = tk.Label(self.status_bar, text="Siap",
-                                      bg=COLOR_BORDER, fg=COLOR_INFO,
+                                      bg=COLOR_BG2, fg=COLOR_INFO,
                                       font=FONT_BORDER, anchor="w")
-        self.status_label.grid(row=0, column=0, sticky="w", padx=12)
+        self.status_label.grid(row=0, column=0, sticky="ew", padx=22, pady=9)
         self.summary_label = tk.Label(self.status_bar, text="",
-                                       bg=COLOR_BORDER, fg=COLOR_SUBTLE,
+                                       bg=COLOR_BG2, fg=COLOR_SUBTLE,
                                        font=FONT_SMALL, anchor="center")
-        self.summary_label.grid(row=0, column=1, sticky="ew", padx=8)
+        self.summary_label.grid(row=0, column=1, sticky="e", padx=8)
         self.uptime_label = tk.Label(self.status_bar, text="0h 0m",
-                                      bg=COLOR_BORDER, fg=COLOR_SUBTLE,
+                                      bg=COLOR_BG2, fg=COLOR_SUBTLE,
                                       font=FONT_SMALL, anchor="e")
-        self.uptime_label.grid(row=0, column=3, sticky="e", padx=12)
+        self.uptime_label.grid(row=0, column=2, sticky="e", padx=22)
     def _create_header(self):
-        """Create premium header with branding, status, and time."""
-        self.header = tk.Frame(self, height=80, bg=COLOR_BG, relief="flat", borderwidth=0)
+        """Top toolbar."""
+        self.header = tk.Frame(self, height=72, bg=COLOR_BG, relief="flat", borderwidth=0)
         self.header.grid(row=0, column=1, sticky="ew", padx=0, pady=0)
-        self.header.grid_columnconfigure(4, weight=1)
-        self.header.pack_propagate(False)
-
-        # Left: Branding
-        tk.Label(self.header, text="ALVIN JMBOD", bg=COLOR_BG, fg=COLOR_ACCENT,
-                 font=FONT_TITLE).grid(row=0, column=0, padx=28, pady=(12, 0))
-
-        # Center: System status
-        status_frame = tk.Frame(self.header, bg=COLOR_BG)
-        status_frame.grid(row=0, column=1, padx=40, pady=12, sticky="w")
-        self.header_status = tk.Label(status_frame, text="Status: Siap",
-                                      bg=COLOR_BG, fg=COLOR_SUCCESS,
-                                      font=FONT_SUBTITLE)
-        self.header_status.pack(side="left")
-
-        # Right: Time and settings
-        right_frame = tk.Frame(self.header, bg=COLOR_BG)
-        right_frame.grid(row=0, column=4, padx=28, pady=12, sticky="e")
-        self.header_time = tk.Label(right_frame, text="--:--:--",
-                                    bg=COLOR_BG, fg=COLOR_SUBTLE,
-                                    font=FONT_SUBTITLE)
-        self.header_time.pack(side="left")
-        settings_btn = tk.Button(self.header, text="⚙", bg=COLOR_BG, fg=COLOR_ACCENT,
-                                  font=("Segoe UI", 12), cursor="hand2", relief="flat",
-                                  command=self.show_settings)
-        settings_btn.grid(row=0, column=5, padx=4)
-        # Start clock refresh after GUI is fully setup
+        self.header.grid_columnconfigure(1, weight=1)
+        tk.Label(self.header, text="Dashboard  /  Development", bg=COLOR_BG, fg=COLOR_SUBTLE,
+                 font=FONT_BODY).grid(row=0, column=0, sticky="w", padx=28, pady=22)
+        self.header_status = tk.Label(self.header, text="●  READY", bg=COLOR_BG,
+                                      fg=COLOR_SUCCESS, font=FONT_SUBTITLE)
+        self.header_status.grid(row=0, column=1, sticky="e", padx=15)
+        self.header_time = tk.Label(self.header, text="--:--:--",
+                                    bg=COLOR_BG, fg=COLOR_SUBTLE, font=FONT_SUBTITLE)
+        self.header_time.grid(row=0, column=2, sticky="e", padx=(0, 28))
         self._refresh_clock()
     
     def _refresh_clock(self):
@@ -651,51 +743,6 @@ class ControlCenterApp(tk.Tk):
             self.header_time.config(text="--:--:--")
         # Schedule next update in 1 second
         self.after(1000, self._refresh_clock)
-
-    def _create_sidebar(self):
-        """Create modern sidebar navigation with icons and animations."""
-        self.sidebar = tk.Frame(self, width=280, bg=COLOR_BG, relief="flat", borderwidth=0)
-        self.sidebar.grid(row=0, column=0, sticky="ns", padx=0, pady=0)
-        self.sidebar.grid_rowconfigure(8, weight=1)
-        self.sidebar.pack_propagate(False)
-
-        # Sidebar title area
-        tk.Label(self.sidebar, text="ALVIN JMBOD", bg=COLOR_BG, fg=COLOR_ACCENT,
-                 font=FONT_TITLE).grid(row=0, column=0, padx=24, pady=(24, 6))
-        subtitle = tk.Label(self.sidebar, text="Desktop Control Center", bg=COLOR_BG, fg=COLOR_SUBTLE,
-                            font=FONT_SUBTITLE)
-        subtitle.grid(row=1, column=0, padx=24, pady=(0, 24))
-        ttk.Separator(self.sidebar, orient="horizontal").grid(row=2, column=0, sticky="ew", padx=24)
-
-        # Navigation buttons
-        nav_data = [
-            ("overview", "🏠  Overview"),
-            ("services", "🔧  Services"),
-            ("console", ">_  Live Console"),
-            ("files", "📁  File Activity"),
-            ("errors", "⚠  Errors & Diagnostics"),
-            ("settings", "⚙  Settings"),
-            ("about", "ℹ  About ALVIN JMBOD"),
-        ]
-        self.nav_buttons = {}
-        for i, (page, label) in enumerate(nav_data):
-            btn = tk.Button(self.sidebar, text=label, bg=COLOR_BG, fg=COLOR_SUBTLE,
-                           font=FONT_BODY, anchor="w", cursor="hand2", relief="flat",
-                           width=26, justify="left",
-                           command=lambda p=page: self.show_page(p))
-            btn.grid(row=3+i, column=0, sticky="ew", padx=12, pady=4)
-            self.nav_buttons[page] = btn
-        self.nav_buttons["overview"].configure(fg=COLOR_ACCENT)
-
-        # System info at bottom
-        info_frame = tk.Frame(self.sidebar, bg=COLOR_BG2, height=60)
-        info_frame.grid(row=10, column=0, sticky="se", padx=24, pady=12)
-        info_frame.grid_columnconfigure(0, weight=1)
-        info_frame.pack_propagate(False)
-        tk.Label(info_frame, text="ALVIN JMBOD v2.0", bg=COLOR_BG2, fg=COLOR_SUBTLE,
-                 font=FONT_SMALL).grid(row=0, column=0, sticky="w")
-        tk.Label(info_frame, text="Desktop Control Center", bg=COLOR_BG2, fg=COLOR_SUBTLE,
-                 font=FONT_SMALL).grid(row=1, column=0, sticky="w", pady=2)
 
     def _on_frontend_toggle(self):
         """Toggle frontend start/stop."""
@@ -717,48 +764,44 @@ class ControlCenterApp(tk.Tk):
     def _start_frontend(self):
         """Start the frontend (Vite) development server."""
         self._set_status_bar("Menjalankan frontend...")
-        self.lbl_status.configure(text="Frontend STARTING", fg=COLOR_WARNING)
-        self.btn_frontend.configure(bg=COLOR_WARNING)
-        self.manager.start_frontend()
+        self._update_process_status("frontend", STATUS_STARTING)
+        threading.Thread(target=self.manager.start_frontend, daemon=True).start()
         # Poll process status
         self.after(100, self._check_frontend_status)
 
     def _check_frontend_status(self):
         """Check frontend process status and update UI."""
         self.manager.poll_processes()
+        if self.manager.frontend is None:
+            self._update_process_status("frontend", STATUS_ERROR)
+            return
         self._update_process_status("frontend", self.manager.frontend.status if self.manager.frontend else STATUS_STOPPED)
         if self.manager.frontend and self.manager.frontend.status == STATUS_RUNNING:
             self._set_status_bar("Frontend berjalan di %s" % FRONTEND_URL)
-            self.lbl_status.configure(text="Frontend RUNNING", fg=COLOR_SUCCESS)
-            self.btn_frontend.configure(bg=COLOR_SUCCESS)
         elif self.manager.frontend and self.manager.frontend.status == STATUS_ERROR:
             self._set_status_bar("Frontend error", error=True)
-            self.lbl_status.configure(text="Frontend ERROR", fg=COLOR_ERROR)
-            self.btn_frontend.configure(bg=COLOR_ERROR)
         else:
             # Check again after a short delay
             self.after(500, self._check_frontend_status)
     def _start_backend(self):
         """Start the backend (PHP) development server."""
         self._set_status_bar("Menjalankan backend...")
-        self.lbl_status.configure(text="Backend STARTING", fg=COLOR_WARNING)
-        self.btn_backend.configure(bg=COLOR_WARNING)
-        self.manager.start_backend()
+        self._update_process_status("backend", STATUS_STARTING)
+        threading.Thread(target=self.manager.start_backend, daemon=True).start()
         # Poll process status
         self.after(100, self._check_backend_status)
 
     def _check_backend_status(self):
         """Check backend process status and update UI."""
         self.manager.poll_processes()
+        if self.manager.backend is None:
+            self._update_process_status("backend", STATUS_ERROR)
+            return
         self._update_process_status("backend", self.manager.backend.status if self.manager.backend else STATUS_STOPPED)
         if self.manager.backend and self.manager.backend.status == STATUS_RUNNING:
             self._set_status_bar("Backend berjalan di %s" % BACKEND_URL)
-            self.lbl_status.configure(text="Backend RUNNING", fg=COLOR_SUCCESS)
-            self.btn_backend.configure(bg=COLOR_SUCCESS)
         elif self.manager.backend and self.manager.backend.status == STATUS_ERROR:
             self._set_status_bar("Backend error", error=True)
-            self.lbl_status.configure(text="Backend ERROR", fg=COLOR_ERROR)
-            self.btn_backend.configure(bg=COLOR_ERROR)
         else:
             # Check again after a short delay
             self.after(500, self._check_backend_status)
@@ -768,9 +811,6 @@ class ControlCenterApp(tk.Tk):
         self.manager._hentikan_frontend()
         self._update_process_status("frontend", STATUS_STOPPED)
         self._set_status_bar("Frontend dihentikan")
-        self.lbl_status.configure(text="Semua layanan berhenti", fg=COLOR_INFO)
-        self.btn_frontend.configure(bg=COLOR_ERROR)
-        self.btn_backend.configure(bg=COLOR_WARNING)
 
     def _stop_backend(self):
         """Stop the backend process."""
@@ -778,9 +818,6 @@ class ControlCenterApp(tk.Tk):
         self.manager._hentikan_backend()
         self._update_process_status("backend", STATUS_STOPPED)
         self._set_status_bar("Backend dihentikan")
-        self.lbl_status.configure(text="Semua layanan berhenti", fg=COLOR_INFO)
-        self.btn_backend.configure(bg=COLOR_ERROR)
-        self.btn_frontend.configure(bg=COLOR_WARNING)
 
     def _stop_all_services(self):
         """Stop all running services."""
@@ -789,9 +826,6 @@ class ControlCenterApp(tk.Tk):
         self._update_process_status("frontend", STATUS_STOPPED)
         self._update_process_status("backend", STATUS_STOPPED)
         self._set_status_bar("Semua layanan dihentikan")
-        self.lbl_status.configure(text="Semua layanan berhenti", fg=COLOR_INFO)
-        self.btn_frontend.configure(bg=COLOR_ERROR)
-        self.btn_backend.configure(bg=COLOR_ERROR)
     def _update_process_status(self, which, status):
         """Update the UI status for a specific process."""
         # This method is called from ProcessManager via app_gui reference
@@ -799,53 +833,19 @@ class ControlCenterApp(tk.Tk):
         self.after(0, self._do_update_process_status, which, status)
 
     def _do_update_process_status(self, which, status):
-        """Actually update the process status display."""
-        if which == "frontend":
-            self.lbl_status.configure(
-                text={
-                    STATUS_STOPPED: "Semua layanan berhenti",
-                    STATUS_STARTING: "Frontend STARTING",
-                    STATUS_RUNNING: "Frontend RUNNING",
-                    STATUS_ERROR: "Frontend ERROR",
-                }.get(status, which),
-                fg={
-                    STATUS_STOPPED: COLOR_INFO,
-                    STATUS_STARTING: COLOR_WARNING,
-                    STATUS_RUNNING: COLOR_SUCCESS,
-                    STATUS_ERROR: COLOR_ERROR,
-                }.get(status, COLOR_INFO),
-            )
-            self.btn_frontend.configure(
-                bg={
-                    STATUS_STOPPED: COLOR_ERROR,
-                    STATUS_STARTING: COLOR_WARNING,
-                    STATUS_RUNNING: COLOR_SUCCESS,
-                    STATUS_ERROR: COLOR_ERROR,
-                }.get(status, COLOR_ERROR),
-            )
-        elif which == "backend":
-            self.lbl_status.configure(
-                text={
-                    STATUS_STOPPED: "Semua layanan berhenti",
-                    STATUS_STARTING: "Backend STARTING",
-                    STATUS_RUNNING: "Backend RUNNING",
-                    STATUS_ERROR: "Backend ERROR",
-                }.get(status, which),
-                fg={
-                    STATUS_STOPPED: COLOR_INFO,
-                    STATUS_STARTING: COLOR_WARNING,
-                    STATUS_RUNNING: COLOR_SUCCESS,
-                    STATUS_ERROR: COLOR_ERROR,
-                }.get(status, COLOR_INFO),
-            )
-            self.btn_backend.configure(
-                bg={
-                    STATUS_STOPPED: COLOR_ERROR,
-                    STATUS_STARTING: COLOR_WARNING,
-                    STATUS_RUNNING: COLOR_SUCCESS,
-                    STATUS_ERROR: COLOR_ERROR,
-                }.get(status, COLOR_ERROR),
-            )
+        """Keep the card and quick action in sync with each process."""
+        color = {STATUS_STOPPED: COLOR_SUBTLE, STATUS_STARTING: COLOR_WARNING,
+                 STATUS_RUNNING: COLOR_SUCCESS, STATUS_ERROR: COLOR_ERROR}.get(status, COLOR_SUBTLE)
+        card = self.frontend_value if which == "frontend" else self.backend_value
+        button = self.btn_frontend if which == "frontend" else self.btn_backend
+        card.configure(text=f"●  {status}", fg=color)
+        button.configure(text=("Stop " if status == STATUS_RUNNING else "Start ") + which.title())
+        statuses = (self.manager.frontend.status if self.manager.frontend else STATUS_STOPPED,
+                    self.manager.backend.status if self.manager.backend else STATUS_STOPPED)
+        active = sum(s == STATUS_RUNNING for s in statuses)
+        self.header_status.configure(text=f"●  {active} ACTIVE", fg=COLOR_SUCCESS if active else COLOR_SUBTLE)
+        self.summary_label.configure(text=f"{active}/2 services online")
+        self.lbl_status.configure(text=f"{active} layanan berjalan", fg=COLOR_SUCCESS if active else COLOR_SUBTLE)
 
     def _monitor_processes(self):
         """Background thread to monitor process health."""
@@ -904,31 +904,25 @@ def show_login():
     - adminravi / admin123
     - maizardev / admin123
     """
-    login_win = tk.Toplevel()
-    login_win.title("ALVIN JMBOD")
-    login_win.geometry("350x250")
+    login_win = tk.Tk()
+    login_win.title("Gameku Store · Sign in")
+    login_win.geometry("420x365")
     login_win.resizable(False, False)
     login_win.configure(bg=COLOR_BG)
-    login_win.transient()  # stay on top of main app
-    login_win.grab_set()
 
     # Center the login window
     login_win.update_idletasks()
-    width = 350
-    height = 250
+    width = 420
+    height = 365
     x = (login_win.winfo_screenwidth() // 2) - (width // 2)
     y = (login_win.winfo_screenheight() // 2) - (height // 2)
     login_win.geometry(f"{width}x{height}+{x}+{y}")
 
-    # Title
-    title_label = tk.Label(login_win, text="ALVIN JMBOD", bg=COLOR_BG, fg=COLOR_FG,
-                           font=("Segoe UI", 16, "bold"))
-    title_label.pack(pady=(20, 10))
-
-    # Subtitle
-    subtitle = tk.Label(login_win, text="Control Center Application", bg=COLOR_BG, fg=COLOR_ACCENT,
-                        font=("Segoe UI", 10))
-    subtitle.pack()
+    tk.Frame(login_win, bg=COLOR_ACCENT, height=4).pack(fill="x")
+    tk.Label(login_win, text="◆  GAMEKU", bg=COLOR_BG, fg=COLOR_ACCENT2,
+             font=("Segoe UI", 21, "bold")).pack(anchor="w", padx=38, pady=(31, 4))
+    tk.Label(login_win, text="Sign in to your control center", bg=COLOR_BG,
+             fg=COLOR_SUBTLE, font=FONT_BODY).pack(anchor="w", padx=38)
 
     # Status variable for login feedback
     status_var = tk.StringVar()
@@ -936,17 +930,22 @@ def show_login():
 
     # Frame for inputs
     frame = tk.Frame(login_win, bg=COLOR_BG)
-    frame.pack(pady=10, padx=20, fill="x")
+    frame.pack(pady=(24, 8), padx=38, fill="x")
+    frame.grid_columnconfigure(0, weight=1)
 
     # Username
-    tk.Label(frame, text="Username:", bg=COLOR_BG, fg=COLOR_FG, font=("Segoe UI", 10)).grid(row=0, column=0, sticky="w", pady=5)
-    username_entry = tk.Entry(frame, font=("Segoe UI", 10), width=25)
-    username_entry.grid(row=0, column=1, pady=5)
+    tk.Label(frame, text="USERNAME", bg=COLOR_BG, fg=COLOR_SUBTLE,
+             font=FONT_SMALL).grid(row=0, column=0, sticky="w", pady=(0, 5))
+    username_entry = tk.Entry(frame, font=FONT_BODY, bg=COLOR_BG3, fg=COLOR_FG,
+                              insertbackground=COLOR_FG, relief="flat")
+    username_entry.grid(row=1, column=0, sticky="ew", ipady=9, pady=(0, 14))
 
     # Password
-    tk.Label(frame, text="Password:", bg=COLOR_BG, fg=COLOR_FG, font=("Segoe UI", 10)).grid(row=1, column=0, sticky="w", pady=5)
-    password_entry = tk.Entry(frame, font=("Segoe UI", 10), width=25, show="*")
-    password_entry.grid(row=1, column=1, pady=5)
+    tk.Label(frame, text="PASSWORD", bg=COLOR_BG, fg=COLOR_SUBTLE,
+             font=FONT_SMALL).grid(row=2, column=0, sticky="w", pady=(0, 5))
+    password_entry = tk.Entry(frame, font=FONT_BODY, bg=COLOR_BG3, fg=COLOR_FG,
+                              insertbackground=COLOR_FG, relief="flat", show="*")
+    password_entry.grid(row=3, column=0, sticky="ew", ipady=9)
 
     # Result flag
     login_success = [False]
@@ -970,7 +969,8 @@ def show_login():
         status_var.set("Mengautentikasi...")
 
         # Verify credentials using hash-based authentication
-        is_valid = verify_password(username, password, creds)
+        creds = _load_credentials()
+        is_valid = _verify_password(username, password, creds)
 
         if is_valid:
             login_success[0] = True
@@ -982,9 +982,13 @@ def show_login():
             messagebox.showerror("Login Gagal", "Username atau password salah!", parent=login_win)
 
     # Login button
-    btn_login = tk.Button(login_win, text="Masuk", bg=COLOR_ACCENT, fg="white",
-                          font=("Segoe UI", 10, "bold"), width=15, command=lambda: attempt_login())
-    btn_login.pack(pady=10)
+    btn_login = tk.Button(login_win, text="Masuk  →", bg=COLOR_ACCENT, fg=COLOR_BG,
+                          activebackground=COLOR_ACCENT2, activeforeground=COLOR_BG,
+                          relief="flat", cursor="hand2", font=FONT_SUBTITLE,
+                          command=attempt_login)
+    btn_login.pack(fill="x", padx=38, pady=(12, 6), ipady=8)
+    tk.Label(login_win, textvariable=status_var, bg=COLOR_BG, fg=COLOR_WARNING,
+             font=FONT_SMALL).pack(anchor="w", padx=38)
 
     # Focus on username field
     username_entry.focus_set()
@@ -1049,51 +1053,3 @@ if __name__ == "__main__":
     # Proceed to main application with premium design
     app = ControlCenterApp()
     app.mainloop()
-
-
-# ============================================================
-# Splash Screen
-# ============================================================
-# def show_splash() removed
-    """Show brief splash screen with ALVIN JMBOD logo and light loading animation."""
-    splash = tk.Tk()
-    splash.overrideredirect(True)  # Remove window decorations
-    splash.configure(bg=COLOR_BG)
-    
-    # Centered on screen
-    splash.update_idletasks()
-    w, h = 400, 200
-    x = (splash.winfo_screenwidth() // 2) - (w // 2)
-    y = (splash.winfo_screenheight() // 2) - (h // 2)
-    splash.geometry(f"{w}x{h}+{x}+{y}")
-    
-    # ALVIN JMBOD text with animation effect
-    title = tk.Label(splash, text="ALVIN JMBOD", bg=COLOR_BG, fg=COLOR_ACCENT,
-                     font=("Segoe UI", 28, "bold"))
-    title.pack(pady=(40, 10))
-    
-    # Subtitle
-    subtitle = tk.Label(splash, text="Desktop Control Center", bg=COLOR_BG, fg=COLOR_SUBTLE,
-                        font=("Segoe UI", 12))
-    subtitle.pack()
-    
-    # Loading animation
-    frame = tk.Frame(splash, bg=COLOR_BG)
-    frame.pack(pady=20)
-    
-    dots = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠫"]
-    dot_idx = [0]
-    
-    def update_dots():
-        dot_label.configure(text=f"  {dots[dot_idx[0]]}")
-        dot_idx[0] = (dot_idx[0] + 1) % len(dots)
-        splash.after(100, update_dots)
-    
-    dot_label = tk.Label(frame, text="  ", bg=COLOR_BG, fg=COLOR_ACCENT,
-                         font=("Segoe UI", 10))
-    dot_label.pack()
-    update_dots()
-    
-    # Auto-close after 3 seconds
-    splash.after(3000, splash.destroy)
-    splash.mainloop()
