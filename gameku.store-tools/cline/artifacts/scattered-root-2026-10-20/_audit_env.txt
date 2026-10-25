@@ -1,5 +1,0 @@
-﻿backend\.env => False
-backend\config\config.php => True
-frontend\.env => False
-frontend\.env.local => False
-frontend\.env.production => False

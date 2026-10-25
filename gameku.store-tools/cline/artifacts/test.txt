@@ -1,7 +1,0 @@
-@'
-# Audit Report
-
-## 1. Kondisi
-
-This is the content.
-

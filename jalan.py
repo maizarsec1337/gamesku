@@ -53,7 +53,8 @@ except Exception:  # pragma: no cover - fallback jika php_runtime tidak ada
 # Konfigurasi (diverifikasi dari repository)
 # ============================================================
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-APP_DIR = os.path.join(ROOT_DIR, "gameku.store")
+# Struktur project kanonik: gameku.store/frontend dan gameku.store/backend.
+APP_DIR = ROOT_DIR
 FRONTEND_DIR = os.path.join(APP_DIR, "frontend")
 BACKEND_DIR = os.path.join(APP_DIR, "backend")
 LOG_DIR = os.path.join(APP_DIR, "logs")
@@ -105,7 +106,7 @@ BACKEND_URL_HOTSPOT = ("http://%s:%d" % (HOTSPOT_IP, BACKEND_PORT)) if HOTSPOT_I
 HOTSPOT_SUBNET = ("%s.0/24" % ".".join(HOTSPOT_IP.split(".")[:3])) if HOTSPOT_IP else None
 
 NPM_CMD = shutil.which("npm")
-PHP_CMD = php_executable()  # Termasuk runtime lokal di luar PATH.
+PHP_CMD = php_executable() or (r"C:\Users\maizar\php84\php.exe" if os.path.isfile(r"C:\Users\maizar\php84\php.exe") else None)
 
 # ============================================================
 # Warna tema premium dark (ALVIN JMBOD)

@@ -1,8 +1,0 @@
-﻿https://gameku.store/api/produk => 404
-https://gameku.store/api/sehat => 404
-https://gameku.store/api/index.php => 200 CT=application/x-httpd-php len=2772
-https://gameku.store/api/index.php => ERR
-https://gameku.store/database/schema.sql => 200 CT=application/x-sql len=19220
-https://gameku.store/database/schema.sql => ERR
-https://gameku.store/config/config.php => 200 CT=application/x-httpd-php len=3657
-https://gameku.store/config/config.php => ERR

@@ -1,0 +1,119 @@
+/* Design system GameKU — tema dark neon (navy + cyan/purple/magenta), mobile-first 430px. */
+:root{
+  --biru:#BF5AF2; --biru-tua:#9A32CD; --biru-gelap:#1A0F32;
+  --kuning:#B896E0; --kuning-tua:#D0A0C6;
+  --putih:#1A0F32; --latar:#1A0F32; --permukaan-biru:rgba(190,90,242,.10);
+  --teks:#F0E6F2; --teks-2:#A78BCA;
+  --garis:#4A2C5A; --kartu:#1A0F32;
+  --r1:10px; --r2:14px; --r3:20px;
+  --bayang:0 10px 30px -18px rgba(0,0,0,.65);
+  --bayang-lembut:0 4px 16px -8px rgba(0,0,0,.45);
+  --lebar:430px;
+  --tinggi-bawah:68px; --tinggi-kepala:60px;
+  --trans:180ms ease;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+/* CATATAN SCROLL: jangan pakai `overflow-x:hidden` di body.
+   Nilai itu memaksa overflow-y menjadi `auto` sehingga body jadi
+   container scroll kedua (pemicu scroll macet/ganda & sticky aneh).
+   `overflow-x:clip` tetap memotong luapan horizontal tanpa efek itu. */
+body{
+  margin:0; background:#070912; color:var(--teks);
+  font-family:'Plus Jakarta Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+  font-size:15px; line-height:1.55; overflow-x:clip;
+  display:flex; justify-content:center; min-height:100vh; min-height:100dvh;
+}
+#root{
+  width:100%; max-width:var(--lebar); min-height:100vh; min-height:100dvh;
+  background:var(--latar); position:relative; overflow-x:clip;
+  box-shadow:0 0 0 1px #263663,0 24px 60px -24px rgba(0,0,0,.6);
+  display:flex; flex-direction:column;
+}
+h1,h2,h3,h4,p,ul,ol,figure{margin:0}
+ul,ol{padding:0;list-style:none}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+img{max-width:100%;display:block}
+:focus-visible{outline:2px solid var(--biru);outline-offset:2px;border-radius:8px}
+.wadah{width:100%;max-width:var(--lebar);margin-inline:auto;padding-inline:14px}
+.isi-halaman{flex:1;min-height:60vh;padding-bottom:calc(var(--tinggi-bawah) + 26px + env(safe-area-inset-bottom))}
+.bagian{padding-block:18px}
+.kepala-bagian{padding:18px 0 4px}
+.judul-halaman{font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1.25}
+.subjudul-halaman{margin-top:5px;color:var(--teks-2);font-size:13.5px;line-height:1.55}
+.judul-bagian{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:12px}
+.judul-bagian h2{font-size:16.5px;font-weight:800;letter-spacing:-.01em}
+.judul-bagian p{margin-top:3px;color:var(--teks-2);font-size:12.5px}
+.tautan-lihat{flex-shrink:0;font-size:12.5px;font-weight:700;color:var(--biru);display:inline-flex;align-items:center;gap:5px;min-height:36px}
+.tombol{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:12px;font-weight:700;font-size:14px;border:1px solid transparent;transition:background var(--trans),color var(--trans),border-color var(--trans),transform 120ms ease,box-shadow var(--trans);min-height:44px}
+.tombol:active{transform:scale(.97)}
+.tombol-utama{background:linear-gradient(135deg,#43DDF5,#BD54F5);color:#0B0D1E;box-shadow:0 12px 28px -14px rgba(67,221,245,.55)}
+.tombol-utama:hover{filter:brightness(1.06)}
+.tombol-kuning{background:var(--kuning);color:#0B0D1E}
+.tombol-kuning:hover{background:#F45FE0}
+.tombol-garis{border-color:var(--garis);color:var(--biru);background:var(--kartu)}
+.tombol-garis:hover{border-color:var(--biru);background:var(--permukaan-biru)}
+.tombol-kecil{padding:8px 14px;font-size:13px;border-radius:10px;min-height:38px}
+.tombol-lebar{width:100%}
+.tombol:disabled{opacity:.55;cursor:not-allowed}
+.kartu{background:var(--kartu);border:1px solid var(--garis);border-radius:var(--r2);overflow:hidden;box-shadow:var(--bayang-lembut)}
+.kartu-isi{padding:14px}
+.lencana{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.01em}
+.lencana-biru{background:rgba(67,221,245,.14);color:#43DDF5;border:1px solid rgba(67,221,245,.4)}
+.lencana-kuning{background:rgba(240,68,216,.16);color:#F58FE0;border:1px solid rgba(240,68,216,.45)}
+.lencana-hijau{background:rgba(67,221,245,.14);color:#43DDF5;border:1px solid rgba(67,221,245,.4)}
+.lencana-abu{background:rgba(167,178,208,.12);color:var(--teks-2);border:1px solid var(--garis)}
+.lencana-merah{background:rgba(240,68,82,.16);color:#FF8A95;border:1px solid rgba(240,68,82,.45)}
+.lencana-gratis{background:rgba(67,221,245,.14);color:#43DDF5;border:1px solid rgba(67,221,245,.4)}
+.isian,.pilih{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--garis);background:#0D1530;color:var(--teks);min-height:44px}
+.isian::placeholder{color:#7F8CAD}
+.label-isian{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--teks-2)}
+.bidang{margin-bottom:12px}
+.ikon-fallback{display:inline-grid;place-items:center;line-height:1}
+.keadaan-kosong{text-align:center;padding:36px 20px;color:var(--teks-2);background:var(--kartu);border:1.5px dashed #33477F;border-radius:var(--r3)}
+.keadaan-kosong-ikon{font-size:44px;margin-bottom:8px}
+.keadaan-kosong h3{color:var(--teks);margin-bottom:6px;font-size:16px}
+.keadaan-kosong p{font-size:13.5px;max-width:340px;margin-inline:auto}
+.keadaan-kosong-aksi{margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.halaman-masuk{min-height:100dvh;display:flex;flex-direction:column;background:var(--latar);width:100%;max-width:var(--lebar);margin-inline:auto;box-shadow:0 0 0 1px #263663,0 24px 60px -24px rgba(0,0,0,.6)}
+.halaman-masuk .kepala{position:sticky;top:0;z-index:50}
+.masuk-utama{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-block:28px}
+.masuk-kartu{width:100%;max-width:400px}
+.pesan-salah{color:#FF8A95;font-size:12.5px;margin-top:4px;display:block}
+.avatar-creator{width:44px;height:44px;border-radius:13px;background:rgba(67,221,245,.12);border:1px solid rgba(67,221,245,.35);display:grid;place-items:center;font-weight:800;color:var(--biru);flex-shrink:0}
+.kisi-produk{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.logo-gameku{width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#43DDF5,#BD54F5);display:grid;place-items:center;color:#0B0D1E;font-weight:900;font-size:19px;flex-shrink:0}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity 420ms ease,transform 420ms ease}
+.reveal.tampil{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}.reveal{opacity:1;transform:none}}
+
+/* Responsif tablet & desktop: shell lebar penuh, kontainer & kolom melebar. */
+@media (min-width:768px){
+  body{display:block;background:#070912}
+  #root{max-width:none;box-shadow:none;border-radius:0}
+  .wadah{max-width:960px;padding-inline:24px}
+  #root>.kepala,.navigasi-bawah{max-width:none}
+  .judul-halaman{font-size:24px}
+  .subjudul-halaman{font-size:14px}
+  .kisi-produk{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+}
+@media (min-width:1024px){
+  .wadah{max-width:1200px;padding-inline:28px}
+  .bagian{padding-block:26px}
+  .kepala-bagian{padding:26px 0 6px}
+  .isi-halaman{padding-bottom:40px}
+  .judul-halaman{font-size:26px}
+  /* Judul bagian ikut naik di desktop — 16,5px terbaca terlalu kecil pada
+     kontainer 1200px dan membuat hierarki hero → kategori → produk kabur. */
+  .judul-bagian{margin-bottom:16px}
+  .judul-bagian h2{font-size:20px}
+  .judul-bagian p{font-size:13.5px}
+  .tautan-lihat{font-size:13.5px}
+  .kisi-produk{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+}
+@media (min-width:1440px){
+  .wadah{max-width:1320px}
+  .kisi-produk{grid-template-columns:repeat(5,minmax(0,1fr))}
+}

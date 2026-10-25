@@ -1,0 +1,17 @@
+/* Token variabel legacy + layar muat; tema dark neon Gameku. */
+:root{
+  /* alias lama → sistem baru (cyan / purple / magenta) */
+  --primer:#BF5AF2; --primer-gelap:#9A32CD; --primer-terang:#E6D5F0;
+  --primer-lembut:rgba(190,90,242,.12);
+  --aksen:#B896E0; --aksen-lembut:rgba(184,150,224,.16);
+  --teks-redup:#A7B2D0; --teks-samar:#7F8CAD;
+  --garis-tipis:#263663;
+  --latar-2:#101A35; --kartu-2:#16224A;
+  --bayang-kuat:0 18px 44px -18px rgba(0,0,0,.7);
+}
+.layar-muat{min-height:60vh;display:grid;place-items:center;padding:40px 16px}
+.logo-muat{width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,#43DDF5,#BD54F5);display:grid;place-items:center;color:#0B0D1E;font-weight:900;font-size:28px;animation:gameku-pantulan 1.1s ease-in-out infinite;box-shadow:0 18px 44px -18px rgba(67,221,245,.5)}
+.bilah-muat{width:180px;height:8px;border-radius:999px;background:#16224A;overflow:hidden;margin:12px auto 0}
+.bilah-muat span{display:block;height:100%;width:45%;border-radius:999px;background:linear-gradient(90deg,#43DDF5,#BD54F5);animation:gameku-geser 1s linear infinite}
+@keyframes gameku-pantulan{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes gameku-geser{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}
