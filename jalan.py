@@ -64,6 +64,46 @@ FRONTEND_URL = "http://localhost:%d" % FRONTEND_PORT
 BACKEND_URL = "http://localhost:%d" % BACKEND_PORT
 BACKEND_HEALTH_URL = "http://localhost:%d/api/sehat" % BACKEND_PORT
 
+def deteksi_ip_hotspot():
+    """Deteksi otomatis IPv4 adapter hotspot Windows (tanpa hardcode IP)."""
+    try:
+        cmd = [
+            "powershell", "-NoProfile", "-Command",
+            "Get-NetIPAddress -AddressFamily IPv4 | "
+            "Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } | "
+            "Select-Object InterfaceAlias, IPAddress | ConvertTo-Json -Compress",
+        ]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=10,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        data = json.loads((r.stdout or "").strip() or "[]")
+        if isinstance(data, dict):
+            data = [data]
+        hotspot = None
+        lainnya = []
+        for item in data:
+            alias = str(item.get("InterfaceAlias", ""))
+            ip = str(item.get("IPAddress", ""))
+            if not ip:
+                continue
+            lainnya.append(ip)
+            low = alias.lower()
+            if ("*" in alias or "wi-fi direct" in low or "hotspot" in low):
+                hotspot = ip
+                break
+        if hotspot:
+            return hotspot
+        for ip in lainnya:
+            if ip.startswith(("10.", "172.", "192.168.")):
+                return ip
+        return lainnya[0] if lainnya else None
+    except Exception:
+        return None
+
+HOTSPOT_IP = deteksi_ip_hotspot()
+FRONTEND_URL_HOTSPOT = ("http://%s:%d" % (HOTSPOT_IP, FRONTEND_PORT)) if HOTSPOT_IP else None
+BACKEND_URL_HOTSPOT = ("http://%s:%d" % (HOTSPOT_IP, BACKEND_PORT)) if HOTSPOT_IP else None
+HOTSPOT_SUBNET = ("%s.0/24" % ".".join(HOTSPOT_IP.split(".")[:3])) if HOTSPOT_IP else None
+
 NPM_CMD = shutil.which("npm")
 PHP_CMD = php_executable()  # Termasuk runtime lokal di luar PATH.
 
@@ -193,8 +233,8 @@ STATUS_STOPPED = "STOPPED"
 STATUS_STARTING = "STARTING"
 STATUS_RUNNING = "RUNNING"
 STATUS_ERROR = "ERROR"
-FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--strictPort"]
-BACKEND_CMD = (perintah_php() + ["-S", f"localhost:{BACKEND_PORT}", "-t", ".", "api/index.php"]) if PHP_CMD else []
+FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--host", "0.0.0.0", "--strictPort"]
+BACKEND_CMD = (perintah_php() + ["-S", f"0.0.0.0:{BACKEND_PORT}", "-t", ".", "api/index.php"]) if PHP_CMD else []
 FLAG_POPEN = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)} if os.name == "nt" else {"start_new_session": True}
 WAKTU_TUNGGU_FRONTEND = 90
 WAKTU_TUNGGU_BACKEND = 30
@@ -679,6 +719,14 @@ class ControlCenterApp(tk.Tk):
                   relief="flat", cursor="hand2", padx=14, pady=8,
                   font=FONT_BODY).pack(side="left")
 
+        if HOTSPOT_IP and FRONTEND_URL_HOTSPOT:
+            tk.Label(quick, text="Hotspot LAN: %s" % FRONTEND_URL_HOTSPOT, bg=COLOR_BG3,
+                     fg=COLOR_WARNING, font=FONT_SMALL).pack(anchor="w", pady=(10, 4))
+            tk.Button(quick, text="Salin URL Hotspot",
+                      command=lambda: (self.clipboard_clear(), self.clipboard_append(FRONTEND_URL_HOTSPOT)),
+                      bg=COLOR_ACCENT, fg=COLOR_BG, relief="flat", cursor="hand2",
+                      padx=14, pady=6, font=FONT_SMALL).pack(anchor="w")
+
         self._create_statistics_page(self.pages["statistics"])
 
         for page, title, detail in (
@@ -720,7 +768,7 @@ class ControlCenterApp(tk.Tk):
                 panel = tk.Frame(frame, bg=COLOR_BG3, padx=24, pady=20)
                 panel.pack(fill="x", padx=34, pady=25)
                 if page == "services":
-                    tk.Label(panel, text=f"Frontend  {FRONTEND_URL}\nBackend   {BACKEND_URL}",
+                    tk.Label(panel, text=f"Frontend  {FRONTEND_URL}\nBackend   {BACKEND_URL}\nHotspot   {FRONTEND_URL_HOTSPOT or '-'}",
                              bg=COLOR_BG3, fg=COLOR_FG, font=FONT_BODY,
                              justify="left").pack(anchor="w")
                 else:

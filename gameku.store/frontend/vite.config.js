@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0',
     // Dev server meneruskan /api ke backend (port via env API_PROXY).
     port: 5173,
     proxy: {
@@ -19,6 +20,7 @@ export default defineConfig({
     },
   },
   preview: {
+    host: '0.0.0.0',
     proxy: {
       '/api': {
         target: process.env.API_PROXY || 'http://localhost:8000',

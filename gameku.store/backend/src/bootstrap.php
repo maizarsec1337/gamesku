@@ -84,7 +84,29 @@ if ($isProduction) {
 
 $asal = $_SERVER['HTTP_ORIGIN'] ?? '';
 $izinkan = $cfg['cors_origins'] ?? [];
-if ($asal !== '' && in_array($asal, $izinkan, true)) {
+
+// Izinkan origin lokal & hotspot LAN secara dinamis tanpa hardcode IP.
+// Hanya origin dengan host localhost/127.0.0.1 atau IP privat pada port frontend.
+function gameku_origin_diizinkan(string $origin): bool {
+    $bagian = parse_url($origin);
+    if (!is_array($bagian)) return false;
+    $skema = $bagian['scheme'] ?? '';
+    $host   = $bagian['host'] ?? '';
+    $port   = (int) ($bagian['port'] ?? ($skema === 'https' ? 443 : 80));
+    if ($skema !== 'http' && $skema !== 'https') return false;
+    if ($port !== 5173 && $port !== 8000) return false; // hanya layanan aplikasi
+    if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) return true;
+    if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        // IP privat (RFC1918) -> hotspot/LAN.
+        if (preg_match('/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/', $host)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+$originDiizinkan = in_array($asal, $izinkan, true) || ($asal !== '' && gameku_origin_diizinkan($asal));
+if ($asal !== '' && $originDiizinkan) {
     header('Access-Control-Allow-Origin: ' . $asal);
     header('Vary: Origin');
     header('Access-Control-Allow-Credentials: true');

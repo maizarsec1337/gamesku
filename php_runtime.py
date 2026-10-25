@@ -50,7 +50,7 @@ def perintah_php():
 if __name__ == "__main__":
     root = Path(__file__).resolve().parent
     try:
-        command = perintah_php() + ["-S", "localhost:8000", "-t", ".", "api/index.php"]
+        command = perintah_php() + ["-S", "0.0.0.0:8000", "-t", ".", "api/index.php"]
         raise SystemExit(subprocess.call(command, cwd=root / "gameku.store" / "backend"))
     except RuntimeError as error:
         raise SystemExit(str(error)) from error
