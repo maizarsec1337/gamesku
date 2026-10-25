@@ -30,6 +30,9 @@ from tkinter import ttk, messagebox, filedialog
 from collections import deque
 import argparse
 import random
+import queue
+import re
+import platform
 from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -38,8 +41,11 @@ import webbrowser
 
 # Import runtime PHP lokal (tidak mengubah php.ini global)
 try:
-    from php_runtime import perintah_php
+    from php_runtime import perintah_php, php_executable
 except Exception:  # pragma: no cover - fallback jika php_runtime tidak ada
+    def php_executable():
+        return shutil.which("php")
+
     def perintah_php():
         return ["php"]
 
@@ -59,7 +65,7 @@ BACKEND_URL = "http://localhost:%d" % BACKEND_PORT
 BACKEND_HEALTH_URL = "http://localhost:%d/api/sehat" % BACKEND_PORT
 
 NPM_CMD = shutil.which("npm")
-PHP_CMD = shutil.which("php")  # None bila PHP tidak terpasang
+PHP_CMD = php_executable()  # Termasuk runtime lokal di luar PATH.
 
 # ============================================================
 # Warna tema premium dark (ALVIN JMBOD)
@@ -135,18 +141,10 @@ DEFAULT_USERS = {
 # Kredensial disimpan setelah hash dengan salt unik
 MAX_LOG_LINES = 2000     # batas baris log per layanan (hindari memory leak)
 
-# File sumber yang dipantau untuk perubahan (relative to ROOT_DIR)
-FILEWATCH_TARGETS = [
-    os.path.join("frontend", "src", "main.jsx"),
-    os.path.join("frontend", "src", "App.jsx"),
-    os.path.join("frontend", "src", "halaman", "Beranda.jsx"),
-    os.path.join("frontend", "vite.config.js"),
-    os.path.join("backend", "api", "index.php"),
-    os.path.join("frontend", "src", "layanan", "layananPesanan.js"),
-]
-
 # Direktori yang diabaikan saat memantau perubahan file
-IGNORE_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".next"}
+IGNORE_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".next", "vendor", "logs"}
+ERROR_PATTERN = re.compile(r"\b(error|failed|failure|fatal|exception|traceback|EADDRINUSE|ENOENT|SyntaxError|TypeError)\b", re.I)
+ANSI_PATTERN = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 # Parse command line arguments for project directory
 parser = argparse.ArgumentParser(description='ALVIN JMBOD Desktop Control Center')
@@ -202,6 +200,58 @@ WAKTU_TUNGGU_FRONTEND = 90
 WAKTU_TUNGGU_BACKEND = 30
 INTERVAL_HEALTH = 5
 INTERVAL_FILEWATCH = 2
+
+
+class DeviceMonitor:
+    """Lightweight Windows CPU/RAM sampler plus disk usage for the project drive."""
+
+    class FileTime(ctypes.Structure):
+        _fields_ = [("low", ctypes.c_ulong), ("high", ctypes.c_ulong)]
+
+    class MemoryStatus(ctypes.Structure):
+        _fields_ = [
+            ("length", ctypes.c_ulong), ("load", ctypes.c_ulong),
+            ("total_phys", ctypes.c_ulonglong), ("avail_phys", ctypes.c_ulonglong),
+            ("total_page", ctypes.c_ulonglong), ("avail_page", ctypes.c_ulonglong),
+            ("total_virtual", ctypes.c_ulonglong), ("avail_virtual", ctypes.c_ulonglong),
+            ("avail_extended", ctypes.c_ulonglong),
+        ]
+
+    def __init__(self):
+        self.previous_cpu = self._cpu_times()
+
+    def _cpu_times(self):
+        if os.name != "nt":
+            return None
+        idle, kernel, user = self.FileTime(), self.FileTime(), self.FileTime()
+        if not ctypes.windll.kernel32.GetSystemTimes(ctypes.byref(idle), ctypes.byref(kernel), ctypes.byref(user)):
+            return None
+        value = lambda item: (item.high << 32) | item.low
+        return value(idle), value(kernel), value(user)
+
+    def snapshot(self):
+        now = self._cpu_times()
+        cpu = None
+        if now and self.previous_cpu:
+            idle = now[0] - self.previous_cpu[0]
+            total = now[1] - self.previous_cpu[1] + now[2] - self.previous_cpu[2]
+            if total > 0:
+                cpu = max(0.0, min(100.0, 100.0 * (1.0 - idle / total)))
+        self.previous_cpu = now
+
+        memory = self.MemoryStatus()
+        memory.length = ctypes.sizeof(memory)
+        if os.name == "nt" and ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(memory)):
+            ram_total = memory.total_phys
+            ram_used = ram_total - memory.avail_phys
+        else:
+            ram_total = ram_used = 0
+        disk = shutil.disk_usage(APP_DIR)
+        return {
+            "cpu": cpu,
+            "ram_used": ram_used, "ram_total": ram_total,
+            "disk_used": disk.used, "disk_total": disk.total,
+        }
 # ============================================================
 # Class ProcessEntry — menyimpan informasi satu proses
 # ============================================================
@@ -235,18 +285,30 @@ class ProcessManager:
         self.running = False
     def start_frontend(self):
         """Menjalankan Vite dev server sebagai proses anak."""
-        if self.frontend and self.frontend.status == STATUS_RUNNING:
+        if self.frontend and self.frontend.proc and self.frontend.proc.poll() is None:
             self._tampilkan_status("Frontend sudah berjalan.")
             return
 
         self.frontend = ProcessEntry("frontend", FRONTEND_CMD, cwd=FRONTEND_DIR)
 
+        if self._port_in_use(FRONTEND_PORT):
+            self._tampilkan_error(f"Port {FRONTEND_PORT} sudah dipakai. Hentikan Vite lama sebelum memulai frontend.")
+            self.frontend.status = STATUS_ERROR
+            return
+
         try:
             self.frontend.proc = subprocess.Popen(
                 self.frontend.cmd,
                 cwd=self.frontend.cwd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
                 **FLAG_POPEN,
             )
+            threading.Thread(target=self._read_output, args=("frontend", self.frontend.proc), daemon=True).start()
             self.frontend.start_time = time.time()
             self.frontend.status = STATUS_STARTING
             self._tampilkan_status("Frontend dimulai (proses anak PID %d)..." % self.frontend.proc.pid)
@@ -261,7 +323,7 @@ class ProcessManager:
 
     def start_backend(self):
         """Menjalankan PHP built-in server."""
-        if self.backend and self.backend.status == STATUS_RUNNING:
+        if self.backend and self.backend.proc and self.backend.proc.poll() is None:
             self._tampilkan_status("Backend sudah berjalan.")
             return
 
@@ -277,8 +339,15 @@ class ProcessManager:
             self.backend.proc = subprocess.Popen(
                 self.backend.cmd,
                 cwd=self.backend.cwd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
                 **FLAG_POPEN,
             )
+            threading.Thread(target=self._read_output, args=("backend", self.backend.proc), daemon=True).start()
             self.backend.start_time = time.time()
             self.backend.status = STATUS_STARTING
             self._tampilkan_status("Backend dimulai (proses anak PID %d)..." % self.backend.proc.pid)
@@ -295,7 +364,7 @@ class ProcessManager:
         dari = time.time()
         while time.time() - dari < WAKTU_TUNGGU_FRONTEND:
             # Cek proses masih hidup
-            if self.frontend.proc.poll() is not None:
+            if not self.frontend.proc or self.frontend.proc.poll() is not None:
                 self._handle_process_exit("frontend")
                 return
             # Cek HTTP port
@@ -313,11 +382,13 @@ class ProcessManager:
         dari = time.time()
         while time.time() - dari < WAKTU_TUNGGU_BACKEND:
             # Cek proses masih hidup
-            if self.backend.proc.poll() is not None:
+            if not self.backend.proc or self.backend.proc.poll() is not None:
                 self._handle_process_exit("backend")
                 return
             # Cek health endpoint
-            if self._cek_http(BACKEND_HEALTH_URL, timeout=2):
+            # Endpoint sehat juga menguji MySQL (hingga 3 detik), jadi beri
+            # ruang lebih panjang daripada cek Vite agar tidak selalu timeout.
+            if self._cek_http(BACKEND_HEALTH_URL, timeout=6):
                 self.backend.status = STATUS_RUNNING
                 self._tampilkan_status("Backend siap di %s" % BACKEND_URL)
                 return
@@ -334,15 +405,27 @@ class ProcessManager:
                 return resp.status == 200
         except Exception:
             return False
+
+    def _port_in_use(self, port):
+        for family, socktype, proto, _, address in socket.getaddrinfo("localhost", port, type=socket.SOCK_STREAM):
+            with socket.socket(family, socktype, proto) as probe:
+                probe.settimeout(0.25)
+                if probe.connect_ex(address) == 0:
+                    return True
+        return False
     def _handle_process_exit(self, which):
         """Dipanggil saat proses anak mati."""
         entry = self.frontend if which == "frontend" else self.backend
+        if not entry or not entry.proc:
+            return
         self._tampilkan_status("%s proses mati secara tiba-tida." % entry.nama)
         entry.status = STATUS_ERROR
         entry.exit_code = entry.proc.returncode if entry.proc else None
+        if self.app_gui:
+            self.app_gui.events.put(("error", which, f"Proses berhenti (exit code {entry.exit_code})."))
         # Update GUI jika ada
         if self.app_gui:
-            self.app_gui._update_process_status(which, entry.status)
+            self.app_gui.events.put(("process", which, entry.status))
         # Coba restart otomatis? Untuk now, hentikan dan tandai error.
         entry.proc = None
     def _hentikan_frontend(self, force=False):
@@ -362,7 +445,7 @@ class ProcessManager:
             self.frontend.status = STATUS_STOPPED
             self._tampilkan_status("Frontend dihentikan.")
         if self.app_gui:
-            self.app_gui._update_process_status("frontend", STATUS_STOPPED)
+            self.app_gui.events.put(("process", "frontend", STATUS_STOPPED))
     def _hentikan_backend(self, force=False):
         """ menghentikan backend."""
         if self.backend and self.backend.proc:
@@ -376,7 +459,7 @@ class ProcessManager:
             self.backend.status = STATUS_STOPPED
             self._tampilkan_status("Backend dihentikan.")
         if self.app_gui:
-            self.app_gui._update_process_status("backend", STATUS_STOPPED)
+            self.app_gui.events.put(("process", "backend", STATUS_STOPPED))
     def stop_all(self):
         """Hentikan frontend dan backend."""
         self._tampilkan_status("Menghentikan semua...")
@@ -389,25 +472,27 @@ class ProcessManager:
             if entry and entry.proc:
                 if entry.proc.poll() is not None:
                     self._handle_process_exit(which)
-    def _bersihkan_log(self, which):
-        """Bersihkan file log sebelum memulai."""
-        log_path = self.frontend.log_file if which == "frontend" else self.backend.log_file
-        if log_path and os.path.exists(log_path):
-            try:
-                os.remove(log_path)
-            except Exception:
-                pass
+    def _read_output(self, which, proc):
+        """Read child output continuously so Vite/PHP cannot block on a full pipe."""
+        try:
+            for line in proc.stdout:
+                clean = ANSI_PATTERN.sub("", line).rstrip("\r\n")
+                if clean and self.app_gui:
+                    self.app_gui.events.put(("log", which, clean))
+        finally:
+            proc.stdout.close()
     def _tampilkan_status(self, msg):
         """Tampilkan pesan ke GUI status bar (dijalankan di thread utama)."""
         if self.app_gui:
-            self.app_gui._set_status_bar(msg)
+            self.app_gui.events.put(("status", msg, False))
         else:
             print("[STATUS] " + msg)
 
     def _tampilkan_error(self, msg):
         """Tampilkan error ke GUI."""
         if self.app_gui:
-            self.app_gui._set_status_bar("ERROR: " + msg, error=True)
+            self.app_gui.events.put(("status", "ERROR: " + msg, True))
+            self.app_gui.events.put(("error", "system", msg))
         else:
             print("[ERROR] " + msg)
 class ControlCenterApp(tk.Tk):
@@ -423,7 +508,9 @@ class ControlCenterApp(tk.Tk):
         self.configure(bg=COLOR_BG)
 
         # Initialize process manager
+        self.events = queue.Queue()
         self.manager = ProcessManager(app_gui=self)
+        self.device_monitor = DeviceMonitor()
 
         # State tracking
         self.current_page = "overview"
@@ -432,6 +519,10 @@ class ControlCenterApp(tk.Tk):
         self.paused_log_scroll = False
         self.pages = {}
         self.file_snapshots = {}
+        self.error_count = 0
+        self.file_change_count = 0
+        self.command_running = False
+        self.shell_proc = None
         self.started_at = time.monotonic()
         self.rain_enabled = True
         self.rain_job = None
@@ -469,6 +560,10 @@ class ControlCenterApp(tk.Tk):
         self._fade_started = time.monotonic()
         self.after(16, self._fade_in)
         self.after(1000, self._poll_services)
+        self.after(1000, self._refresh_device_stats)
+        self.after(100, self._drain_events)
+        self.file_snapshots = self._scan_source_files()
+        self.after(2000, self._watch_source_files)
         self.after(100, self._animate_rain)
         self.after(650, self._animate_indicator)
     def _create_sidebar(self):
@@ -490,9 +585,10 @@ class ControlCenterApp(tk.Tk):
         nav = tk.Frame(self.sidebar, bg=COLOR_BG2)
         nav.grid(row=2, column=0, sticky="ew", padx=12, pady=(10, 0))
         self.nav_buttons = {}
-        for page, label in (("overview", "◈   Overview"), ("services", "▣   Services"),
+        for page, label in (("overview", "◈   Overview"), ("statistics", "▥   Statistik"),
+                            ("services", "▣   Services"),
                             ("console", ">_   Console"), ("files", "▤   Files"),
-                            ("errors", "◇   Diagnostics"), ("settings", "⚙   Settings"),
+                            ("errors", "◇   Diagnostics"),
                             ("about", "○   About")):
             button = tk.Button(nav, text=label, bg=COLOR_BG2, fg=COLOR_SUBTLE,
                                activebackground=COLOR_BG3, activeforeground=COLOR_FG,
@@ -537,7 +633,7 @@ class ControlCenterApp(tk.Tk):
         self.pages_frame.grid(row=0, column=0, sticky="nsew")
         self.pages_frame.grid_rowconfigure(0, weight=1)
         self.pages_frame.grid_columnconfigure(0, weight=1)
-        for page in ["overview", "services", "console", "files", "errors", "settings", "about"]:
+        for page in ["overview", "statistics", "services", "console", "files", "errors", "about"]:
             self.pages[page] = tk.Frame(self.pages_frame, bg=COLOR_BG)
             self.pages[page].grid(row=0, column=0, sticky="nsew")
 
@@ -578,13 +674,18 @@ class ControlCenterApp(tk.Tk):
                       bg=COLOR_BG2, fg=COLOR_ACCENT2, activebackground=COLOR_ACCENT,
                       relief="flat", cursor="hand2", padx=14, pady=8,
                       font=FONT_BODY).pack(side="left", padx=(0, 10))
+        tk.Button(row, text="▥  Statistik Perangkat", command=lambda: self.show_page("statistics"),
+                  bg=COLOR_BG2, fg=COLOR_ACCENT2, activebackground=COLOR_ACCENT,
+                  relief="flat", cursor="hand2", padx=14, pady=8,
+                  font=FONT_BODY).pack(side="left")
+
+        self._create_statistics_page(self.pages["statistics"])
 
         for page, title, detail in (
             ("services", "Services", "Gunakan Quick Control di kiri untuk mengelola server."),
-            ("console", "Console", "Status proses dan pesan diagnostik ditampilkan di bagian bawah jendela."),
-            ("files", "Files", f"Project directory: {ROOT_DIR}"),
-            ("errors", "Diagnostics", "Periksa status layanan dan dependensi yang tersedia."),
-            ("settings", "Settings", "Sesuaikan tampilan dan lihat alamat server."),
+            ("console", "Live Shell", "Output Vite/PHP tampil langsung. Tiap perintah dijalankan dari folder yang dipilih di bawah."),
+            ("files", "File Activity", "File baru, perubahan, dan penghapusan dalam frontend/src dan backend."),
+            ("errors", "Diagnostics", "Error dari server dan perintah shell terdeteksi otomatis."),
             ("about", "About", "Gameku Store · Desktop Control Center"),
         ):
             frame = self.pages[page]
@@ -592,37 +693,128 @@ class ControlCenterApp(tk.Tk):
                      font=("Segoe UI", 24, "bold")).pack(anchor="w", padx=34, pady=(34, 6))
             tk.Label(frame, text=detail, bg=COLOR_BG, fg=COLOR_SUBTLE,
                      font=FONT_BODY, wraplength=680, justify="left").pack(anchor="w", padx=34)
-            panel = tk.Frame(frame, bg=COLOR_BG3, padx=24, pady=20)
-            panel.pack(fill="x", padx=34, pady=25)
-            if page == "settings":
-                tk.Checkbutton(panel, text="Animasi hujan ringan", variable=self._rain_var(),
-                               command=self._toggle_rain, bg=COLOR_BG3, fg=COLOR_FG,
-                               selectcolor=COLOR_BG2, activebackground=COLOR_BG3,
-                               activeforeground=COLOR_FG, font=FONT_BODY).pack(anchor="w")
-            elif page == "services":
-                tk.Label(panel, text=f"Frontend  {FRONTEND_URL}\nBackend   {BACKEND_URL}",
-                         bg=COLOR_BG3, fg=COLOR_FG, font=FONT_BODY,
-                         justify="left").pack(anchor="w")
+            if page == "console":
+                self.console_text = self._output_panel(frame)
+                command_bar = tk.Frame(frame, bg=COLOR_BG3, padx=14, pady=12)
+                command_bar.pack(fill="x", padx=34, pady=(0, 24))
+                self.shell_cwd = tk.StringVar(value="project")
+                folder_menu = tk.OptionMenu(command_bar, self.shell_cwd, "project", "frontend", "backend")
+                folder_menu.configure(bg=COLOR_BG2, fg=COLOR_FG, activebackground=COLOR_ACCENT,
+                                      relief="flat", highlightthickness=0, font=FONT_BODY)
+                folder_menu.pack(side="left", padx=(0, 8))
+                self.shell_entry = tk.Entry(command_bar, bg=COLOR_BG2, fg=COLOR_FG,
+                                            insertbackground=COLOR_FG, relief="flat", font=("Consolas", 10))
+                self.shell_entry.pack(side="left", fill="x", expand=True, ipady=8)
+                self.shell_entry.bind("<Return>", lambda event: self._run_shell_command())
+                self.shell_button = tk.Button(command_bar, text="Run  ▶", command=self._run_shell_command,
+                                              bg=COLOR_ACCENT, fg=COLOR_BG, relief="flat", cursor="hand2",
+                                              font=FONT_SUBTITLE, padx=14, pady=6)
+                self.shell_button.pack(side="left", padx=(8, 0))
+            elif page == "files":
+                self.file_text = self._output_panel(frame)
+                self._append_text(self.file_text, "Watching frontend/src and backend for new and edited files.\n", "info")
             elif page == "errors":
-                tk.Label(panel, text=f"npm: {'tersedia' if NPM_CMD else 'tidak tersedia'}    ·    PHP: {'tersedia' if PHP_CMD else 'tidak tersedia'}",
-                         bg=COLOR_BG3, fg=COLOR_FG, font=FONT_BODY).pack(anchor="w")
+                self.error_text = self._output_panel(frame)
+                self._append_text(self.error_text, "No errors detected yet.\n", "info")
             else:
-                tk.Label(panel, text=detail, bg=COLOR_BG3, fg=COLOR_FG,
-                         font=FONT_BODY, wraplength=640, justify="left").pack(anchor="w")
+                panel = tk.Frame(frame, bg=COLOR_BG3, padx=24, pady=20)
+                panel.pack(fill="x", padx=34, pady=25)
+                if page == "services":
+                    tk.Label(panel, text=f"Frontend  {FRONTEND_URL}\nBackend   {BACKEND_URL}",
+                             bg=COLOR_BG3, fg=COLOR_FG, font=FONT_BODY,
+                             justify="left").pack(anchor="w")
+                else:
+                    tk.Label(panel, text=detail, bg=COLOR_BG3, fg=COLOR_FG,
+                             font=FONT_BODY, wraplength=640, justify="left").pack(anchor="w")
         self.show_page("overview")
 
-    def _rain_var(self):
-        self.rain_var = tk.BooleanVar(value=self.rain_enabled)
-        return self.rain_var
+    def _create_statistics_page(self, frame):
+        tk.Label(frame, text="Statistik Perangkat", bg=COLOR_BG, fg=COLOR_FG,
+                 font=("Segoe UI", 24, "bold")).pack(anchor="w", padx=34, pady=(34, 6))
+        tk.Label(frame, text="Performa perangkat ini diperbarui setiap detik.",
+                 bg=COLOR_BG, fg=COLOR_SUBTLE, font=FONT_BODY).pack(anchor="w", padx=34)
 
-    def _toggle_rain(self):
-        self.rain_enabled = self.rain_var.get()
-        if not self.rain_enabled:
-            for item, *_ in self.rain_drops:
-                self.rain_canvas.delete(item)
-            self.rain_drops.clear()
-        else:
-            self._reset_rain()
+        cards = tk.Frame(frame, bg=COLOR_BG)
+        cards.pack(fill="x", padx=34, pady=(27, 20))
+        self.metric_widgets = {}
+        for column, (key, title) in enumerate((("cpu", "CPU"), ("ram", "RAM"), ("disk", "DISK"))):
+            cards.grid_columnconfigure(column, weight=1, uniform="metrics")
+            card = tk.Frame(cards, bg=COLOR_BG3, padx=18, pady=18)
+            card.grid(row=0, column=column, sticky="nsew", padx=(0, 12) if column < 2 else (0, 0))
+            tk.Label(card, text=title, bg=COLOR_BG3, fg=COLOR_SUBTLE,
+                     font=("Segoe UI", 10, "bold")).pack(anchor="w")
+            value = tk.Label(card, text="--%", bg=COLOR_BG3, fg=COLOR_ACCENT2,
+                             font=("Segoe UI", 26, "bold"))
+            value.pack(anchor="w", pady=(12, 2))
+            detail = tk.Label(card, text="Mengukur...", bg=COLOR_BG3, fg=COLOR_SUBTLE,
+                              font=FONT_SMALL)
+            detail.pack(anchor="w")
+            bar = tk.Canvas(card, height=9, bg=COLOR_BORDER, highlightthickness=0)
+            bar.pack(fill="x", pady=(18, 0))
+            fill = bar.create_rectangle(0, 0, 0, 9, fill=COLOR_ACCENT, outline="")
+            self.metric_widgets[key] = (value, detail, bar, fill)
+
+        info = tk.Frame(frame, bg=COLOR_BG3, padx=24, pady=20)
+        info.pack(fill="x", padx=34, pady=(0, 18))
+        tk.Label(info, text="DEVICE INFO", bg=COLOR_BG3, fg=COLOR_ACCENT2,
+                 font=("Segoe UI", 10, "bold")).pack(anchor="w")
+        device_text = (f"Nama perangkat   {platform.node()}\n"
+                       f"Sistem operasi   {platform.system()} {platform.release()}\n"
+                       f"Logical CPU      {os.cpu_count() or '—'} core\n"
+                       f"Disk proyek      {Path(APP_DIR).anchor}")
+        tk.Label(info, text=device_text, bg=COLOR_BG3, fg=COLOR_FG,
+                 font=("Consolas", 10), justify="left").pack(anchor="w", pady=(13, 0))
+        self.stats_timestamp = tk.Label(frame, text="", bg=COLOR_BG,
+                                        fg=COLOR_SUBTLE, font=FONT_SMALL)
+        self.stats_timestamp.pack(anchor="w", padx=34)
+
+    def _refresh_device_stats(self):
+        stats = self.device_monitor.snapshot()
+        gib = 1024 ** 3
+        cpu = stats["cpu"]
+        values = {
+            "cpu": (cpu, f"{os.cpu_count() or '—'} logical core"),
+            "ram": (100 * stats["ram_used"] / stats["ram_total"] if stats["ram_total"] else None,
+                    f"{stats['ram_used'] / gib:.1f} / {stats['ram_total'] / gib:.1f} GiB"),
+            "disk": (100 * stats["disk_used"] / stats["disk_total"] if stats["disk_total"] else None,
+                     f"{stats['disk_used'] / gib:.1f} / {stats['disk_total'] / gib:.1f} GiB"),
+        }
+        for key, (percent, description) in values.items():
+            value, detail, bar, fill = self.metric_widgets[key]
+            color = COLOR_ERROR if percent is not None and percent >= 90 else (
+                COLOR_WARNING if percent is not None and percent >= 75 else COLOR_ACCENT2)
+            value.configure(text=f"{percent:.0f}%" if percent is not None else "--%", fg=color)
+            detail.configure(text=description)
+            bar.coords(fill, 0, 0, max(0, bar.winfo_width() - 1) * (percent or 0) / 100, 9)
+            bar.itemconfigure(fill, fill=color)
+        self.stats_timestamp.configure(text="Terakhir diperbarui: " + datetime.now().strftime("%H:%M:%S"))
+        self.after(1000, self._refresh_device_stats)
+
+    def _output_panel(self, parent):
+        holder = tk.Frame(parent, bg=COLOR_BG3, padx=10, pady=10)
+        holder.pack(fill="both", expand=True, padx=34, pady=(24, 12))
+        scroll = tk.Scrollbar(holder, bg=COLOR_BG3)
+        scroll.pack(side="right", fill="y")
+        output = tk.Text(holder, bg="#0d0a1c", fg=COLOR_FG, insertbackground=COLOR_FG,
+                         font=("Consolas", 10), relief="flat", wrap="word", state="disabled",
+                         yscrollcommand=scroll.set, padx=14, pady=12)
+        output.pack(side="left", fill="both", expand=True)
+        scroll.configure(command=output.yview)
+        output.tag_configure("error", foreground=COLOR_ERROR)
+        output.tag_configure("file", foreground=COLOR_SUCCESS)
+        output.tag_configure("info", foreground=COLOR_SUBTLE)
+        output.tag_configure("frontend", foreground=COLOR_ACCENT2)
+        output.tag_configure("backend", foreground=COLOR_WARNING)
+        return output
+
+    def _append_text(self, widget, line, tag=None):
+        widget.configure(state="normal")
+        widget.insert("end", line, tag)
+        line_count = int(widget.index("end-1c").split(".")[0])
+        if line_count > MAX_LOG_LINES:
+            widget.delete("1.0", f"{line_count - MAX_LOG_LINES}.0")
+        widget.see("end")
+        widget.configure(state="disabled")
 
     def _service_card(self, parent, column, title, subtitle, url):
         card = tk.Frame(parent, bg=COLOR_BG3, padx=20, pady=17)
@@ -689,12 +881,116 @@ class ControlCenterApp(tk.Tk):
             button.configure(bg=COLOR_BG3 if name == page else COLOR_BG2,
                              fg=COLOR_ACCENT2 if name == page else COLOR_SUBTLE)
 
-    def show_settings(self):
-        self.show_page("settings")
-
     def _set_status_bar(self, message, error=False):
         if hasattr(self, "status_label"):
             self.status_label.configure(text=message, fg=COLOR_ERROR if error else COLOR_INFO)
+
+    def _drain_events(self):
+        for _ in range(200):
+            try:
+                kind, *data = self.events.get_nowait()
+            except queue.Empty:
+                break
+            stamp = datetime.now().strftime("%H:%M:%S")
+            if kind == "log":
+                source, line = data
+                tag = "error" if not line.startswith("> ") and ERROR_PATTERN.search(line) else source
+                self._append_text(self.console_text, f"[{stamp}] [{source}] {line}\n", tag)
+                if tag == "error":
+                    self.events.put(("error", source, line))
+            elif kind == "error":
+                source, message = data
+                self.error_count += 1
+                self._append_text(self.error_text, f"[{stamp}] [{source}] {message}\n", "error")
+                self.nav_buttons["errors"].configure(text=f"◇   Diagnostics ({self.error_count})")
+            elif kind == "file":
+                action, path = data
+                self.file_change_count += 1
+                self._append_text(self.file_text, f"[{stamp}] {action:<8} {path}\n", "file")
+                self.nav_buttons["files"].configure(text=f"▤   Files ({self.file_change_count})")
+            elif kind == "status":
+                message, is_error = data
+                self._set_status_bar(message, error=is_error)
+            elif kind == "process":
+                source, status = data
+                self._do_update_process_status(source, status)
+            elif kind == "command_end":
+                code = data[0]
+                self.command_running = False
+                self.shell_button.configure(state="normal", text="Run  ▶")
+                self._append_text(self.console_text, f"[{stamp}] [shell] Exit code: {code}\n",
+                                  "error" if code else "info")
+                if code:
+                    self.events.put(("error", "shell", f"Perintah selesai dengan exit code {code}."))
+        self.after(20 if not self.events.empty() else 100, self._drain_events)
+
+    def _run_shell_command(self):
+        command = self.shell_entry.get().strip()
+        if not command or self.command_running:
+            return
+        folder = {"project": APP_DIR, "frontend": FRONTEND_DIR,
+                  "backend": BACKEND_DIR}[self.shell_cwd.get()]
+        self.command_running = True
+        self.shell_button.configure(state="disabled", text="Running...")
+        self.shell_entry.delete(0, "end")
+        self.events.put(("log", "shell", f"> {command}  (cwd: {folder})"))
+        threading.Thread(target=self._shell_worker, args=(command, folder), daemon=True).start()
+
+    def _shell_worker(self, command, folder):
+        try:
+            self.shell_proc = subprocess.Popen(command, shell=True, cwd=folder,
+                                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                               text=True, encoding="utf-8", errors="replace",
+                                               bufsize=1, **FLAG_POPEN)
+            for line in self.shell_proc.stdout:
+                clean = ANSI_PATTERN.sub("", line).rstrip("\r\n")
+                if clean:
+                    self.events.put(("log", "shell", clean))
+            code = self.shell_proc.wait()
+        except Exception as exc:
+            self.events.put(("error", "shell", str(exc)))
+            code = -1
+        finally:
+            self.shell_proc = None
+            self.events.put(("command_end", code))
+
+    def _scan_source_files(self):
+        snapshot = {}
+        for relative in ("frontend/vite.config.js", "frontend/package.json", "backend/composer.json"):
+            path = os.path.join(APP_DIR, relative)
+            try:
+                info = os.stat(path)
+                snapshot[os.path.relpath(path, APP_DIR)] = (info.st_mtime_ns, info.st_size)
+            except OSError:
+                pass
+        for root in (os.path.join(FRONTEND_DIR, "src"), BACKEND_DIR):
+            if not os.path.isdir(root):
+                continue
+            for folder, dirs, files in os.walk(root):
+                dirs[:] = [name for name in dirs if name not in IGNORE_DIRS and not name.startswith(".")]
+                for name in files:
+                    if name.startswith(".") or name.endswith((".log", ".tmp", ".swp")):
+                        continue
+                    path = os.path.join(folder, name)
+                    try:
+                        info = os.stat(path)
+                        snapshot[os.path.relpath(path, APP_DIR)] = (info.st_mtime_ns, info.st_size)
+                    except OSError:
+                        pass
+        return snapshot
+
+    def _watch_source_files(self):
+        current = self._scan_source_files()
+        for path, signature in current.items():
+            old = self.file_snapshots.get(path)
+            if old is None:
+                self.events.put(("file", "NEW", path))
+            elif old != signature:
+                self.events.put(("file", "EDIT", path))
+        for path in self.file_snapshots.keys() - current.keys():
+            self.events.put(("file", "DELETE", path))
+        self.file_snapshots = current
+        self.after(INTERVAL_FILEWATCH * 1000, self._watch_source_files)
 
     def _poll_services(self):
         self.manager.poll_processes()
@@ -829,9 +1125,7 @@ class ControlCenterApp(tk.Tk):
         self._set_status_bar("Semua layanan dihentikan")
     def _update_process_status(self, which, status):
         """Update the UI status for a specific process."""
-        # This method is called from ProcessManager via app_gui reference
-        # We use after to safely update UI from main thread
-        self.after(0, self._do_update_process_status, which, status)
+        self.events.put(("process", which, status))
 
     def _do_update_process_status(self, which, status):
         """Keep the card and quick action in sync with each process."""
@@ -848,53 +1142,81 @@ class ControlCenterApp(tk.Tk):
         self.summary_label.configure(text=f"{active}/2 services online")
         self.lbl_status.configure(text=f"{active} layanan berjalan", fg=COLOR_SUCCESS if active else COLOR_SUBTLE)
 
-    def _monitor_processes(self):
-        """Background thread to monitor process health."""
-        while self.manager.running:
-            self.manager.poll_processes()
-            # Update GUI if needed
-            self.after(0, self._update_gui_from_monitor)
-            time.sleep(INTERVAL_HEALTH)
-
-    def _update_gui_from_monitor(self):
-        """Update GUI based on monitoring results."""
-        self._update_process_status("frontend", self.manager.frontend.status if self.manager.frontend else STATUS_STOPPED)
-        self._update_process_status("backend", self.manager.backend.status if self.manager.backend else STATUS_STOPPED)
-
-    def _monitor_file_changes(self):
-        """Watch for changes in source files and reload as needed."""
-        while True:
-            # Check file modification times
-            current_mtimes = {}
-            for target in FILEWATCH_TARGETS:
-                full_path = os.path.join(ROOT_DIR, target)
-                if os.path.exists(full_path) and os.path.isfile(full_path):
-                    mtime = os.path.getmtime(full_path)
-                    rel = os.path.relpath(full_path, ROOT_DIR)
-                    current_mtimes[rel] = mtime
-
-            # Compare with snapshots and trigger reload if changed
-            changed = False
-            for rel_path, mtime in current_mtimes.items():
-                if rel_path not in self.file_snapshots or self.file_snapshots[rel_path] != mtime:
-                    changed = True
-                    self.file_snapshots[rel_path] = mtime
-
-            if changed:
-                self._on_file_change()
-
-            time.sleep(INTERVAL_FILEWATCH)
-
-    def _on_file_change(self):
-        """Handle detected file changes."""
-        self._set_status_bar("Terdeteksi perubahan file - refresh akan segera dilakukan")
-        # For now, just show notification - auto-reload can be implemented later
-        # This would typically restart the relevant server process
-
     def _on_closing(self):
         """Handle window close event."""
+        if self.shell_proc and self.shell_proc.poll() is None:
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/PID", str(self.shell_proc.pid), "/T", "/F"],
+                               capture_output=True, **FLAG_POPEN)
+            else:
+                self.shell_proc.terminate()
         self._stop_all_services()
         self.destroy()
+
+
+class ArcadeLoginCanvas(tk.Canvas):
+    """Small self-contained arcade scene; only a few existing items move per frame."""
+
+    def __init__(self, parent):
+        super().__init__(parent, width=500, height=180, bg="#0d0a1c", highlightthickness=0)
+        self.pack(fill="x")
+        self.position = 50
+        self.frame_no = 0
+        self.dots = []
+
+        self.create_text(24, 19, text="1UP    GAMEKU ARCADE", fill=COLOR_ACCENT2,
+                         anchor="w", font=("Consolas", 10, "bold"))
+        self.create_text(476, 19, text="LEVEL 01", fill=COLOR_WARNING,
+                         anchor="e", font=("Consolas", 10, "bold"))
+
+        # Four open maze rails frame the moving characters without covering the form.
+        for y in (39, 143):
+            self.create_line(18, y, 160, y, fill="#5d42b2", width=3)
+            self.create_line(185, y, 315, y, fill="#5d42b2", width=3)
+            self.create_line(340, y, 482, y, fill="#5d42b2", width=3)
+        for x in (18, 482):
+            self.create_line(x, 39, x, 143, fill="#5d42b2", width=3)
+        for x in range(40, 475, 22):
+            dot = self.create_oval(x - 2, 90, x + 2, 94, fill="#d9c9ff", outline="")
+            self.dots.append((x, dot))
+
+        self.pac = self.create_arc(0, 0, 0, 0, start=28, extent=304,
+                                   fill="#ffd36f", outline="", style="pieslice")
+        self.eye = self.create_oval(0, 0, 0, 0, fill="#211431", outline="")
+        self.ghosts = []
+        for color in ("#fb7da8", "#71d8e8"):
+            body = self.create_polygon(0, 0, fill=color, outline="")
+            eyes = [self.create_oval(0, 0, 0, 0, fill="#fff8ff", outline="") for _ in range(2)]
+            pupils = [self.create_oval(0, 0, 0, 0, fill="#32224f", outline="") for _ in range(2)]
+            self.ghosts.append((body, eyes, pupils))
+        self.after(50, self._animate)
+
+    def _draw_ghost(self, ghost, x, y):
+        body, eyes, pupils = ghost
+        self.coords(body, x - 14, y + 13, x - 14, y - 4, x - 9, y - 12,
+                    x, y - 15, x + 9, y - 12, x + 14, y - 4, x + 14, y + 13,
+                    x + 8, y + 9, x + 3, y + 13, x - 3, y + 9, x - 8, y + 13)
+        for offset, eye, pupil in zip((-6, 6), eyes, pupils):
+            self.coords(eye, x + offset - 4, y - 6, x + offset + 4, y + 3)
+            self.coords(pupil, x + offset, y - 2, x + offset + 3, y + 2)
+
+    def _animate(self):
+        self.frame_no += 1
+        self.position = 36 + ((self.position - 36 + 3) % 430)
+        mouth = 7 + (self.frame_no % 8) * 4
+        self.itemconfigure(self.pac, start=mouth, extent=360 - 2 * mouth)
+        self.coords(self.pac, self.position - 15, 76, self.position + 15, 106)
+        self.coords(self.eye, self.position + 2, 81, self.position + 5, 84)
+        for x, dot in self.dots:
+            self.itemconfigure(dot, state="hidden" if x < self.position else "normal")
+        if self.position < 40:
+            for _, dot in self.dots:
+                self.itemconfigure(dot, state="normal")
+        self._draw_ghost(self.ghosts[0], 280 + (self.frame_no % 45) - 22,
+                         91 + (self.frame_no % 8 > 3) * 2)
+        self._draw_ghost(self.ghosts[1], 392 - (self.frame_no % 35),
+                         91 + (self.frame_no % 10 > 4) * 2)
+        self.after(50, self._animate)
 
 
 def show_login():
@@ -907,23 +1229,24 @@ def show_login():
     """
     login_win = tk.Tk()
     login_win.title("Gameku Store · Sign in")
-    login_win.geometry("420x365")
+    login_win.geometry("500x555")
     login_win.resizable(False, False)
     login_win.configure(bg=COLOR_BG)
 
     # Center the login window
     login_win.update_idletasks()
-    width = 420
-    height = 365
+    width = 500
+    height = 555
     x = (login_win.winfo_screenwidth() // 2) - (width // 2)
     y = (login_win.winfo_screenheight() // 2) - (height // 2)
     login_win.geometry(f"{width}x{height}+{x}+{y}")
 
     tk.Frame(login_win, bg=COLOR_ACCENT, height=4).pack(fill="x")
+    ArcadeLoginCanvas(login_win)
     tk.Label(login_win, text="◆  GAMEKU", bg=COLOR_BG, fg=COLOR_ACCENT2,
-             font=("Segoe UI", 21, "bold")).pack(anchor="w", padx=38, pady=(31, 4))
-    tk.Label(login_win, text="Sign in to your control center", bg=COLOR_BG,
-             fg=COLOR_SUBTLE, font=FONT_BODY).pack(anchor="w", padx=38)
+             font=("Segoe UI", 20, "bold")).pack(anchor="w", padx=38, pady=(20, 2))
+    tk.Label(login_win, text="READY PLAYER ONE  /  CONTROL CENTER", bg=COLOR_BG,
+             fg=COLOR_SUBTLE, font=("Consolas", 9)).pack(anchor="w", padx=38)
 
     # Status variable for login feedback
     status_var = tk.StringVar()
@@ -931,7 +1254,7 @@ def show_login():
 
     # Frame for inputs
     frame = tk.Frame(login_win, bg=COLOR_BG)
-    frame.pack(pady=(24, 8), padx=38, fill="x")
+    frame.pack(pady=(18, 7), padx=38, fill="x")
     frame.grid_columnconfigure(0, weight=1)
 
     # Username
@@ -939,14 +1262,14 @@ def show_login():
              font=FONT_SMALL).grid(row=0, column=0, sticky="w", pady=(0, 5))
     username_entry = tk.Entry(frame, font=FONT_BODY, bg=COLOR_BG3, fg=COLOR_FG,
                               insertbackground=COLOR_FG, relief="flat")
-    username_entry.grid(row=1, column=0, sticky="ew", ipady=9, pady=(0, 14))
+    username_entry.grid(row=1, column=0, sticky="ew", ipady=7, pady=(0, 10))
 
     # Password
     tk.Label(frame, text="PASSWORD", bg=COLOR_BG, fg=COLOR_SUBTLE,
              font=FONT_SMALL).grid(row=2, column=0, sticky="w", pady=(0, 5))
     password_entry = tk.Entry(frame, font=FONT_BODY, bg=COLOR_BG3, fg=COLOR_FG,
                               insertbackground=COLOR_FG, relief="flat", show="*")
-    password_entry.grid(row=3, column=0, sticky="ew", ipady=9)
+    password_entry.grid(row=3, column=0, sticky="ew", ipady=7)
 
     # Result flag
     login_success = [False]
@@ -987,7 +1310,7 @@ def show_login():
                           activebackground=COLOR_ACCENT2, activeforeground=COLOR_BG,
                           relief="flat", cursor="hand2", font=FONT_SUBTITLE,
                           command=attempt_login)
-    btn_login.pack(fill="x", padx=38, pady=(12, 6), ipady=8)
+    btn_login.pack(fill="x", padx=38, pady=(10, 5), ipady=7)
     tk.Label(login_win, textvariable=status_var, bg=COLOR_BG, fg=COLOR_WARNING,
              font=FONT_SMALL).pack(anchor="w", padx=38)
 
