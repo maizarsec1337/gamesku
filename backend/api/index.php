@@ -21,7 +21,7 @@ $relatif = $berkasStatis ? str_replace('\\', '/', substr($berkasStatis, strlen($
 // Built-in server mengabaikan .htaccess: hanya aset publik yang boleh
 // dilayani langsung, termasuk pemeriksaan path hasil realpath (symlink).
 $asetPublik = preg_match('#^(uploads|assets|image)/#', $relatif)
-    && preg_match('#\.(png|jpe?g|webp|gif|svg|ico|zip|pdf|css|js|woff2?|ttf)$#i', $relatif);
+    && preg_match('#\.(png|jpe?g|webp|gif|svg|ico|zip|pdf|mp4|webm|ogv|css|js|woff2?|ttf)$#i', $relatif);
 if ($jalur !== '/' && $berkasStatis && is_file($berkasStatis)
     && strpos($berkasStatis, $akarPublik) === 0 && $asetPublik) {
     return false; // server PHP menyajikan berkas aslinya
