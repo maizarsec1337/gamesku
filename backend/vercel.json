@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "src/server.js": {
+      "includeFiles": "api/data_anime_lengkap.json"
+    }
+  }
+}

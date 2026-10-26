@@ -4,8 +4,9 @@
 // tampil bila statusnya Aktif.
 
 import { GalatAnime } from './layananAnime.js'
+import { URL_API } from './urlApi.js'
 
-const DASAR_API = '/api'
+const DASAR_API = URL_API
 
 // Panggil fetch, parse, dan validasi respons. Melempar GalatAnime saat gagal.
 async function minta(jalur) {

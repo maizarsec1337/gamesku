@@ -3,7 +3,9 @@
 // Catatan: data hanya berisi metadata + tautan halaman episode, BUKAN URL video.
 
 // Vite dev mem-proxy /api ke backend PHP; build produksi menyajikannya dari origin sama.
-const DASAR_API = '/api'
+import { URL_API } from './urlApi.js'
+
+const DASAR_API = URL_API
 
 // Galat dengan status HTTP agar komponen bisa membedakan jenis masalah.
 export class GalatAnime extends Error {

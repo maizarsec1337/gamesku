@@ -1,7 +1,9 @@
 // Layanan kategori TOKO DEPAN — membaca kategori NYATA dari backend (GET /api/kategori).
 // Tamu hanya menerima kategori Aktif (backend yang menyaring).
 
-const API = '/api'
+import { URL_API } from './urlApi.js'
+
+const API = URL_API
 
 let cache = []
 let versi = 0

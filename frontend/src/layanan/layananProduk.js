@@ -4,7 +4,9 @@
 // Model: cache dalam memori + langganan (agar useSyncExternalStore aman).
 // Getter mengembalikan referensi STABIL selama cache tidak berubah.
 
-const API = '/api'
+import { URL_API } from './urlApi.js'
+
+const API = URL_API
 
 let cache = []
 let versi = 0

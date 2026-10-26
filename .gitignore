@@ -8,6 +8,13 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.env
+.env.*
+!.env.example
+!**/.env.example
+backend/uploads/**
+!backend/uploads/.gitkeep
+backend/.transfer-*.json
 dist
 dist-ssr
 *.local
@@ -49,6 +56,7 @@ cline/artifacts/
 .credentials.json
 .env
 .env.*
+!**/.env.example
 *.pem
 *.key
 secrets/

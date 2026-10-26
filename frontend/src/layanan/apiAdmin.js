@@ -6,7 +6,9 @@
 //   dari GET /api/auth/csrf-token.
 // - Token CSRF dibaca dari sesi aktif sebelum setiap perubahan.
 
-const API = '/api'
+import { URL_API } from './urlApi.js'
+
+const API = URL_API
 
 export class GalatApi extends Error {
   constructor(pesan, status, data) {
@@ -23,7 +25,7 @@ async function minta(jalur, opsi = {}) {
   try {
     respons = await fetch(`${API}${jalur}`, {
       ...opsi,
-      credentials: 'same-origin',
+      credentials: 'include',
       headers: { Accept: 'application/json', ...(opsi.headers || {}) },
     })
   } catch {
@@ -169,6 +171,25 @@ export const hapusMediaApi = (id) => tulis('DELETE', `/media/${encodeURIComponen
 // Unggah multipart: jangan set Content-Type (browser mengisi boundary).
 export async function unggahMediaApi(berkas, jenis = 'Thumbnail') {
   const token = await tokenCsrfAmbil()
+  const metadata = await minta('/media/upload-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token || '' },
+    body: JSON.stringify({ namaAsli: berkas.name, mime: berkas.type, ukuran: berkas.size, jenis }),
+  })
+  if (metadata?.uploadUrl) {
+    let respons
+    try {
+      respons = await fetch(metadata.uploadUrl, { method: 'PUT', headers: metadata.headers, body: berkas })
+    } catch {
+      throw new GalatApi('Berkas tidak dapat dikirim ke penyimpanan. Periksa koneksi.', 0)
+    }
+    if (!respons.ok) throw new GalatApi(`Penyimpanan menolak berkas (HTTP ${respons.status}).`, respons.status)
+    return minta('/media/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token || '' },
+      body: JSON.stringify({ objectKey: metadata.objectKey, namaAsli: berkas.name, mime: berkas.type, jenis }),
+    })
+  }
   const fd = new FormData()
   fd.append('berkas', berkas)
   fd.append('jenis', jenis)

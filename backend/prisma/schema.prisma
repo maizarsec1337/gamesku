@@ -1,0 +1,444 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Admin {
+  id                    Int       @id @default(autoincrement())
+  pengguna              String    @unique(map: "uniq_admin_pengguna") @db.VarChar(60)
+  nama                  String    @default("") @db.VarChar(120)
+  email                 String    @default("") @db.VarChar(150)
+  sandi_hash            String    @db.VarChar(255)
+  status                String    @default("Aktif") @db.VarChar(40)
+  peran                 String    @default("admin") @db.VarChar(20)
+  dibuat_pada           DateTime  @default(now()) @db.Timestamptz(3)
+  masuk_terakhir        DateTime? @db.Timestamptz(3)
+  gagal_login           Int       @default(0)
+  terakhir_gagal_login  DateTime? @db.Timestamptz(3)
+  reseller_pengajuan    ResellerPengajuan[]
+  percakapan_cs         Percakapan[]
+  @@map("admin")
+}
+
+model Pelanggan {
+  id                   String    @id @db.VarChar(40)
+  nama                 String    @default("") @db.VarChar(120)
+  username             String    @default("") @db.VarChar(60)
+  email                String    @unique(map: "uniq_pelanggan_email") @db.VarChar(150)
+  sandi_hash           String?   @db.VarChar(255)
+  total_beli           BigInt    @default(0)
+  jumlah_pesanan       Int       @default(0)
+  bergabung            DateTime  @default(now()) @db.Timestamptz(3)
+  status               String    @default("Aktif") @db.VarChar(40)
+  terakhir_login       DateTime? @db.Timestamptz(3)
+  pesanan              Pesanan[]
+  reseller_pengajuan   ResellerPengajuan[]
+  ulasan               Ulasan[]
+  percakapan           Percakapan[]
+  riwayat_tontonan     RiwayatTontonan[]
+  @@index([username], map: "idx_pelanggan_username")
+  @@index([status, bergabung], map: "idx_pelanggan_status_bergabung")
+  @@map("pelanggan")
+}
+
+model Creator {
+  id          String   @id @db.VarChar(40)
+  nama        String   @unique(map: "uniq_creator_nama") @db.VarChar(120)
+  username    String   @default("") @db.VarChar(60)
+  produk      Int      @default(0)
+  penjualan   Int      @default(0)
+  pendapatan  BigInt   @default(0)
+  bergabung   DateTime @default(now()) @db.Timestamptz(3)
+  status      String   @default("Review") @db.VarChar(40)
+  produk_rel  Produk[]
+  percakapan Percakapan[]
+  @@map("creator")
+}
+
+model ResellerPengajuan {
+  id                 String    @id @db.VarChar(40)
+  pelanggan_id       String    @db.VarChar(40)
+  admin_id           Int?
+  nama               String    @default("") @db.VarChar(120)
+  email              String    @default("") @db.VarChar(150)
+  username           String    @default("") @db.VarChar(60)
+  whatsapp           String    @default("") @db.VarChar(40)
+  catatan            String    @default("") @db.VarChar(500)
+  status             String    @default("pending") @db.VarChar(40)
+  alasan_penolakan   String    @default("") @db.VarChar(500)
+  dibuat_pada        DateTime  @default(now()) @db.Timestamptz(3)
+  diperbarui_pada    DateTime? @db.Timestamptz(3)
+  aktif              Int?      @default(dbgenerated()) @db.SmallInt
+  pelanggan          Pelanggan @relation(fields: [pelanggan_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  admin              Admin?    @relation(fields: [admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  @@unique([pelanggan_id, aktif], map: "uniq_reseller_pelanggan_aktif")
+  @@index([status, dibuat_pada], map: "idx_reseller_status_dibuat")
+  @@index([pelanggan_id], map: "idx_reseller_pelanggan")
+  @@index([admin_id], map: "idx_reseller_admin")
+  @@map("reseller_pengajuan")
+}
+
+model Kategori {
+  id               String    @id @db.VarChar(40)
+  nama             String    @db.VarChar(120)
+  slug             String    @unique(map: "uniq_kategori_slug") @db.VarChar(140)
+  deskripsi        String?   @db.Text
+  ikon             String    @default("kategori") @db.VarChar(60)
+  gambar           String    @default("") @db.VarChar(255)
+  status           String    @default("Aktif") @db.VarChar(40)
+  dibuat_pada      DateTime  @default(now()) @db.Timestamptz(3)
+  diperbarui_pada  DateTime? @db.Timestamptz(3)
+  produk           Produk[]
+  @@map("kategori")
+}
+
+model Produk {
+  id                 String    @id @db.VarChar(40)
+  nama               String    @db.VarChar(160)
+  slug               String    @unique(map: "uniq_produk_slug") @db.VarChar(180)
+  kategori_id        String?   @db.VarChar(40)
+  jenis              String    @default("Skin") @db.VarChar(30)
+  deskripsi_singkat  String    @default("") @db.VarChar(300)
+  deskripsi_lengkap  String?   @db.Text
+  harga              BigInt    @default(0)
+  harga_diskon       BigInt    @default(0)
+  thumbnail          String    @default("") @db.VarChar(255)
+  preview            Json?
+  file_produk        String    @default("") @db.VarChar(255)
+  versi_minecraft    String    @default("") @db.VarChar(60)
+  creator            String    @default("") @db.VarChar(120)
+  creator_id         String?   @db.VarChar(40)
+  status             String    @default("Draft") @db.VarChar(40)
+  dibuat_pada        DateTime  @default(now()) @db.Timestamptz(3)
+  diperbarui_pada    DateTime? @db.Timestamptz(3)
+  kategori           Kategori? @relation(fields: [kategori_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  creator_rel        Creator?  @relation(fields: [creator_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  media_links        ProdukMedia[]
+  percakapan         Percakapan[]
+  ulasan             Ulasan[]
+  @@index([kategori_id, status], map: "idx_produk_kategori_status")
+  @@index([status], map: "idx_produk_status")
+  @@index([jenis, status], map: "idx_produk_jenis_status")
+  @@index([creator_id], map: "idx_produk_creator")
+  @@map("produk")
+}
+
+model Promo {
+  id          String    @id @db.VarChar(40)
+  kode        String    @unique(map: "uniq_promo_kode") @db.VarChar(40)
+  nama        String    @db.VarChar(120)
+  diskon      Int       @default(0) @db.SmallInt
+  mulai       DateTime? @db.Date
+  berakhir    DateTime? @db.Date
+  batas       Int       @default(100)
+  terpakai    Int       @default(0)
+  status      String    @default("Terjadwal") @db.VarChar(40)
+  dibuat_pada DateTime  @default(now()) @db.Timestamptz(3)
+  @@index([status, mulai, berakhir], map: "idx_promo_status")
+  @@map("promo")
+}
+
+model Media {
+  id              String    @id @db.VarChar(40)
+  owner_tipe      String?   @db.VarChar(20)
+  owner_id        String?   @db.VarChar(40)
+  nama            String    @db.VarChar(200)
+  nama_asli       String?   @db.VarChar(200)
+  nama_simpan     String?   @db.VarChar(255)
+  jenis           String    @default("Thumbnail") @db.VarChar(30)
+  mime            String    @default("") @db.VarChar(80)
+  ekstensi        String?   @db.VarChar(20)
+  ukuran          BigInt    @default(0)
+  checksum        String?   @db.VarChar(64)
+  status          String    @default("Aktif") @db.VarChar(20)
+  berkas          String    @default("") @db.VarChar(255)
+  url             String    @default("") @db.VarChar(255)
+  object_key      String?   @db.VarChar(255)
+  dibuat_pada     DateTime  @default(now()) @db.Timestamptz(3)
+  diperbarui_pada DateTime? @db.Timestamptz(3)
+  dihapus_pada    DateTime? @db.Timestamptz(3)
+  tanggal         DateTime  @default(now()) @db.Timestamptz(3)
+  produk_links    ProdukMedia[]
+  pesan_links     PesanLampiran[]
+  @@index([owner_tipe, owner_id], map: "idx_media_owner")
+  @@index([owner_tipe, owner_id, jenis], map: "idx_media_owner_jenis")
+  @@index([jenis], map: "idx_media_jenis")
+  @@index([dibuat_pada], map: "idx_media_dibuat")
+  @@index([status], map: "idx_media_status")
+  @@map("media")
+}
+
+model ProdukMedia {
+  id          BigInt   @id @default(autoincrement())
+  produk_id   String   @db.VarChar(40)
+  media_id    String   @db.VarChar(40)
+  urutan      Int      @default(0)
+  peran       String   @default("galeri") @db.VarChar(30)
+  dibuat_pada DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([produk_id, media_id], map: "uniq_produk_media")
+  @@index([produk_id, urutan], map: "idx_produk_media_urut")
+  @@index([media_id], map: "idx_produk_media_media")
+  produk      Produk @relation(fields: [produk_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  media       Media  @relation(fields: [media_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  @@map("produk_media")
+}
+
+model Pesanan {
+  id                String    @id @db.VarChar(40)
+  pelanggan_id      String?   @db.VarChar(40)
+  pelanggan_nama    String    @default("") @db.VarChar(120)
+  email             String    @default("") @db.VarChar(150)
+  whatsapp          String    @default("") @db.VarChar(40)
+  produk_ringkas    String    @default("") @db.VarChar(255)
+  kategori          String    @default("") @db.VarChar(120)
+  metode            String    @default("") @db.VarChar(60)
+  subtotal          BigInt    @default(0)
+  biaya_layanan     BigInt    @default(0)
+  potongan          BigInt    @default(0)
+  total             BigInt    @default(0)
+  kode_promo        String    @default("") @db.VarChar(40)
+  status            String    @default("Menunggu") @db.VarChar(40)
+  catatan           String    @default("") @db.VarChar(255)
+  idempotency_key   String?   @unique(map: "uniq_pesanan_idempotency") @db.VarChar(64)
+  dibuat_pada       DateTime  @default(now()) @db.Timestamptz(3)
+  diperbarui_pada   DateTime? @db.Timestamptz(3)
+  dibatalkan_pada   DateTime? @db.Timestamptz(3)
+  diselesaikan_pada DateTime? @db.Timestamptz(3)
+  pelanggan         Pelanggan? @relation(fields: [pelanggan_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  item              PesananItem[]
+  pembayaran        Pembayaran?
+  percakapan        Percakapan?
+  @@index([status, dibuat_pada], map: "idx_pesanan_status_dibuat")
+  @@index([email], map: "idx_pesanan_email")
+  @@index([dibuat_pada], map: "idx_pesanan_dibuat")
+  @@index([pelanggan_id, status, dibuat_pada], map: "idx_pesanan_pelanggan")
+  @@map("pesanan")
+}
+
+model PesananItem {
+  id          BigInt   @id @default(autoincrement())
+  pesanan_id  String   @db.VarChar(40)
+  produk_id   String?  @db.VarChar(40)
+  nama        String   @default("") @db.VarChar(160)
+  harga       BigInt   @default(0)
+  jumlah      Int      @default(1)
+  subtotal    BigInt   @default(0)
+  dibuat_pada DateTime @default(now()) @db.Timestamptz(3)
+  diperbarui_pada DateTime? @db.Timestamptz(3)
+  pesanan     Pesanan  @relation(fields: [pesanan_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  @@index([pesanan_id], map: "idx_item_pesanan")
+  @@index([produk_id], map: "idx_item_produk")
+  @@index([dibuat_pada], map: "idx_item_dibuat")
+  @@map("pesanan_item")
+}
+
+model Ulasan {
+  id             String    @id @db.VarChar(40)
+  produk_id      String?   @db.VarChar(40)
+  produk_nama    String    @default("") @db.VarChar(160)
+  pelanggan_id   String?   @db.VarChar(40)
+  pelanggan_nama String    @default("") @db.VarChar(120)
+  rating         Int       @default(5) @db.SmallInt
+  komentar       String?   @db.Text
+  tanggal        DateTime  @default(now()) @db.Timestamptz(3)
+  status         String    @default("Menunggu") @db.VarChar(40)
+  produk         Produk?   @relation(fields: [produk_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  pelanggan      Pelanggan? @relation(fields: [pelanggan_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  @@index([produk_id, status], map: "idx_ulasan_produk_status")
+  @@index([produk_id], map: "idx_ulasan_produk")
+  @@index([status], map: "idx_ulasan_status")
+  @@map("ulasan")
+}
+
+model Pembayaran {
+  id                  String    @id @db.VarChar(40)
+  pesanan_id          String    @unique(map: "uniq_pembayaran_pesanan") @db.VarChar(40)
+  kode_idempotensi    String    @unique(map: "uniq_pembayaran_idem") @db.VarChar(64)
+  nominal             BigInt    @default(0)
+  mata_uang           String    @default("IDR") @db.VarChar(10)
+  metode              String    @default("") @db.VarChar(60)
+  akun_pembayaran     String    @default("") @db.VarChar(255)
+  referensi           String?   @db.VarChar(255)
+  transaction_id      String?   @unique(map: "uniq_pembayaran_transaction") @db.VarChar(120)
+  status              String    @default("Menunggu konfirmasi") @db.VarChar(30)
+  dibuat_pada         DateTime  @default(now()) @db.Timestamptz(3)
+  dikonfirmasi_pada   DateTime? @db.Timestamptz(3)
+  gagal_pada          DateTime? @db.Timestamptz(3)
+  dikembalikan_pada   DateTime? @db.Timestamptz(3)
+  nominal_refund      BigInt    @default(0)
+  konfirmasi_admin    String?   @db.VarChar(60)
+  catatan             String    @default("") @db.VarChar(255)
+  diperbarui_pada     DateTime? @db.Timestamptz(3)
+  pesanan             Pesanan   @relation(fields: [pesanan_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  event               PembayaranEvent[]
+  @@index([status, dibuat_pada], map: "idx_pembayaran_status")
+  @@map("pembayaran")
+}
+
+model PembayaranEvent {
+  id               BigInt    @id @default(autoincrement())
+  pembayaran_id    String    @db.VarChar(40)
+  kode_idempotensi String    @db.VarChar(64)
+  jenis            String    @db.VarChar(40)
+  status_saat_itu  String?   @db.VarChar(30)
+  payload_ringkas  String?   @db.VarChar(500)
+  dibuat_pada      DateTime  @default(now()) @db.Timestamptz(3)
+  pembayaran      Pembayaran @relation(fields: [pembayaran_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  @@unique([pembayaran_id, kode_idempotensi, jenis], map: "uniq_event_idem")
+  @@index([pembayaran_id, dibuat_pada], map: "idx_event_pembayaran")
+  @@map("pembayaran_event")
+}
+
+model Percakapan {
+  id                 String    @id @db.VarChar(40)
+  tipe               String    @default("penjualan") @db.VarChar(40)
+  judul              String    @default("") @db.VarChar(200)
+  status             String    @default("open") @db.VarChar(40)
+  pelanggan_id       String?   @db.VarChar(40)
+  creator_id         String?   @db.VarChar(40)
+  produk_id          String?   @db.VarChar(40)
+  pesanan_id         String?   @unique(map: "uniq_percakapan_pesanan") @db.VarChar(40)
+  cs_petugas_id      Int?
+  pesan_terakhir_id  String?   @db.VarChar(40)
+  dibuat_pada        DateTime  @default(now()) @db.Timestamptz(3)
+  diperbarui_pada    DateTime? @db.Timestamptz(3)
+  kunci_dedup        String?   @unique(map: "uniq_percakapan_dedup") @db.VarChar(100)
+  cs_petugas         Admin?    @relation(fields: [cs_petugas_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  pelanggan          Pelanggan? @relation(fields: [pelanggan_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  creator            Creator? @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  produk             Produk? @relation(fields: [produk_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  pesanan             Pesanan? @relation(fields: [pesanan_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  anggota             AnggotaPercakapan[]
+  pesan               Pesan[]
+  @@index([status], map: "idx_percakapan_status")
+  @@index([dibuat_pada], map: "idx_percakapan_dibuat")
+  @@index([pelanggan_id], map: "idx_percakapan_pelanggan")
+  @@index([creator_id], map: "idx_percakapan_creator")
+  @@index([produk_id], map: "idx_percakapan_produk")
+  @@index([cs_petugas_id], map: "idx_percakapan_cs_petugas")
+  @@map("percakapan")
+}
+
+model AnggotaPercakapan {
+  id                  String    @id @db.VarChar(40)
+  percakapan_id       String    @db.VarChar(40)
+  user_tipe           String    @db.VarChar(20)
+  user_id             String    @db.VarChar(40)
+  peran               String    @db.VarChar(20)
+  bergabung_pada      DateTime  @default(now()) @db.Timestamptz(3)
+  keluar_pada         DateTime? @db.Timestamptz(3)
+  terakhir_baca_pada  DateTime? @db.Timestamptz(3)
+  percakapan          Percakapan @relation(fields: [percakapan_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  @@unique([percakapan_id, user_tipe, user_id], map: "uniq_anggota")
+  @@index([user_tipe, user_id], map: "idx_anggota_user")
+  @@map("anggota_percakapan")
+}
+
+model Pesan {
+  id             String    @id @db.VarChar(40)
+  percakapan_id  String    @db.VarChar(40)
+  pengirim_tipe  String    @db.VarChar(20)
+  pengirim_id    String    @db.VarChar(40)
+  teks           String?   @db.Text
+  tipe           String    @default("teks") @db.VarChar(20)
+  dibuat_pada    DateTime  @default(now()) @db.Timestamptz(3)
+  diubah_pada    DateTime? @db.Timestamptz(3)
+  dihapus_pada   DateTime? @db.Timestamptz(3)
+  percakapan    Percakapan @relation(fields: [percakapan_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  lampiran      PesanLampiran[]
+  baca          PesanBaca[]
+  @@index([percakapan_id, dibuat_pada, id], map: "idx_pesan_percakapan_kirim")
+  @@index([pengirim_tipe, pengirim_id], map: "idx_pesan_pengirim")
+  @@map("pesan")
+}
+
+model PesanLampiran {
+  id          BigInt   @id @default(autoincrement())
+  pesan_id    String   @db.VarChar(40)
+  media_id    String   @db.VarChar(40)
+  dibuat_pada DateTime @default(now()) @db.Timestamptz(3)
+  pesan       Pesan @relation(fields: [pesan_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  media       Media @relation(fields: [media_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([pesan_id, media_id], map: "uniq_pesan_media")
+  @@index([media_id], map: "idx_lampiran_media")
+  @@map("pesan_lampiran")
+}
+
+model PesanBaca {
+  pesan_id    String   @db.VarChar(40)
+  user_tipe   String   @db.VarChar(20)
+  user_id     String   @db.VarChar(40)
+  dibaca_pada DateTime @default(now()) @db.Timestamptz(3)
+  @@id([pesan_id, user_tipe, user_id])
+  @@index([user_tipe, user_id, dibaca_pada], map: "idx_baca_user")
+  pesan       Pesan @relation(fields: [pesan_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  @@map("pesan_baca")
+}
+
+model RiwayatTontonan {
+  id                  String    @id @db.VarChar(40)
+  pelanggan_id        String    @db.VarChar(40)
+  video_id            String    @db.VarChar(40)
+  posisi_detik        Int       @default(0)
+  durasi_detik        Int?
+  terakhir_ditonton   DateTime  @default(now()) @db.Timestamptz(3)
+  progres_persen      Decimal?  @default(dbgenerated()) @db.Decimal(5, 2)
+  selesai             Int?      @default(dbgenerated()) @db.SmallInt
+  pelanggan           Pelanggan @relation(fields: [pelanggan_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  @@unique([pelanggan_id, video_id], map: "uniq_riwayat_pelanggan_video")
+  @@index([pelanggan_id, terakhir_ditonton], map: "idx_riwayat_pelanggan_terakhir")
+  @@index([video_id], map: "idx_riwayat_video")
+  @@map("riwayat_tontonan")
+}
+
+model AuditLog {
+  id                BigInt    @id @default(autoincrement())
+  user_tipe         String?   @db.VarChar(20)
+  user_id           String?   @db.VarChar(40)
+  jenis_aktivitas   String    @db.VarChar(60)
+  hasil             String    @default("Berhasil") @db.VarChar(20)
+  target_table      String?   @db.VarChar(60)
+  target_id         String?   @db.VarChar(100)
+  teks              String    @db.VarChar(255)
+  detail_json       Json?
+  ikon              String    @default("centangLingkaran") @db.VarChar(40)
+  warna             String    @default("hijau") @db.VarChar(20)
+  alamat_ip         String?   @db.VarChar(45)
+  dibuat_pada       DateTime  @default(now()) @db.Timestamptz(3)
+  @@index([user_tipe, user_id, dibuat_pada], map: "idx_audit_user")
+  @@index([jenis_aktivitas, dibuat_pada], map: "idx_audit_jenis")
+  @@index([target_table, target_id], map: "idx_audit_target")
+  @@index([dibuat_pada], map: "idx_audit_dibuat")
+  @@map("audit_log")
+}
+
+model Aktivitas {
+  id              BigInt   @id @default(autoincrement())
+  teks            String   @db.VarChar(255)
+  ikon            String   @default("centangLingkaran") @db.VarChar(40)
+  warna           String   @default("hijau") @db.VarChar(20)
+  admin_pengguna  String?  @db.VarChar(60)
+  dibuat_pada     DateTime @default(now()) @db.Timestamptz(3)
+  @@map("aktivitas")
+}
+
+model Session {
+  sid       String   @id @db.VarChar(255)
+  sess      Json
+  expire    DateTime @db.Timestamptz(3)
+  @@index([expire], map: "idx_session_expire")
+  @@map("session_store")
+}
+
+model ApiRateLimit {
+  id       String   @id @db.VarChar(64)
+  hits     Int      @default(0)
+  reset_at DateTime @db.Timestamptz(3)
+  @@index([reset_at], map: "idx_api_rate_limit_reset")
+  @@map("api_rate_limit")
+}

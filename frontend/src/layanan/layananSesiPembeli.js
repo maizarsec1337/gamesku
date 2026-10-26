@@ -10,7 +10,9 @@
 // Semua respons berbentuk { ok, data?, pesan }. Kegagalan jaringan atau
 // respons tidak valid menghasilkan GalatAnime (tidak pernah diam-diam).
 
-const API = '/api'
+import { URL_API } from './urlApi.js'
+
+const API = URL_API
 
 async function minta(jalur, opsi = {}) {
   // credentials: 'same-origin' agar cookie sesi (diset backend lewat
@@ -18,7 +20,7 @@ async function minta(jalur, opsi = {}) {
   // Tanpa ini sesi pembeli tidak pernah bertahan setelah login.
   const respons = await fetch(`${API}${jalur}`, {
     ...opsi,
-    credentials: 'same-origin',
+    credentials: 'include',
     headers: { Accept: 'application/json', ...(opsi.headers || {}) },
   })
   let isi

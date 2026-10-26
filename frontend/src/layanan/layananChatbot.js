@@ -19,9 +19,11 @@
 // TIDAK menyamar sebagai AI.
 // =====================================================================
 
+import { URL_API } from './urlApi.js'
+
 const ENDPOINT_ENV = String(import.meta.env?.VITE_CHAT_ENDPOINT || '').trim()
-// Bawaan: endpoint backend milik sendiri (relatif, ikut origin + proxy Vite).
-const ENDPOINT = ENDPOINT_ENV || '/api/chat'
+// Bawaan: endpoint backend milik sendiri.
+const ENDPOINT = ENDPOINT_ENV || `${URL_API}/chat`
 
 // Apakah alamat endpoint sudah diketahui (selalu true untuk bawaan).
 // Ketersediaan AI aktual ditentukan dari respons server (503 = belum aktif).

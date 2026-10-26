@@ -10,15 +10,16 @@
 // bisa disetel klien. Respons: { ok, data?, pesan }.
 
 import { ambilTokenCsrf } from './layananSesiPembeli.js'
+import { URL_API } from './urlApi.js'
 
-const API = '/api'
+const API = URL_API
 
 async function minta(jalur, opsi = {}) {
   let respons
   try {
     respons = await fetch(`${API}${jalur}`, {
       ...opsi,
-      credentials: 'same-origin',
+      credentials: 'include',
       headers: { Accept: 'application/json', ...(opsi.headers || {}) },
     })
   } catch {

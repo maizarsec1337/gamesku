@@ -3,9 +3,10 @@ import Ikon from '../komponen/Ikon.jsx'
 import { useApi, pesanGalat } from '../layanan/gunakanApi.js'
 import { useSesiPembeli } from '../konteks/gunakanSesiPembeli.js'
 import { statusReseller, dashboardReseller, pesananReseller } from '../layanan/layananReseller.js'
+import { URL_API } from '../layanan/urlApi.js'
 
 async function muatProduk() {
-  const r = await fetch('/api/produk?batas=50', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+  const r = await fetch(`${URL_API}/produk?batas=50`, { credentials: 'include', headers: { Accept: 'application/json' } })
   const j = await r.json().catch(() => null)
   if (!r.ok || !j || j.ok !== true || !Array.isArray(j.data)) throw new Error((j && j.pesan) || 'Gagal memuat katalog.')
   return j.data
