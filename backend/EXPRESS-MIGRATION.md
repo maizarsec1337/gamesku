@@ -2,6 +2,8 @@
 
 This backend is a parallel replacement for the PHP API. Keep `api/`, `src/` PHP controllers, the old database, and existing uploaded files until parity and data verification are complete. Do not point a live shop at this API until the acceptance checks below pass.
 
+This document describes the active Express deployment. The older `backend/DEPLOYMENT.md` and `frontend/scripts/kemas-backend.mjs` describe the retired PHP deployment path; `frontend/npm run build` does not invoke that legacy packager.
+
 ## Run locally
 
 Use Node.js 20.19.0 or newer. From `backend/`, copy `.env.example` to `.env` and fill values locally. Never send credentials in chat or commit `.env`.

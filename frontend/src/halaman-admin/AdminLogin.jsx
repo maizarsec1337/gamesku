@@ -5,7 +5,7 @@ import { useAdmin } from '../konteks/konteksAdmin.js'
 import '../css/admin-utama.css'
 
 // Halaman masuk admin (/admin/login). Autentikasi diverifikasi backend Express
-// (hash bcrypt kompatibel PHP + sesi server). Tidak ada kredensial yang disimpan di browser.
+// (hash bcrypt kompatibel legacy + sesi server). Tidak ada kredensial yang disimpan di browser.
 export default function AdminLogin() {
   const { sesiServer, memuatSesi, masuk } = useAdmin()
   const navigate = useNavigate()
