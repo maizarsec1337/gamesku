@@ -38,4 +38,4 @@ Backend Node.js + Express (folder `../backend`) jalan di `http://localhost:8000`
 - `npm run lint` — lint (oxlint)
 - `npm run uji-visual` — uji visual Playwright (butuh Chrome + build preview)
 
-Skrip `scripts/kemas-backend.mjs` adalah peninggalan alur deployment PHP dan tidak dipanggil oleh `npm run build` dari folder `frontend/`. Untuk setup Express, ikuti `../backend/EXPRESS-MIGRATION.md`. Kode PHP lama masih disimpan sebagai jalur rollback sampai transfer data dan kesetaraan fitur diverifikasi.
+Source PHP untuk rollback disimpan di arsip lokal di luar project; data dan schema lama tetap dipertahankan sampai transfer terverifikasi. Untuk menjalankan API aktif, ikuti `../backend/README.md`.
