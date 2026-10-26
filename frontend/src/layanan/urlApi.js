@@ -1,6 +1,7 @@
 // Public API base URL. Only the backend URL belongs in VITE_*; database and
 // session credentials must stay in backend environment variables.
-const root = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
+const env = import.meta?.env || {}
+const root = String(env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
 
 export const URL_API = `${root}/api`
 export const URL_UPLOADS = `${root}/uploads`

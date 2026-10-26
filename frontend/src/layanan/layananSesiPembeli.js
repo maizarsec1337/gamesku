@@ -20,7 +20,7 @@ async function minta(jalur, opsi = {}) {
   // Tanpa ini sesi pembeli tidak pernah bertahan setelah login.
   const respons = await fetch(`${API}${jalur}`, {
     ...opsi,
-    credentials: 'include',
+    credentials: 'same-origin',
     headers: { Accept: 'application/json', ...(opsi.headers || {}) },
   })
   let isi

@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -12,8 +13,6 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { ipKeyGenerator, rateLimit } from 'express-rate-limit'
 import { prisma } from './db.js'
 import { recordSecurityAudit, recordThreat, runSecurityScan } from './security.js'
-
-import 'dotenv/config'
 
 const app = express()
 const production = process.env.NODE_ENV === 'production'

@@ -19,7 +19,7 @@ async function minta(jalur, opsi = {}) {
   try {
     respons = await fetch(`${API}${jalur}`, {
       ...opsi,
-      credentials: 'include',
+      credentials: 'same-origin',
       headers: { Accept: 'application/json', ...(opsi.headers || {}) },
     })
   } catch {
