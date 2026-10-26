@@ -56,14 +56,11 @@ export function PenyediaAdmin({ children }) {
   }, [])
 
   const peran = sesiServer?.peran || ''
-  // Superadmin hanya boleh akun yang TETAP: peran='superadmin' AND email='gameku.myid@gmail.com'
-  // Menegakkan di frontend agar UI tidak menampilkan fitur superadmin bagi pengguna lain.
-  // Validasi ketat tetap dilakukan di backend melalui Auth::wajibPeran('superadmin').
-  const emailSuperadmin = 'gameku.myid@gmail.com'
-  const isSuperadmin = peran === 'superadmin' && (
-    (sesiServer?.email || '').toLowerCase() === emailSuperadmin ||
-    (sesiServer?.pengguna || '').toLowerCase() === emailSuperadmin
-  )
+  // Hak akses ditentukan oleh peran dari server. Jangan mengunci superadmin
+  // ke email tertentu: akun pemilik dapat memakai username (mis. maizardev).
+  // Endpoint backend tetap menegakkan Auth::wajibPeran('superadmin').
+  const emailSuperadmin = sesiServer?.email || ''
+  const isSuperadmin = peran === 'superadmin'
 
   return (
     <KonteksAdmin.Provider

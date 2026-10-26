@@ -76,7 +76,7 @@ class Auth
     {
         // Terima login dengan username ATAU email (mis. email pemilik project).
         $baris = Database::satu(
-            'SELECT id, pengguna, nama, sandi_hash, status, peran FROM admin
+            'SELECT id, pengguna, nama, email, sandi_hash, status, peran FROM admin
              WHERE pengguna = ? OR email = ? LIMIT 1',
             [$pengguna, $pengguna]
         );
@@ -104,6 +104,7 @@ class Auth
             'id'      => (int) $baris['id'],
             'pengguna'=> $baris['pengguna'],
             'nama'    => $baris['nama'],
+            'email'   => $baris['email'] ?? '',
             'peran'   => $peran,
         ];
         // Rotasi token CSRF setelah login (token pra-login tidak lagi berlaku).
@@ -121,6 +122,7 @@ class Auth
                 'id' => (int) $baris['id'],
                 'pengguna' => $baris['pengguna'],
                 'nama' => $baris['nama'],
+                'email' => $baris['email'] ?? '',
                 'peran' => $peran,
             ],
         ];

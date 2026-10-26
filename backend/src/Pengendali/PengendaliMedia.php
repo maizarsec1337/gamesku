@@ -3,18 +3,25 @@
 
 class PengendaliMedia extends PengendaliDasar
 {
-    private const JENIS = ['Thumbnail', 'Banner', 'Preview', 'Gambar Produk'];
+    private const JENIS = ['Thumbnail', 'Banner', 'Preview', 'Gambar Produk', 'Video'];
     private const MIME_IZIN = [
         'image/png' => 'png', 'image/jpeg' => 'jpg', 'image/jpg' => 'jpg',
         'image/webp' => 'webp', 'image/gif' => 'gif', 'image/svg+xml' => 'svg',
         'application/zip' => 'zip', 'application/pdf' => 'pdf',
+        'video/mp4' => 'mp4', 'video/webm' => 'webm', 'video/ogg' => 'ogv',
     ];
-    private const MAKS_BAYAR = 8 * 1024 * 1024; // 8 MB
+    private const MAKS_BAYAR = 512 * 1024 * 1024; // 512 MB, termasuk video pendek
 
     public function tangani(string $metode, ?string $id, ?string $sub): void
     {
         switch ($metode) {
             case 'GET':
+                // Streaming memakai HTTP Range dan dapat diputar oleh browser
+                // tanpa mengirim seluruh file sebagai JSON.
+                if ($sub === 'stream' && $id !== null) {
+                    $this->stream($id);
+                    return;
+                }
                 Auth::wajib();
                 $this->daftar();
                 break;
@@ -80,7 +87,7 @@ class PengendaliMedia extends PengendaliDasar
 
         $berkas = $_FILES['berkas'];
         if ($berkas['size'] > self::MAKS_BAYAR) {
-            Bantu::gagal('Ukuran berkas melebihi batas 8 MB.');
+            Bantu::gagal('Ukuran berkas melebihi batas 512 MB.');
         }
         // Tolak ukuran 0 / risiko uploaded partially.
         if ($berkas['size'] <= 0) {
@@ -181,6 +188,12 @@ class PengendaliMedia extends PengendaliDasar
                     && in_array(substr($kepala, 2, 2), ["\x03\x04", "\x05\x06", "\x07\x08"], true);
             case 'application/pdf':
                 return strncmp($kepala, '%PDF-', 5) === 0;
+            case 'video/mp4':
+                return strlen($kepala) >= 12 && substr($kepala, 4, 4) === 'ftyp';
+            case 'video/webm':
+                return strncmp($kepala, "\x1A\x45\xDF\xA3", 4) === 0;
+            case 'video/ogg':
+                return strncmp($kepala, 'OggS', 4) === 0;
             case 'image/svg+xml':
                 $rendah = strtolower($kepala);
                 return strpos($rendah, '<svg') !== false
@@ -188,6 +201,74 @@ class PengendaliMedia extends PengendaliDasar
             default:
                 return false;
         }
+    }
+
+    /** Sajikan media video milik aplikasi dengan dukungan Range/206. */
+    private function stream(string $id): void
+    {
+        $row = Database::satu(
+            'SELECT mime, ukuran, berkas, status FROM media WHERE id = ? LIMIT 1',
+            [$id]
+        );
+        if (!$row || ($row['status'] ?? 'Aktif') !== 'Aktif') {
+            http_response_code(404);
+            exit;
+        }
+        $mime = (string) ($row['mime'] ?? '');
+        if (!str_starts_with($mime, 'video/')) {
+            http_response_code(415);
+            exit;
+        }
+        $folder = $this->folderUnggah();
+        $root = realpath($folder);
+        $file = realpath($folder . DIRECTORY_SEPARATOR . basename((string) $row['berkas']));
+        if (!$root || !$file || !is_file($file) || strpos($file, $root . DIRECTORY_SEPARATOR) !== 0) {
+            http_response_code(404);
+            exit;
+        }
+        $size = (int) filesize($file);
+        $start = 0;
+        $end = $size - 1;
+        $range = $_SERVER['HTTP_RANGE'] ?? '';
+        if (preg_match('/bytes=(\d*)-(\d*)/', $range, $m)) {
+            if ($m[1] === '' && $m[2] !== '') {
+                $length = min((int) $m[2], $size);
+                $start = max(0, $size - $length);
+            } else {
+                $start = (int) $m[1];
+                $end = $m[2] !== '' ? (int) $m[2] : $end;
+            }
+            if ($start > $end || $start >= $size) {
+                header('Content-Range: bytes */' . $size);
+                http_response_code(416);
+                exit;
+            }
+            $end = min($end, $size - 1);
+            http_response_code(206);
+        }
+        $length = $end - $start + 1;
+        header_remove('Content-Type');
+        header('Content-Type: ' . $mime);
+        header('Accept-Ranges: bytes');
+        header('Content-Length: ' . $length);
+        header('Content-Disposition: inline; filename="' . basename((string) $row['berkas']) . '"');
+        if ($start !== 0 || $end !== $size - 1) {
+            header("Content-Range: bytes {$start}-{$end}/{$size}");
+        }
+        $fp = fopen($file, 'rb');
+        if ($fp === false) { http_response_code(500); exit; }
+        fseek($fp, $start);
+        $left = $length;
+        while ($left > 0 && !feof($fp)) {
+            $chunk = fread($fp, min(1024 * 1024, $left));
+            if ($chunk === false || $chunk === '') break;
+            echo $chunk;
+            $left -= strlen($chunk);
+            if (function_exists('ob_flush')) @ob_flush();
+            flush();
+        }
+        fclose($fp);
+        exit;
     }
 
     // SVG aman: tanpa <script>, tanpa handler peristiwa on*, tanpa eksternal

@@ -46,3 +46,10 @@
 .gk-login .gk-login-tab button:not(.aktif):hover{background:#c8f56b12;color:#f0f6e9}
 .gk-login .gk-login-tab button:focus-visible{outline:2px solid #c8f56b;outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.etalase *, .etalase *::before,.etalase *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Gameku brand: purple is the primary storefront palette. */
+.etalase{--biru:#a78bfa;--biru-tua:#7c3aed;--kuning:#c4b5fd;--latar:#100d1e;--kartu:#21163d;--garis:#493477;--teks:#f5f0ff;--teks-2:#b9acd8;--permukaan-biru:#a78bfa18;background:var(--latar);color:var(--teks)}
+.etalase .logo-gameku,.etalase .tombol-profil,.etalase .navigasi-atas .tautan-atas.aktif,.etalase .tombol-utama,.etalase .menu-bawah-aktif .menu-bawah-ikon,.etalase .gk-login .gk-login-tombol,.etalase .gk-login .logo-gameku{background:#a78bfa!important;color:#17102d!important}
+.etalase .tautan-lihat,.etalase .menu-bawah-aktif,.etalase .arena-section-label,.etalase .harga-produk strong,.etalase .harga-gratis,.etalase .keadaan-kosong-ikon,.etalase .streamku .cta{color:#c4b5fd!important}
+.etalase .arena-panggung,.etalase .streamku,.etalase .gk-kenapa-kartu,.etalase .kartu-produk,.etalase .gk-login .gk-login-kartu,.etalase .gk-login .gk-login-brand{background:#21163d!important;border-color:#493477!important}
+.etalase .streamku .cta{background:#a78bfa!important;color:#17102d!important}

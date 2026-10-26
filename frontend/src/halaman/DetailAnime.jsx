@@ -49,7 +49,7 @@ function DetailSeri() {
         ? String(ep.urlPemutaran) : null
       const embed = ep && ep.embedPemutaran && /^https?:\/\//.test(String(ep.embedPemutaran))
         ? String(ep.embedPemutaran) : null
-      if (ep && String(ep.sumberPemutaran || '') === 'mp4' && langsung) {
+      if (ep && ['mp4', 'hls'].includes(String(ep.sumberPemutaran || '')) && langsung) {
         setVideoUrl(langsung)
       } else if (embed) {
         // HLS butuh pemutar khusus; embed resmi menanganinya di sisi mereka.

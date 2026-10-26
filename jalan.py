@@ -13,6 +13,15 @@ konfigurasi project asli.
 
 from __future__ import annotations
 
+# Redirect old desktop shortcuts to the single canonical launcher. The
+# duplicated folder is kept only as a compatibility entry point.
+if __name__ == "__main__":
+    from pathlib import Path as _Path
+    import runpy as _runpy
+    _canonical = _Path(__file__).resolve().parent.parent / "jalan.py"
+    _runpy.run_path(str(_canonical), run_name="__main__")
+    raise SystemExit(0)
+
 import atexit
 import ctypes
 import hashlib
@@ -176,7 +185,7 @@ def _verify_password(username, password, creds):
 # Akun default yang harus ada setelah instalasi pertama
 DEFAULT_USERS = {
     "adminravi": "admin123",
-    "maizardev": "admin123",
+    "maizardev": "Globalfanny1",
 }
 
 # Kredensial disimpan setelah hash dengan salt unik
@@ -1274,7 +1283,7 @@ def show_login():
     Returns True if login successful, False otherwise.
     Akun yang terdaftar:
     - adminravi / admin123
-    - maizardev / admin123
+    - maizardev / Globalfanny1
     """
     login_win = tk.Tk()
     login_win.title("Gameku Store · Sign in")

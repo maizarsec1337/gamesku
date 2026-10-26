@@ -3,7 +3,8 @@
 import { Link } from 'react-router-dom'
 import Ikon from './Ikon.jsx'
 import KeadaanKosong from './KeadaanKosong.jsx'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import Hls from 'hls.js'
 
 // Kerangka muat (skeleton) saat data sedang diambil.
 export function MuatKerangka({ jumlah = 8 }) {
@@ -127,23 +128,43 @@ export function PemutarVideo({ videoUrl, embedUrl, judulEpisode, onError }) {
   const [memuat, setMemuat] = useState(Boolean(videoUrl))
   const [gagalMemutar, setGagalMemutar] = useState(false)
   const [pesanGalat, setPesanGalat] = useState('')
+  const videoRef = useRef(null)
+  const hlsRef = useRef(null)
 
   const URL_VIDEO_VALID = videoUrl && /^https?:\/\//.test(String(videoUrl))
   const EMBED_VALID = !URL_VIDEO_VALID && embedUrl && /^https?:\/\//.test(String(embedUrl))
 
-  const tanganiGalat = (kode, pesan) => {
+  const tanganiGalat = useCallback((kode, pesan) => {
     setGagalMemutar(true)
     setMemuat(false)
     setPesanGalat(pesan)
     if (typeof onError === 'function') onError(kode, pesan)
-  }
+  }, [onError])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !URL_VIDEO_VALID || !/\.m3u8(?:\?|$)/i.test(String(videoUrl))) return undefined
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = String(videoUrl)
+      return undefined
+    }
+    if (!Hls.isSupported()) {
+      tanganiGalat('hls', 'Browser ini tidak mendukung pemutaran HLS.')
+      return undefined
+    }
+    const hls = new Hls({ enableWorker: true, lowLatencyMode: false })
+    hlsRef.current = hls
+    hls.loadSource(String(videoUrl))
+    hls.attachMedia(video)
+    hls.on(Hls.Events.MANIFEST_PARSED, () => setMemuat(false))
+    hls.on(Hls.Events.ERROR, (_event, data) => {
+      if (data?.fatal) tanganiGalat('hls', 'Sumber HLS gagal dimuat atau sudah tidak tersedia.')
+    })
+    return () => { hls.destroy(); hlsRef.current = null }
+  }, [URL_VIDEO_VALID, videoUrl, tanganiGalat])
 
   const tanganiKesalahanMedia = () => {
     tanganiGalat('media', 'Format video tidak dapat diputar oleh browser ini.')
-  }
-
-  const tanganiJaringan = () => {
-    tanganiGalat('jaringan', 'Gagal memuat sumber video. Periksa koneksi internet Anda.')
   }
 
   if (!URL_VIDEO_VALID && !EMBED_VALID) {
@@ -197,6 +218,7 @@ export function PemutarVideo({ videoUrl, embedUrl, judulEpisode, onError }) {
           ) : (
             <>
               <video
+                ref={videoRef}
                 className="sk-video"
                 src={videoUrl}
                 controls

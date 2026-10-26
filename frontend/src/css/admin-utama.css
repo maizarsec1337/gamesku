@@ -1,16 +1,16 @@
 /* Gaya utama admin: tema, tombol umum, bilah samping. */
 :root {
   --adm-bg: #0B0D1E;
-  --adm-sidebar: #0E1630;
-  --adm-kartu: #101A35;
-  --adm-border: #263663;
-  --adm-hijau: #43DDF5;
-  --adm-coklat: #BD54F5;
+  --adm-sidebar: #17102d;
+  --adm-kartu: #21163d;
+  --adm-border: #493477;
+  --adm-hijau: #b58cff;
+  --adm-coklat: #8b5cf6;
   --adm-teks: #F4F7FF;
   --adm-redup: #A7B2D0;
   --adm-amber: #F044D8;
   --adm-merah: #F0447A;
-  --adm-biru: #43DDF5;
+  --adm-biru: #a78bfa;
 }
 
 /* Latar tubuh khusus selama berada di rute admin. */
