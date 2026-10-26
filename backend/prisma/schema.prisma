@@ -3,9 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 model Admin {
@@ -441,4 +439,42 @@ model ApiRateLimit {
   reset_at DateTime @db.Timestamptz(3)
   @@index([reset_at], map: "idx_api_rate_limit_reset")
   @@map("api_rate_limit")
+}
+
+model SecurityAuditEvent {
+  correlation_id String   @id @db.VarChar(40)
+  ts             DateTime @db.Timestamptz(3)
+  actor          String?  @db.VarChar(120)
+  action         String   @db.VarChar(120)
+  resource       String?  @db.VarChar(120)
+  outcome        String   @db.VarChar(30)
+  meta           Json
+  @@index([ts], map: "idx_security_audit_ts")
+  @@index([action, ts], map: "idx_security_audit_action_ts")
+  @@index([outcome, ts], map: "idx_security_audit_outcome_ts")
+  @@map("security_audit_event")
+}
+
+model SecurityIncident {
+  id         String   @id @db.VarChar(40)
+  title      String   @db.VarChar(255)
+  severity   String   @db.VarChar(20)
+  status     String   @default("detected") @db.VarChar(20)
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @default(now()) @db.Timestamptz(3)
+  meta       Json
+  @@index([status, created_at], map: "idx_security_incident_status_created")
+  @@index([severity, created_at], map: "idx_security_incident_severity_created")
+  @@map("security_incident")
+}
+
+model SecurityThreatEvent {
+  id         BigInt   @id @default(autoincrement())
+  ts         DateTime @default(now()) @db.Timestamptz(3)
+  type       String   @db.VarChar(50)
+  meta       Json
+  source_id  String?  @unique(map: "uniq_security_threat_source") @db.VarChar(64)
+  @@index([type, ts], map: "idx_security_threat_type_ts")
+  @@index([ts], map: "idx_security_threat_ts")
+  @@map("security_threat_event")
 }

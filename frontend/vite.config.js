@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
-    // Dev server meneruskan /api ke backend (port via env API_PROXY).
+    // Frontend development proxy points /api and /uploads at the Express service.
     port: 5173,
     proxy: {
       '/api': {
@@ -33,7 +33,7 @@ export default defineConfig({
     },
   },
   build: {
-    // Build langsung ke dist terpadu (satu paket dengan backend PHP).
+    // Keep one project-level dist folder for integrated self-hosted deployments.
     outDir: '../dist',
     emptyOutDir: true,
     chunkSizeWarningLimit: 600,

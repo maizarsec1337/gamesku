@@ -132,7 +132,7 @@ export default function BilahSamping({ terbuka = false, padaTutup = () => {} }) 
       </nav>
 
       <div className="bilah-profil">
-        {/* Identitas admin berasal dari sesi server (cookie PHP). */}
+        {/* Identitas admin berasal dari sesi server (cookie HttpOnly). */}
         <span className="avatar-admin">{(namaAdmin[0] || 'A').toUpperCase()}</span>
         <span className="bilah-profil-teks">
           <strong>{namaAdmin}</strong>

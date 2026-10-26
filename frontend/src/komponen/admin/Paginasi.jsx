@@ -18,7 +18,7 @@ function jendelaHalaman(halaman, total) {
   return daftar
 }
 
-// Paginasi tabel admin (UI — koneksi ke API PHP menyusul).
+// Paginasi tabel admin.
 export default function Paginasi({
   halaman,
   totalHalaman,

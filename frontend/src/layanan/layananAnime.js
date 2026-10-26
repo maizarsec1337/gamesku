@@ -1,8 +1,8 @@
-// Layanan Streamku: katalog & metadata anime dari backend PHP (endpoint /api/anime).
+// Layanan Streamku: katalog & metadata anime dari backend Express (/api/anime).
 // Read-only. Data asli dari backend/api/data_anime_lengkap.json (bukan contoh).
 // Catatan: data hanya berisi metadata + tautan halaman episode, BUKAN URL video.
 
-// Vite dev mem-proxy /api ke backend PHP; build produksi menyajikannya dari origin sama.
+// Vite dev mem-proxy /api ke backend Express; production memakai API origin yang dikonfigurasi.
 import { URL_API } from './urlApi.js'
 
 const DASAR_API = URL_API

@@ -4,8 +4,8 @@ import Ikon from '../komponen/Ikon.jsx'
 import { useAdmin } from '../konteks/konteksAdmin.js'
 import '../css/admin-utama.css'
 
-// Halaman masuk admin (/admin/login). Autentikasi diverifikasi backend PHP
-// (password_verify + sesi PHP). Tidak ada kredensial yang disimpan di browser.
+// Halaman masuk admin (/admin/login). Autentikasi diverifikasi backend Express
+// (hash bcrypt kompatibel PHP + sesi server). Tidak ada kredensial yang disimpan di browser.
 export default function AdminLogin() {
   const { sesiServer, memuatSesi, masuk } = useAdmin()
   const navigate = useNavigate()
@@ -123,7 +123,7 @@ export default function AdminLogin() {
         </form>
 
         <p className="login-catatan">
-          Autentikasi diverifikasi oleh server (PHP <code>password_verify</code> + sesi).
+          Autentikasi diverifikasi oleh server menggunakan hash kompatibel legacy + sesi.
           Tidak ada kredensial yang tersimpan di browser.
         </p>
       </main>

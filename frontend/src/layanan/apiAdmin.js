@@ -1,7 +1,7 @@
-// Klien API admin GameKU — berbicara langsung ke backend PHP (backend/api/index.php).
+// Klien API admin GameKU — memakai backend Express di /api.
 // Tidak ada data contoh: setiap pembacaan/penulisan mengambil server nyata.
 //
-// - Sesi memakai cookie PHP (credentials: 'same-origin').
+// - Sesi server memakai cookie HttpOnly (credentials: 'include').
 // - Request state-changing (POST/PUT/PATCH/DELETE) menyertakan token CSRF
 //   dari GET /api/auth/csrf-token.
 // - Token CSRF dibaca dari sesi aktif sebelum setiap perubahan.
@@ -32,7 +32,7 @@ async function minta(jalur, opsi = {}) {
     throw new GalatApi('Tidak dapat menghubungi server. Periksa koneksi Anda.', 0)
   }
 
-  // 502/503/504 dari proxy Vite = backend PHP (port 8000) tidak aktif / tidak
+  // 502/503/504 dari proxy Vite = backend Express (port 8000) tidak aktif / tidak
   // dapat dihubungi. Beri pesan yang jelas & aman (bukan detail internal).
   if (respons.status === 502 || respons.status === 503 || respons.status === 504) {
     let pesanBackend = ''
@@ -45,7 +45,7 @@ async function minta(jalur, opsi = {}) {
     throw new GalatApi(
       pesanBackend ||
         `Backend API tidak aktif (HTTP ${respons.status}). Jalankan dari folder project: ` +
-          '`php -S localhost:8000 -t backend backend/api/index.php`, lalu coba lagi.',
+          '`npm start` di folder backend, lalu coba lagi.',
       respons.status,
     )
   }

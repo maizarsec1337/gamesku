@@ -661,3 +661,44 @@ ALTER TABLE "percakapan" ADD CONSTRAINT "chk_percakapan_status" CHECK ("status" 
 ALTER TABLE "riwayat_tontonan" ADD CONSTRAINT "chk_riwayat_posisi" CHECK ("posisi_detik" >= 0 AND ("durasi_detik" IS NULL OR "durasi_detik" >= 0));
 ALTER TABLE "pesan" ADD CONSTRAINT "chk_pesan_teks_wajib_bila_tipe_teks" CHECK ("tipe" <> 'teks' OR CHAR_LENGTH("teks") > 0);
 ALTER TABLE "anggota_percakapan" ADD CONSTRAINT "chk_anggota_bukan_null" CHECK ("user_tipe" <> '' AND "user_id" <> '');
+
+-- Persistent replacements for the PHP security-service JSONL stores.
+CREATE TABLE "security_audit_event" (
+    "correlation_id" VARCHAR(40) NOT NULL,
+    "ts" TIMESTAMPTZ(3) NOT NULL,
+    "actor" VARCHAR(120),
+    "action" VARCHAR(120) NOT NULL,
+    "resource" VARCHAR(120),
+    "outcome" VARCHAR(30) NOT NULL,
+    "meta" JSONB NOT NULL,
+    CONSTRAINT "security_audit_event_pkey" PRIMARY KEY ("correlation_id")
+);
+CREATE INDEX "idx_security_audit_ts" ON "security_audit_event"("ts");
+CREATE INDEX "idx_security_audit_action_ts" ON "security_audit_event"("action", "ts");
+CREATE INDEX "idx_security_audit_outcome_ts" ON "security_audit_event"("outcome", "ts");
+
+CREATE TABLE "security_incident" (
+    "id" VARCHAR(40) NOT NULL,
+    "title" VARCHAR(255) NOT NULL,
+    "severity" VARCHAR(20) NOT NULL,
+    "status" VARCHAR(20) NOT NULL DEFAULT 'detected',
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "meta" JSONB NOT NULL,
+    CONSTRAINT "security_incident_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "chk_security_incident_status" CHECK ("status" IN ('detected','investigating','contained','resolved','closed'))
+);
+CREATE INDEX "idx_security_incident_status_created" ON "security_incident"("status", "created_at");
+CREATE INDEX "idx_security_incident_severity_created" ON "security_incident"("severity", "created_at");
+
+CREATE TABLE "security_threat_event" (
+    "id" BIGSERIAL NOT NULL,
+    "ts" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "type" VARCHAR(50) NOT NULL,
+    "meta" JSONB NOT NULL,
+    "source_id" VARCHAR(64),
+    CONSTRAINT "security_threat_event_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX "idx_security_threat_type_ts" ON "security_threat_event"("type", "ts");
+CREATE INDEX "idx_security_threat_ts" ON "security_threat_event"("ts");
+CREATE UNIQUE INDEX "uniq_security_threat_source" ON "security_threat_event"("source_id");

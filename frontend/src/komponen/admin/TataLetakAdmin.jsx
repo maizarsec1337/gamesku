@@ -25,7 +25,7 @@ const petaJudul = {
 // Kerangka halaman admin: bilah samping + kepala + isi rute anak.
 //
 // PENJAGA SESI: seluruh rute /admin/* hanya boleh diakses admin dengan sesi
-// server valid (cookie PHP). Verifikasi dilakukan backend lewat GET /api/auth/saya.
+// server valid (cookie HttpOnly). Verifikasi dilakukan backend lewat GET /api/auth/saya.
 export default function TataLetakAdmin() {
   const { pesan, sesiServer, memuatSesi } = useAdmin()
   const { pathname } = useLocation()

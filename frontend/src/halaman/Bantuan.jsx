@@ -1,5 +1,5 @@
 // Halaman bantuan multi-rute: /bantuan, /kreator, /syarat, /privasi,
-// /komunitas, /event, /berita — konten menyesuaikan path (siap diganti CMS PHP).
+// /komunitas, /event, /berita — konten menyesuaikan path.
 import { Link, useLocation } from 'react-router-dom'
 import Ikon from '../komponen/Ikon.jsx'
 
@@ -21,7 +21,7 @@ const kontenHalaman = {
     lencana: 'Creator', judul: 'Jadi Kreator',
     sub: 'Publikasikan skin, map, atau build kamu di Gamesku.',
     bagian: [
-      { judul: 'Kenapa kreator di sini?', isi: ['Komisi kompetitif untuk konten Minecraft kurasi.', 'Dashboard kreator (riwayat) menyusul setelah tahap PHP.', 'Promosi ke komunitas Gamesku tiap minggu.'] },
+      { judul: 'Kenapa kreator di sini?', isi: ['Komisi kompetitif untuk konten Minecraft kurasi.', 'Reseller dapat melihat ringkasan dan riwayat pesanan dari dashboard.', 'Promosi ke komunitas Gamesku tiap minggu.'] },
       { judul: 'Ketentuan unggah', isi: ['Konten original, bukan hasil repost.', 'Mendukung minimal satu versi Minecraft aktif (1.20+).', 'Gambar preview minimal 1280×720.'] },
     ],
     cta: { teks: 'Kirim Portofolio', ke: '/komunitas' },
@@ -31,7 +31,7 @@ const kontenHalaman = {
     sub: 'Berlaku untuk semua pembelian di Gamesku.',
     bagian: [
       { judul: '1. Lisensi penggunaan', isi: ['Pembelian memberi lisensi pribadi, non-eksklusif untuk pemakaian di akun Minecraft sendiri.', 'Dilarang menjual ulang, membagikannya ke publik, atau memasukkannya ke paket lain tanpa izin kreator.'] },
-      { judul: '2. Transaksi', isi: ['Harga dapat berubah sewaktu-waktu tanpa pemberitahuan.', 'Pembayaran diproses lewat payment gateway setelah backend PHP terhubung.'] },
+      { judul: '2. Transaksi', isi: ['Harga dapat berubah sewaktu-waktu tanpa pemberitahuan.', 'Pembayaran dikonfirmasi secara manual oleh admin setelah bukti pembayaran diterima.'] },
       { judul: '3. Pengembalian dana', isi: ['Konten digital yang sudah diunduh tidak dapat dikembalikan, kecuali file terbukti rusak saat pembelian pertama.'] },
     ],
   },

@@ -1,4 +1,4 @@
-// Layanan produk API: baca katalog produk dari backend PHP (GET /api/produk).
+// Layanan produk API: baca katalog produk dari backend Express (GET /api/produk).
 // Read-only. Data asli dari database MySQL — bukan contoh.
 // Endpoint ini dipakai oleh tamu (tidak login) karena produk hanya tetap
 // tampil bila statusnya Aktif.

@@ -1,7 +1,7 @@
 // Layanan sesi pembeli (toko depan) — BUKAN sesi admin.
 //
-// Endpoint backend buyer (PHP sesi + cookie):
-//   GET    /api/auth/csrf-token   ambil token CSRF (mula-mulai sesi PHP)
+// Endpoint sesi pembeli (cookie sesi server):
+//   GET    /api/auth/csrf-token   ambil token CSRF dan inisialisasi sesi
 //   POST   /api/pelanggan/masuk   login pembeli (email + sandi)
 //   GET    /api/pelanggan/saya    cek sesi pembeli saat ini
 //   POST   /api/pelanggan/keluar  logout pembeli

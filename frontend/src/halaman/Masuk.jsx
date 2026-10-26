@@ -1,5 +1,5 @@
 // Halaman /masuk — login/daftar pembeli Gameku.store (di luar TataLetak).
-// Auth NYATA via backend pembeli (PHP sesi + cookie):
+// Autentikasi pembeli melalui backend Express dan cookie sesi server:
 //   POST /api/pelanggan/masuk   login pembeli
 //   POST /api/pelanggan         daftar pembeli baru
 //   GET  /api/pelanggan/saya    cek sesi (dipakai useSesiPembeli)
@@ -133,7 +133,7 @@ export default function HalamanMasuk({ tertanam = false }) {
             <ul className="gk-login-poin">
               <li>
                 <Ikon nama="perisai" ukuran={16} />
-                <span>Sesi pembeli aman — diverifikasi server (cookie PHP).</span>
+                <span>Sesi pembeli aman — diverifikasi server melalui cookie HttpOnly.</span>
               </li>
               <li>
                 <Ikon nama="keranjang" ukuran={16} />
@@ -149,7 +149,7 @@ export default function HalamanMasuk({ tertanam = false }) {
               </li>
             </ul>
             <p className="gk-login-brand-catatan">
-              Kata sandi diverifikasi di server memakai <code>password_verify()</code> dan
+              Kata sandi diverifikasi server menggunakan bcrypt yang kompatibel dengan akun lama, dan
               tidak pernah disimpan di browser.
             </p>
           </section>
@@ -313,7 +313,7 @@ export default function HalamanMasuk({ tertanam = false }) {
             </div>
 
             <p className="gk-login-catatan">
-              Sesi pembeli disimpan di server (cookie PHP), bukan di browser. Kata sandi
+              Sesi pembeli disimpan di server (cookie HttpOnly), bukan di browser. Kata sandi
               dikirim lewat HTTPS dan tidak disimpan di localStorage.
             </p>
           </section>

@@ -1,4 +1,4 @@
-// Layanan reseller pembeli (toko depan) — SELALU ke backend PHP nyata.
+// Layanan reseller pembeli (toko depan) melalui backend Express.
 //
 // Endpoint:
 //   GET  /api/reseller/saya            -> satu pengajuan terbaru pembeli login
@@ -26,7 +26,7 @@ async function minta(jalur, opsi = {}) {
     throw new Error('Tidak dapat menghubungi server. Periksa koneksi Anda.')
   }
 
-  // Proxy Vite mengembalikan 502 bila backend PHP mati — beri pesan jujur.
+  // Proxy Vite mengembalikan 502 bila backend API tidak tersedia.
   if (respons.status === 502 || respons.status === 503 || respons.status === 504) {
     let pesanBackend = ''
     try {
@@ -35,8 +35,8 @@ async function minta(jalur, opsi = {}) {
     } catch { /* non-JSON */ }
     throw new Error(
       pesanBackend ||
-        `Backend API tidak aktif (HTTP ${respons.status}). Jalankan backend PHP di port 8000 ` +
-        '(`php -S localhost:8000 -t backend backend/api/index.php` dari folder project) lalu coba lagi.'
+        `Backend API tidak aktif (HTTP ${respons.status}). Jalankan API Node.js di port 8000 ` +
+        '(`npm start` dari folder backend) lalu coba lagi.'
     )
   }
 

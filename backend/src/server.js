@@ -9,17 +9,28 @@ import bcrypt from 'bcryptjs'
 import multer from 'multer'
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { rateLimit } from 'express-rate-limit'
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit'
 import { prisma } from './db.js'
+import { recordSecurityAudit, recordThreat, runSecurityScan } from './security.js'
 
 import 'dotenv/config'
 
 const app = express()
 const production = process.env.NODE_ENV === 'production'
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('Referrer-Policy', 'no-referrer')
+  res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'")
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+  if (production) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+  next()
+})
 const origins = (process.env.ALLOWED_ORIGINS || process.env.APP_ORIGIN || 'http://localhost:5173')
   .split(',').map((item) => item.trim()).filter(Boolean)
 const cwd = path.dirname(fileURLToPath(import.meta.url))
 const uploadDir = path.resolve(process.env.UPLOAD_DIR || path.join(cwd, '../uploads'))
+const projectRoot = path.resolve(cwd, '../..')
 fs.mkdirSync(uploadDir, { recursive: true })
 const s3Bucket = process.env.S3_BUCKET || ''
 const s3 = process.env.S3_ENDPOINT && s3Bucket && process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY
@@ -96,26 +107,118 @@ app.use(session({
   cookie: { httpOnly: true, sameSite: process.env.SESSION_SAME_SITE || 'lax', secure: process.env.SESSION_COOKIE_SECURE === 'true' || production, domain: process.env.SESSION_COOKIE_DOMAIN || undefined, maxAge: 30 * 60 * 1000, path: '/' },
 }))
 
-const loginLimiter = rateLimit({ windowMs: 60_000, limit: 10, store: prismaRateStore(60_000), passOnStoreError: false, standardHeaders: true, legacyHeaders: false, message: { ok: false, pesan: 'Terlalu banyak percobaan. Coba lagi sebentar.' } })
-const chatLimiter = rateLimit({ windowMs: 60_000, limit: 20, store: prismaRateStore(60_000), passOnStoreError: false, standardHeaders: true, legacyHeaders: false, message: { ok: false, pesan: 'Terlalu banyak pesan. Tunggu sebentar lalu coba lagi.' } })
+function trackThreat(req, type) {
+  if (!process.env.DATABASE_URL || process.env.NODE_ENV === 'test') return
+  recordThreat(prisma, type, { path: req.path, method: req.method }).catch(() => {})
+}
+const limited = (type, message) => (req, res) => { trackThreat(req, type); res.status(429).json({ ok: false, pesan: message }) }
+const loginLimiter = rateLimit({ windowMs: 60_000, limit: 10, store: prismaRateStore(60_000), passOnStoreError: false, standardHeaders: true, legacyHeaders: false, handler: limited('login_fail', 'Terlalu banyak percobaan. Coba lagi sebentar.') })
+const chatLimiter = rateLimit({ windowMs: 60_000, limit: 20, store: prismaRateStore(60_000), passOnStoreError: false, standardHeaders: true, legacyHeaders: false, handler: limited('http_4xx', 'Terlalu banyak pesan. Tunggu sebentar lalu coba lagi.') })
+const registrationLimiter = rateLimit({ windowMs: 300_000, limit: 5, store: prismaRateStore(300_000), passOnStoreError: false, standardHeaders: true, legacyHeaders: false, handler: limited('http_4xx', 'Terlalu banyak pendaftaran. Coba lagi nanti.') })
+const reviewLimiter = rateLimit({ windowMs: 60_000, limit: 10, store: prismaRateStore(60_000), passOnStoreError: false, standardHeaders: true, legacyHeaders: false, handler: limited('http_4xx', 'Terlalu banyak ulasan. Tunggu sebentar lalu coba lagi.') })
+const resellerApplicationLimiter = rateLimit({ windowMs: 300_000, limit: 5, keyGenerator: (req) => req.session.pembeli?.id ? `buyer:${req.session.pembeli.id}` : `ip:${ipKeyGenerator(req.ip)}`, store: prismaRateStore(300_000), passOnStoreError: false, standardHeaders: true, legacyHeaders: false, handler: limited('http_4xx', 'Anda sudah mengirimkan banyak pengajuan. Coba lagi nanti.') })
 function issueCsrf(req) { req.session.csrf ||= crypto.randomBytes(32).toString('hex'); return req.session.csrf }
 function csrf(req, _res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next()
   const token = req.get('X-CSRF-Token') || ''
   const expected = Buffer.from(req.session.csrf || '')
   const provided = Buffer.from(token)
-  if (!expected.length || expected.length !== provided.length || !crypto.timingSafeEqual(provided, expected)) return next(fail(403, 'Token keamanan tidak valid. Muat ulang halaman lalu coba lagi.'))
+  if (!expected.length || expected.length !== provided.length || !crypto.timingSafeEqual(provided, expected)) {
+    trackThreat(req, 'csrf_fail')
+    return next(fail(403, 'Token keamanan tidak valid. Muat ulang halaman lalu coba lagi.'))
+  }
   next()
 }
-function admin(req, _res, next) { if (!req.session.admin) return next(fail(401, 'Perlu masuk sebagai admin.')); next() }
+function admin(req, res, next) {
+  if (!req.session.admin) return next(fail(401, 'Perlu masuk sebagai admin.'))
+  prisma.admin.findUnique({ where: { id: req.session.admin.id }, select: { id: true, pengguna: true, nama: true, email: true, peran: true, status: true } }).then(async (current) => {
+    if (!current || current.status !== 'Aktif') {
+      await new Promise((resolve) => req.session.destroy(() => resolve()))
+      res.clearCookie('PHPSESSID', { path: '/' })
+      return next(fail(401, 'Sesi admin tidak aktif. Silakan masuk kembali.'))
+    }
+    req.session.admin = current
+    prisma.admin.update({ where: { id: current.id }, data: { masuk_terakhir: new Date() } }).catch(() => {})
+    return next()
+  }).catch(next)
+}
 function role(...roles) { return (req, _res, next) => !roles.length || roles.includes(req.session.admin?.peran) ? next() : next(fail(403, 'Akses ditolak: role tidak cukup.')) }
-function buyer(req, _res, next) { if (!req.session.pembeli) return next(fail(401, 'Perlu masuk terlebih dahulu.')); next() }
+function buyer(req, res, next) {
+  if (!req.session.pembeli) return next(fail(401, 'Perlu masuk terlebih dahulu.'))
+  prisma.pelanggan.findFirst({ where: { id: req.session.pembeli.id, status: 'Aktif' }, select: { id: true, nama: true, username: true, email: true } }).then(async (current) => {
+    if (!current) {
+      delete req.session.pembeli
+      res.clearCookie('PHPSESSID', { path: '/' })
+      return next(fail(401, 'Sesi pelanggan tidak aktif. Silakan masuk kembali.'))
+    }
+    req.session.pembeli = current
+    return next()
+  }).catch(next)
+}
+function activeIdentity(req, res, next) {
+  if (req.session.admin) return admin(req, res, next)
+  if (req.session.pembeli) return buyer(req, res, next)
+  return next(fail(401, 'Perlu masuk terlebih dahulu.'))
+}
 function idMatch(value) { return /^[\w-]{1,40}$/.test(String(value || '')) }
 const mutate = [csrf]
 
 app.get('/api/sehat', wrap(async (_req, res) => {
   try { await prisma.$queryRaw`SELECT 1`; return ok(res, { layanan: 'gamesku-store', waktu: new Date().toISOString(), database: 'tersambung' }) }
   catch { return res.status(200).json({ ok: true, data: { layanan: 'gamesku-store', waktu: new Date().toISOString(), database: 'gagal' }, pesan: '' }) }
+}))
+app.get('/api/keamanan/audit', admin, wrap(async (req, res) => {
+  const where = { ...(req.query.action ? { action: str(req.query.action, 120) } : {}), ...(req.query.outcome ? { outcome: str(req.query.outcome, 30) } : {}) }
+  const rows = await prisma.securityAuditEvent.findMany({ where, orderBy: { ts: 'desc' }, take: 200 })
+  return res.json({ ok: true, data: rows.map((row) => ({ ts: row.ts.toISOString(), correlation_id: row.correlation_id, actor: row.actor, action: row.action, resource: row.resource, outcome: row.outcome, meta: row.meta })) })
+}))
+app.get('/api/keamanan/incidents', admin, wrap(async (req, res) => {
+  const where = req.query.status ? { status: str(req.query.status, 20) } : {}
+  return ok(res, await prisma.securityIncident.findMany({ where, orderBy: { created_at: 'desc' }, take: 200 }))
+}))
+app.get('/api/keamanan/threats', admin, wrap(async (_req, res) => {
+  const windowSeconds = Math.max(60, Math.min(86400, Number(process.env.SECURITY_WINDOW_SECONDS) || 300))
+  const start = new Date(Date.now() - windowSeconds * 1000)
+  const grouped = await prisma.securityThreatEvent.groupBy({ by: ['type'], where: { ts: { gte: start } }, _count: { _all: true } })
+  const counts = Object.fromEntries(grouped.map((row) => [row.type, row._count._all]))
+  const thresholds = { login_failures: Number(process.env.SECURITY_LOGIN_THRESHOLD) || 10, http_4xx: Number(process.env.SECURITY_4XX_THRESHOLD) || 20, http_5xx: Number(process.env.SECURITY_5XX_THRESHOLD) || 5 }
+  const findings = []
+  if ((counts.login_fail || 0) >= thresholds.login_failures) findings.push({ type: 'login_spike', severity: 'high', count: counts.login_fail })
+  if ((counts.http_4xx || 0) >= thresholds.http_4xx) findings.push({ type: 'http_4xx_spike', severity: 'medium', count: counts.http_4xx })
+  if ((counts.http_5xx || 0) >= thresholds.http_5xx) findings.push({ type: 'http_5xx_spike', severity: 'high', count: counts.http_5xx })
+  if ((counts.csrf_fail || 0) >= thresholds.http_4xx) findings.push({ type: 'csrf_spike', severity: 'high', count: counts.csrf_fail })
+  return ok(res, findings)
+}))
+app.post('/api/keamanan/incident', admin, csrf, wrap(async (req, res) => {
+  const input = body(req), title = str(input.title || 'Insiden keamanan', 255), severity = str(input.severity || 'medium', 20).toLowerCase()
+  if (!['low', 'medium', 'high', 'critical'].includes(severity)) throw fail(422, 'Tingkat keparahan insiden tidak valid.')
+  const dateKey = new Intl.DateTimeFormat('en-CA', { timeZone: process.env.APP_TIMEZONE || 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()).replaceAll('-', '')
+  const row = await prisma.securityIncident.create({ data: { id: `INC-${dateKey}-${crypto.randomBytes(3).toString('hex')}`, title, severity, status: 'detected', meta: { sumber: 'api' } } })
+  await recordSecurityAudit(prisma, req, 'incident.create', 'success', { resource: row.id }).catch(() => {})
+  return ok(res, { id: row.id }, 'Insiden dibuat.', 201)
+}))
+app.put('/api/keamanan/incident/:id', admin, csrf, wrap(async (req, res) => {
+  const status = str(body(req).status, 20), allowed = ['detected', 'investigating', 'contained', 'resolved', 'closed']
+  if (!allowed.includes(status)) throw fail(400, 'Transisi insiden gagal.')
+  const current = await prisma.securityIncident.findUnique({ where: { id: req.params.id } })
+  if (!current) throw fail(400, 'Transisi insiden gagal.')
+  const row = await prisma.securityIncident.update({ where: { id: current.id }, data: { status, updated_at: new Date() } })
+  await recordSecurityAudit(prisma, req, 'incident.transition', 'success', { resource: row.id, status }).catch(() => {})
+  return ok(res, { id: row.id, status: row.status }, 'Insiden diperbarui.')
+}))
+app.patch('/api/keamanan/incident/:id', admin, csrf, wrap(async (req, res) => {
+  const status = str(body(req).status, 20), allowed = ['detected', 'investigating', 'contained', 'resolved', 'closed']
+  if (!allowed.includes(status)) throw fail(400, 'Transisi insiden gagal.')
+  const current = await prisma.securityIncident.findUnique({ where: { id: req.params.id } })
+  if (!current) throw fail(400, 'Transisi insiden gagal.')
+  const row = await prisma.securityIncident.update({ where: { id: current.id }, data: { status, updated_at: new Date() } })
+  await recordSecurityAudit(prisma, req, 'incident.transition', 'success', { resource: row.id, status }).catch(() => {})
+  return ok(res, { id: row.id, status: row.status }, 'Insiden diperbarui.')
+}))
+app.post('/api/keamanan/scan', admin, csrf, wrap(async (req, res) => {
+  const { findings } = runSecurityScan(projectRoot)
+  await recordSecurityAudit(prisma, req, 'security.scan', 'success', { jumlah: findings.length }).catch(() => {})
+  return ok(res, findings, 'Pemindaian selesai.')
 }))
 app.get('/api/auth/csrf-token', (req, res) => ok(res, { csrf_token: issueCsrf(req) }))
 app.get('/api/auth/csrf', (req, res) => ok(res, { csrf_token: issueCsrf(req) }))
@@ -132,9 +235,9 @@ app.post('/api/auth/masuk', loginLimiter, csrf, wrap(async (req, res) => {
   const password = String(body(req).sandi ?? '')
   if (!userInput || !password) throw fail(400, 'Pengguna dan sandi wajib diisi.')
   if (Buffer.byteLength(password, 'utf8') > 72) throw fail(401, 'Pengguna atau sandi salah.')
-  const user = await prisma.admin.findFirst({ where: { OR: [{ pengguna: userInput }, { email: userInput }] } })
+  const user = await prisma.admin.findFirst({ where: { OR: [{ pengguna: { equals: userInput, mode: 'insensitive' } }, { email: { equals: userInput, mode: 'insensitive' } }] } })
   const hash = user?.sandi_hash?.replace(/^\$2y\$/, '$2b$')
-  if (!user || !await bcrypt.compare(password, hash || '$2b$12$invalid.invalid.invalid.invalid.invalid.invalid.invalid.invalid')) throw fail(401, 'Pengguna atau sandi salah.')
+  if (!user || !await bcrypt.compare(password, hash || '$2b$12$invalid.invalid.invalid.invalid.invalid.invalid.invalid.invalid')) { trackThreat(req, 'login_fail'); throw fail(401, 'Pengguna atau sandi salah.') }
   if (user.status !== 'Aktif') throw fail(403, 'Akun admin tidak aktif.')
   await new Promise((resolve, reject) => req.session.regenerate((error) => error ? reject(error) : resolve()))
   req.session.admin = { id: user.id, pengguna: user.pengguna, nama: user.nama, email: user.email, peran: user.peran || 'admin' }
@@ -153,17 +256,21 @@ app.post('/api/auth/daftar', admin, role('superadmin'), csrf, wrap(async (req, r
   return ok(res, record, 'Admin ditambahkan.', 201)
 }))
 app.put('/api/auth/admin/:id', admin, role('superadmin'), csrf, wrap(async (req, res) => {
-  const input = body(req), current = await prisma.admin.findUnique({ where: { id: Number(req.params.id) } }); if (!current) throw fail(404, 'Admin tidak ditemukan.')
+  const targetId = Number(req.params.id); if (!Number.isSafeInteger(targetId) || targetId < 1) throw fail(400, 'ID admin tidak valid.')
+  const input = body(req), current = await prisma.admin.findUnique({ where: { id: targetId } }); if (!current) throw fail(404, 'Admin tidak ditemukan.')
   const data = {}
   if (input.status !== undefined) { if (!['Aktif', 'Nonaktif'].includes(input.status)) throw fail(422, 'Status admin tidak valid.'); data.status = input.status }
   if (input.peran !== undefined) { if (!['admin', 'superadmin'].includes(input.peran)) throw fail(422, 'Role admin tidak valid.'); data.peran = input.peran }
+  if (current.id === req.session.admin.id && (data.peran === 'admin' || data.status === 'Nonaktif')) throw fail(409, 'Anda tidak dapat menonaktifkan atau menurunkan peran akun sendiri.')
   const adminCount = await prisma.admin.count({ where: { peran: 'superadmin', status: 'Aktif' } })
   if (current.peran === 'superadmin' && current.status === 'Aktif' && (data.peran === 'admin' || data.status === 'Nonaktif') && adminCount <= 1) throw fail(409, 'Superadmin aktif terakhir tidak dapat dinonaktifkan.')
   const record = await prisma.admin.update({ where: { id: current.id }, data, select: { id: true, pengguna: true, nama: true, email: true, peran: true, status: true } })
   return ok(res, record, 'Admin diperbarui.')
 }))
 app.delete('/api/auth/admin/:id', admin, role('superadmin'), csrf, wrap(async (req, res) => {
-  const targetId = Number(req.params.id), current = await prisma.admin.findUnique({ where: { id: targetId } }); if (!current) throw fail(404, 'Admin tidak ditemukan.')
+  const targetId = Number(req.params.id); if (!Number.isSafeInteger(targetId) || targetId < 1) throw fail(400, 'ID admin tidak valid.')
+  const current = await prisma.admin.findUnique({ where: { id: targetId } }); if (!current) throw fail(404, 'Admin tidak ditemukan.')
+  if (current.id === req.session.admin.id) throw fail(409, 'Anda tidak dapat menghapus akun sendiri.')
   const activeSuper = current.peran === 'superadmin' && current.status === 'Aktif' ? await prisma.admin.count({ where: { peran: 'superadmin', status: 'Aktif' } }) : 2
   if (activeSuper <= 1) throw fail(409, 'Superadmin aktif terakhir tidak dapat dihapus.')
   await prisma.admin.delete({ where: { id: targetId } }); return ok(res, { id: targetId }, 'Admin dihapus.')
@@ -171,9 +278,9 @@ app.delete('/api/auth/admin/:id', admin, role('superadmin'), csrf, wrap(async (r
 
 app.post('/api/pelanggan/masuk', loginLimiter, csrf, wrap(async (req, res) => {
   const email = str(body(req).email, 150).toLowerCase(), password = String(body(req).sandi ?? '')
-  const customer = await prisma.pelanggan.findUnique({ where: { email } })
+  const customer = await prisma.pelanggan.findFirst({ where: { email: { equals: email, mode: 'insensitive' } } })
   const hash = customer?.sandi_hash?.replace(/^\$2y\$/, '$2b$')
-  if (Buffer.byteLength(password, 'utf8') > 72 || !customer || !hash || !await bcrypt.compare(password, hash)) throw fail(401, 'Email atau kata sandi salah.')
+  if (Buffer.byteLength(password, 'utf8') > 72 || !customer || !hash || !await bcrypt.compare(password, hash)) { trackThreat(req, 'login_fail'); throw fail(401, 'Email atau kata sandi salah.') }
   if (customer.status !== 'Aktif') throw fail(403, 'Akun tidak aktif.')
   await new Promise((resolve, reject) => req.session.regenerate((error) => error ? reject(error) : resolve()))
   req.session.pembeli = { id: customer.id, nama: customer.nama, username: customer.username, email: customer.email }
@@ -221,10 +328,12 @@ app.get('/api/reseller/pesanan', buyer, wrap(async (req, res) => {
   return ok(res, rows.map((row) => ({ id: row.id, produk: row.produk_ringkas, kategori: row.kategori, metode: row.metode, subtotal: Number(row.subtotal), biayaLayanan: Number(row.biaya_layanan), potongan: Number(row.potongan), total: Number(row.total), status: row.status, catatan: row.catatan, dibuatPada: row.dibuat_pada, diperbaruiPada: row.diperbarui_pada, item: row.item.map((item) => ({ produkId: item.produk_id, nama: item.nama, harga: Number(item.harga), jumlah: item.jumlah, subtotal: Number(item.subtotal) })) })))
 }))
 app.get('/api/reseller/:id', admin, role('superadmin'), wrap(async (req, res) => { const row = await prisma.resellerPengajuan.findUnique({ where: { id: req.params.id } }); if (!row) throw fail(404, 'Pengajuan reseller tidak ditemukan.'); return ok(res, row) }))
-app.post('/api/reseller', buyer, csrf, wrap(async (req, res) => {
+app.post('/api/reseller', buyer, resellerApplicationLimiter, csrf, wrap(async (req, res) => {
   const customer = await prisma.pelanggan.findUnique({ where: { id: req.session.pembeli.id } }); if (!customer || customer.status !== 'Aktif') throw fail(401, 'Perlu masuk terlebih dahulu.')
   const existing = await prisma.resellerPengajuan.findFirst({ where: { pelanggan_id: customer.id, status: { in: ['pending', 'approved'] } } }); if (existing) throw fail(409, 'Pengajuan reseller aktif sudah ada.')
-  const input = body(req), row = await prisma.resellerPengajuan.create({ data: { id: id('res'), pelanggan_id: customer.id, nama: str(input.nama || customer.nama, 120), email: str(input.email || customer.email, 150), username: str(input.username || customer.username, 60), whatsapp: str(input.whatsapp, 40), catatan: str(input.catatan, 500), status: 'pending' } })
+  const input = body(req), whatsapp = str(input.whatsapp, 40)
+  if (!/^\+?[0-9]{8,20}$/.test(whatsapp)) throw fail(422, whatsapp ? 'Nomor WhatsApp tidak valid.' : 'Nomor WhatsApp wajib diisi.')
+  const row = await prisma.resellerPengajuan.create({ data: { id: id('res'), pelanggan_id: customer.id, nama: customer.nama, email: customer.email, username: customer.username, whatsapp, catatan: str(input.catatan, 500), status: 'pending' } })
   return ok(res, row, 'Pengajuan reseller dikirim.', 201)
 }))
 app.put('/api/reseller/:id/status', admin, role('superadmin'), csrf, wrap(async (req, res) => {
@@ -263,12 +372,12 @@ async function conversationSummary(conversation) {
   const last = await prisma.pesan.findFirst({ where: { percakapan_id: conversation.id, dihapus_pada: null }, orderBy: [{ dibuat_pada: 'desc' }, { id: 'desc' }], select: { teks: true } })
   return { ...conversation, pesan_terakhir: last?.teks || null }
 }
-app.get('/api/pesan/percakapan', wrap(async (req, res) => {
+app.get('/api/pesan/percakapan', activeIdentity, wrap(async (req, res) => {
   const who = identity(req), where = who.tipe === 'admin' ? (req.query.status ? { status: str(req.query.status, 40) } : {}) : { anggota: { some: { user_tipe: who.tipe, user_id: who.id, keluar_pada: null } } }
   const rows = await prisma.percakapan.findMany({ where, orderBy: [{ diperbarui_pada: 'desc' }, { dibuat_pada: 'desc' }], take: 200 })
   return ok(res, await Promise.all(rows.map(conversationSummary)))
 }))
-app.post('/api/pesan/percakapan', csrf, wrap(async (req, res) => {
+app.post('/api/pesan/percakapan', activeIdentity, csrf, wrap(async (req, res) => {
   const who = identity(req), input = body(req), type = ['penjualan', 'cs'].includes(input.tipe) ? input.tipe : 'penjualan'
   const customerId = who.tipe === 'pembeli' ? who.id : str(input.pelangganId, 40) || null
   const productId = str(input.produkId, 40) || null, orderId = str(input.pesananId, 40) || null
@@ -289,7 +398,7 @@ app.post('/api/pesan/percakapan', csrf, wrap(async (req, res) => {
   })
   return ok(res, await conversationSummary(result), '', 201)
 }))
-app.get('/api/pesan/percakapan/:id', wrap(async (req, res) => {
+app.get('/api/pesan/percakapan/:id', activeIdentity, wrap(async (req, res) => {
   const who = identity(req); await ensureMember(req.params.id, who)
   const row = await prisma.percakapan.findUnique({ where: { id: req.params.id } })
   const limit = Math.max(1, Math.min(200, Number(req.query.batas) || 50))
@@ -303,7 +412,7 @@ app.put('/api/pesan/percakapan/:id', admin, csrf, wrap(async (req, res) => {
   const status = str(body(req).status, 40); if (!['open', 'in_progress', 'closed'].includes(status)) throw fail(422, 'Status percakapan tidak valid.')
   const row = await prisma.percakapan.update({ where: { id: req.params.id }, data: { status, diperbarui_pada: new Date() } }); return ok(res, { id: row.id, status: row.status }, 'Status percakapan diperbarui.')
 }))
-app.post('/api/pesan/percakapan/:id', csrf, wrap(async (req, res) => {
+app.post('/api/pesan/percakapan/:id', activeIdentity, csrf, wrap(async (req, res) => {
   const who = identity(req); const conv = await ensureMember(req.params.id, who)
   if (conv.status === 'closed') throw fail(409, 'Percakapan sudah ditutup.')
   const text = str(body(req).teks, 4000); if (!text) throw fail(422, 'Pesan masih kosong.')
@@ -315,7 +424,7 @@ app.post('/api/pesan/percakapan/:id', csrf, wrap(async (req, res) => {
   })
   return ok(res, result, 'Pesan terkirim.', 201)
 }))
-app.post('/api/pesan/baca', csrf, wrap(async (req, res) => {
+app.post('/api/pesan/baca', activeIdentity, csrf, wrap(async (req, res) => {
   const who = identity(req), conversationId = str(body(req).percakapanId, 40); if (!conversationId) throw fail(400, 'percakapanId wajib diisi.')
   await ensureMember(conversationId, who)
   const unread = await prisma.pesan.findMany({ where: { percakapan_id: conversationId, dihapus_pada: null }, select: { id: true } })
@@ -323,7 +432,7 @@ app.post('/api/pesan/baca', csrf, wrap(async (req, res) => {
   await prisma.anggotaPercakapan.updateMany({ where: { percakapan_id: conversationId, user_tipe: who.tipe, user_id: who.id }, data: { terakhir_baca_pada: new Date() } })
   return ok(res, { percakapanId: conversationId }, 'Ditandai sudah dibaca.')
 }))
-app.delete('/api/pesan/:id', csrf, wrap(async (req, res) => {
+app.delete('/api/pesan/:id', activeIdentity, csrf, wrap(async (req, res) => {
   const who = identity(req), message = await prisma.pesan.findUnique({ where: { id: req.params.id } }); if (!message) throw fail(404, 'Pesan tidak ditemukan.')
   if (who.tipe !== 'admin' && !(message.pengirim_tipe === who.tipe && message.pengirim_id === who.id)) throw fail(403, 'Tidak berhak menghapus pesan ini.')
   await prisma.pesan.update({ where: { id: message.id }, data: { dihapus_pada: new Date() } }); return ok(res, { id: message.id }, 'Pesan dihapus.')
@@ -459,7 +568,7 @@ app.get('/api/promo/cek', wrap(async (req, res) => {
   return ok(res, promo && promo.terpakai < promo.batas ? promo : null, promo ? '' : 'Kode promo tidak berlaku.')
 }))
 app.get('/api/promo', wrap(async (req, res) => ok(res, await prisma.promo.findMany({ where: req.session.admin ? {} : { status: 'Aktif' }, orderBy: { dibuat_pada: 'desc' } }))))
-app.get('/api/ulasan/produk/:produkId', wrap(async (req, res) => { const rows = await prisma.ulasan.findMany({ where: { produk_id: req.params.produkId, status: 'Disetujui' }, orderBy: { tanggal: 'desc' } }); const average = rows.length ? rows.reduce((sum, row) => sum + row.rating, 0) / rows.length : 0; return ok(res, { ulasan: rows, rataRata: average, jumlah: rows.length }) }))
+app.get('/api/ulasan/produk/:produkId', wrap(async (req, res) => { const rows = await prisma.ulasan.findMany({ where: { produk_id: req.params.produkId, status: 'Disetujui' }, orderBy: { tanggal: 'desc' } }); const average = rows.length ? Math.round(rows.reduce((sum, row) => sum + row.rating, 0) / rows.length * 10) / 10 : null; return ok(res, { ulasan: rows.map((row) => ({ ...row, produkId: row.produk_id, produk: row.produk_nama, pelangganId: row.pelanggan_id, pelanggan: row.pelanggan_nama })), rataRating: average, jumlah: rows.length }) }))
 
 // Checkout: server-side price lookup, capped quantities, promo quota update and items in one transaction.
 app.post('/api/pesanan', csrf, wrap(async (req, res) => {
@@ -494,7 +603,7 @@ app.post('/api/pesanan', csrf, wrap(async (req, res) => {
   const order = await prisma.$transaction(async (tx) => {
     let customerId = req.session.pembeli?.id || null
     if (email && !customerId) {
-      const prior = await tx.pelanggan.findUnique({ where: { email } })
+      const prior = await tx.pelanggan.findFirst({ where: { email: { equals: email, mode: 'insensitive' } } })
       if (prior) customerId = prior.id
       else { customerId = id('pel'); await tx.pelanggan.create({ data: { id: customerId, nama: customerName, email } }) }
     }
@@ -502,13 +611,15 @@ app.post('/api/pesanan', csrf, wrap(async (req, res) => {
       const claimed = await tx.promo.updateMany({ where: { id: promo.id, terpakai: { lt: promo.batas } }, data: { terpakai: { increment: 1 } } })
       if (claimed.count !== 1) throw fail(409, 'Kuota kode promo sudah habis. Silakan tanpa kode promo.')
     }
-    return tx.pesanan.create({ data: {
+    const created = await tx.pesanan.create({ data: {
       id: orderId, pelanggan_id: customerId, pelanggan_nama: customerName, email,
       whatsapp: str(buyerData.whatsapp, 40), produk_ringkas: str([...new Set(rows.map((r) => r.nama))].join(', '), 255),
       kategori: categoryRow?.nama || '', metode: str(input.metode, 60), subtotal, biaya_layanan: fee, potongan: discount,
       total, kode_promo: promo && discount > 0n ? promoCode : '', idempotency_key: key || null,
       item: { create: rows.map(({ produk_id, nama, harga, jumlah, subtotal: itemSubtotal }) => ({ produk_id, nama, harga, jumlah, subtotal: itemSubtotal })) },
     }, include: { item: true } })
+    if (customerId) await tx.pelanggan.update({ where: { id: customerId }, data: { jumlah_pesanan: { increment: 1 }, total_beli: { increment: total } } })
+    return created
   })
   return ok(res, { id: order.id, subtotal: num(order.subtotal), biayaLayanan: num(order.biaya_layanan), potongan: num(order.potongan), total: num(order.total), status: order.status }, 'Pesanan dibuat.', 201)
 }))
@@ -517,7 +628,7 @@ app.post('/api/pesanan', csrf, wrap(async (req, res) => {
 app.get('/api/pesanan', admin, wrap(async (req, res) => { const where = {}; if (req.query.status) where.status = str(req.query.status, 40); if (req.query.cari) where.OR = ['id', 'pelanggan_nama', 'email'].map((field) => ({ [field]: { contains: String(req.query.cari), mode: 'insensitive' } })); const rows = await prisma.pesanan.findMany({ where, orderBy: { dibuat_pada: 'desc' }, take: 500 }); return ok(res, safe(rows.map((r) => ({ ...r, subtotal: num(r.subtotal), biayaLayanan: num(r.biaya_layanan), potongan: num(r.potongan), total: num(r.total), pelanggan: r.pelanggan_nama, produk: r.produk_ringkas, promo: r.kode_promo, dibuatPada: r.dibuat_pada, diperbaruiPada: r.diperbarui_pada })))) }))
 app.get('/api/pesanan/:id', admin, wrap(async (req, res) => { const row = await prisma.pesanan.findUnique({ where: { id: req.params.id }, include: { item: true } }); if (!row) throw fail(404, 'Pesanan tidak ditemukan.'); return ok(res, safe({ ...row, pelanggan: row.pelanggan_nama, produk: row.produk_ringkas, biayaLayanan: num(row.biaya_layanan), subtotal: num(row.subtotal), potongan: num(row.potongan), total: num(row.total), dibuatPada: row.dibuat_pada, diperbaruiPada: row.diperbarui_pada })) }))
 app.put('/api/pesanan/:id', admin, csrf, wrap(async (req, res) => { const allowed = ['Menunggu', 'Diproses', 'Berhasil', 'Gagal']; const status = str(body(req).status, 40); if (!allowed.includes(status)) throw fail(422, 'Status pesanan tidak valid.'); const row = await prisma.pesanan.update({ where: { id: req.params.id }, data: { status, diperbarui_pada: new Date(), ...(status === 'Berhasil' ? { diselesaikan_pada: new Date() } : {}), ...(status === 'Gagal' ? { dibatalkan_pada: new Date() } : {}) } }); return ok(res, { id: row.id, status: row.status }, 'Status pesanan diperbarui.') }))
-app.delete('/api/pesanan/:id', admin, csrf, wrap(async (req, res) => { await prisma.pesanan.delete({ where: { id: req.params.id } }); return ok(res, { id: req.params.id }, 'Pesanan dihapus.') }))
+app.delete('/api/pesanan/:id', admin, csrf, wrap(async (req, res) => { const payment = await prisma.pembayaran.findUnique({ where: { pesanan_id: req.params.id }, select: { id: true } }); if (payment) throw fail(409, 'Pesanan memiliki data pembayaran dan tidak dapat dihapus. Hapus pembayaran lebih dulu.'); await prisma.pesanan.delete({ where: { id: req.params.id } }); return ok(res, { id: req.params.id }, 'Pesanan dihapus.') }))
 
 const routeResources = {
   kategori: { model: 'kategori', admin: true, fields: ['nama', 'slug', 'deskripsi', 'ikon', 'gambar', 'status'], status: ['Aktif', 'Nonaktif'], required: ['nama', 'slug'] },
@@ -539,7 +650,7 @@ for (const [route, config] of Object.entries(routeResources)) {
   }))
   if (['kategori', 'produk', 'promo', 'creator', 'pelanggan', 'ulasan'].includes(route)) {
     if (!['kategori', 'produk'].includes(route)) app.get(`/api/${route}/:id`, admin, wrap(async (req, res) => { const row = await delegate.findUnique({ where: { id: req.params.id } }); if (!row) throw fail(404, 'Data tidak ditemukan.'); return ok(res, safe(row)) }))
-    app.post(`/api/${route}`, ...(config.admin && !config.publicCreate ? [admin] : []), ...mutate, wrap(async (req, res) => {
+    app.post(`/api/${route}`, ...(config.admin && !config.publicCreate ? [admin] : []), ...(route === 'pelanggan' ? [(req, res, next) => req.session.admin ? next() : registrationLimiter(req, res, next)] : []), ...(route === 'ulasan' ? [reviewLimiter] : []), ...mutate, wrap(async (req, res) => {
       const input = body(req); for (const key of config.required) if (!str(input[key], 255)) throw fail(422, `${key} wajib diisi.`)
       const data = Object.fromEntries(config.fields.filter((key) => input[key] !== undefined).map((key) => [mapField(route, key), input[key]]))
       if (data.status && config.status && !config.status.includes(data.status)) throw fail(422, 'Status tidak valid.')
@@ -547,9 +658,22 @@ for (const [route, config] of Object.entries(routeResources)) {
       if (route === 'kategori') data.id = id('kat')
       if (route === 'promo') { data.id = id('pro'); data.kode = str(input.kode, 40).toUpperCase(); data.diskon = Math.max(0, Math.min(100, Number(input.diskon) || 0)); data.mulai = input.mulai ? new Date(input.mulai) : null; data.berakhir = input.berakhir ? new Date(input.berakhir) : null }
       if (route === 'creator') { data.id = id('cr'); data.status = 'Review' }
-      if (route === 'pelanggan') { data.id = id('pel'); data.total_beli = 0n; data.jumlah_pesanan = 0; data.status = 'Aktif'; if (input.sandi) { if (String(input.sandi).length < 8) throw fail(422, 'Kata sandi minimal 8 karakter.'); data.sandi_hash = await bcrypt.hash(String(input.sandi), 12) } }
-      if (route === 'ulasan') { data.id = id('rev'); data.produk_id = str(input.produkId, 40); data.produk_nama = str(input.produkNama, 160); data.pelanggan_id = req.session.pembeli?.id || null; data.pelanggan_nama = req.session.pembeli?.nama || str(input.pelangganNama, 120); data.rating = Math.max(1, Math.min(5, Number(input.rating) || 5)); data.komentar = str(input.komentar, 4000); data.status = 'Menunggu' }
-      const row = await delegate.create({ data }); return ok(res, safe(row), 'Data ditambahkan.', 201)
+      if (route === 'pelanggan') {
+        data.id = id('pel'); data.email = str(input.email, 150).toLowerCase(); data.nama = str(input.nama, 120); data.username = str(input.username, 60); data.total_beli = 0n; data.jumlah_pesanan = 0; data.status = 'Aktif'
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) throw fail(422, 'Email pelanggan tidak valid.')
+        if (input.sandi) { const password = String(input.sandi); if (password.length < 8) throw fail(422, 'Kata sandi minimal 8 karakter.'); if (Buffer.byteLength(password, 'utf8') > 72) throw fail(422, 'Kata sandi maksimal 72 karakter.'); data.sandi_hash = await bcrypt.hash(password, 12) }
+      }
+      if (route === 'ulasan') {
+        const productId = str(input.produkId, 40), customerName = req.session.pembeli?.nama || str(input.pelanggan ?? input.pelangganNama, 120)
+        if (!productId || !customerName) throw fail(422, 'Ulasan perlu produk dan nama pelanggan.')
+        const product = await prisma.produk.findFirst({ where: { id: productId, status: 'Aktif' }, select: { id: true, nama: true } })
+        if (!product) throw fail(422, 'Produk tidak ditemukan atau tidak tersedia.')
+        data.id = id('uls'); data.produk_id = product.id; data.produk_nama = product.nama; data.pelanggan_id = req.session.pembeli?.id || null; data.pelanggan_nama = customerName; data.rating = Math.min(5, Math.max(1, Math.round(Number(input.rating) || 5))); data.komentar = String(input.komentar ?? '').slice(0, 5000); data.status = 'Menunggu'
+      }
+      const row = await delegate.create({ data })
+      if (route === 'ulasan') return ok(res, { id: row.id, status: row.status }, 'Ulasan terkirim, menunggu moderasi.', 201)
+      if (route === 'pelanggan' && !req.session.admin) return ok(res, { id: row.id, nama: row.nama, email: row.email }, 'Pendaftaran berhasil.', 201)
+      return ok(res, safe(row), 'Data ditambahkan.', 201)
     }))
     app.put(`/api/${route}/:id`, admin, ...mutate, wrap(async (req, res) => {
       const input = body(req), data = Object.fromEntries(config.fields.filter((key) => input[key] !== undefined).map((key) => [mapField(route, key), input[key]]))
@@ -651,7 +775,8 @@ app.use('/api', (_req, _res, next) => next(fail(404, 'Endpoint API tidak ditemuk
 app.use((error, _req, res, _next) => {
   const status = error.status || (error.code === 'LIMIT_FILE_SIZE' ? 413 : error.code === 'P2002' ? 409 : error.code === 'P2025' ? 404 : 500)
   const message = status >= 500 ? (production ? 'Terjadi kesalahan pada server.' : error.message) : error.message
-  if (status >= 500) console.error('[gameku-api]', error.code || error.name, error.message)
+  trackThreat(_req, status >= 500 ? 'http_5xx' : 'http_4xx')
+  if (status >= 500) console.error('[gameku-api]', error.code || error.name)
   return res.status(status).json({ ok: false, pesan: message })
 })
 

@@ -15,6 +15,7 @@ node_modules
 backend/uploads/**
 !backend/uploads/.gitkeep
 backend/.transfer-*.json
+backend/prisma/generated/
 dist
 dist-ssr
 *.local

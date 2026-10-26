@@ -7,10 +7,10 @@
 //   POST /api/pelanggan/keluar  logout pembeli
 //   POST /api/pelanggan         daftar pembeli baru (nama, email, sandi)
 //
-// Kunci sesi: $_SESSION['pembeli'] (PHP cookie), terpisah dari $_SESSION['admin'].
+// Kunci sesi pembeli terpisah dari identitas sesi admin.
 // JANGAN mengarang sesi pembeli dari localStorage / koleksi lokal:
 // `buatKoleksi('pelanggan')` hanya menyimpan nama+email pendaftar di browser,
-// tanpa password_verify dan tanpa cookie sesi server bukan bukti login.
+// tanpa verifikasi hash dan cookie sesi server bukan bukti login.
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 
 import {

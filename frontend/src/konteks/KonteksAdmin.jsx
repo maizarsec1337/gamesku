@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { KonteksAdmin } from './konteksAdmin.js'
 import { sesiAdmin, masukAdmin, keluarAdmin } from '../layanan/apiAdmin.js'
 
-// Penyedia sesi admin (backend PHP) + toast pesan global untuk halaman admin.
+// Penyedia sesi admin (backend Express) + toast pesan global untuk halaman admin.
 //
-// Sesi diverifikasi server via GET /api/auth/saya (cookie PHP). Tidak ada
+// Sesi diverifikasi server via GET /api/auth/saya (cookie HttpOnly). Tidak ada
 // kredensial yang disimpan di browser — hanya objek sesi (id, pengguna,
 // nama, peran) yang dikembalikan server.
 export function PenyediaAdmin({ children }) {
@@ -33,7 +33,7 @@ export function PenyediaAdmin({ children }) {
     }
   }, [])
 
-  // Login: verifikasi dilakukan backend (password_verify). Melempar GalatApi bila gagal.
+  // Login: verifikasi hash dilakukan backend. Melempar GalatApi bila gagal.
   const masuk = useCallback(async (pengguna, sandi) => {
     const data = await masukAdmin(pengguna, sandi)
     versiSesi.current += 1

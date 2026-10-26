@@ -45,7 +45,7 @@ export default function AdminPengaturan() {
   const [tab, setTab] = useState('profil')
   const [memuat, setMemuat] = useState(false)
   const [tersimpan] = useState(() => baca('pengaturanAdmin', {}))
-  // Profil admin BERASAL DARI SERVER (sesi PHP).
+  // Profil admin berasal dari sesi server.
   const [profil, setProfil] = useState({ nama: '', pengguna: '', email: '', bio: String(tersimpan?.bio || '') })
 
   // Isi identitas dari sesi server saat tersedia.
@@ -346,7 +346,7 @@ export default function AdminPengaturan() {
                   <label className="label-form" htmlFor="kam-ulang">Ulangi kata sandi baru</label>
                   <input id="kam-ulang" type="password" className="isian-admin" placeholder="••••••••" autoComplete="new-password" />
                   <p className="bantuan-form">
-                    Produksi: kata sandi diverifikasi server dengan password_hash() PHP.
+                    Produksi: kata sandi diverifikasi server dengan bcrypt yang kompatibel dengan hash lama.
                   </p>
                 </div>
                 <div className="baris-saklar">
@@ -369,7 +369,7 @@ export default function AdminPengaturan() {
                       <strong>
                         Sesi aktif: {profil.pengguna || 'admin'} ({peran || 'admin'})
                       </strong>
-                      <span>Sesi dijaga cookie PHP (HttpOnly); tidak tersimpan di browser.</span>
+                      <span>Sesi dijaga cookie HttpOnly; tidak tersimpan di browser.</span>
                     </span>
                   </span>
                   <button

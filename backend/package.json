@@ -3,33 +3,38 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "build": "node node_modules/prisma/build/index.js generate",
-    "db:validate": "node node_modules/prisma/build/index.js validate",
-    "db:migrate": "node node_modules/prisma/build/index.js migrate deploy",
+    "build": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:migrate": "prisma migrate deploy",
     "db:transfer:check": "node scripts/transfer-data.js --check",
     "db:transfer": "node scripts/transfer-data.js",
+    "security:transfer:check": "node scripts/transfer-security-logs.js --check",
+    "security:transfer": "node scripts/transfer-security-logs.js",
     "test": "node --test"
   },
   "dependencies": {
-    "@prisma/client": "6.19.3",
     "@aws-sdk/client-s3": "^3.922.0",
     "@aws-sdk/s3-request-presigner": "^3.922.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "bcryptjs": "^3.0.2",
     "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
     "express-session": "^1.18.2",
-    "dotenv": "^16.6.1",
-    "mysql2": "^3.15.2",
     "multer": "^2.0.2",
+    "mysql2": "^3.15.2",
     "pg": "^8.16.3"
   },
   "devDependencies": {
-    "prisma": "6.19.3"
+    "prisma": "^7.10.1"
   }
 }
