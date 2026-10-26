@@ -769,8 +769,16 @@ app.post('/api/media', admin, ...mutate, (req, _res, next) => { if (production) 
 }))
 app.delete('/api/media/:id', admin, ...mutate, wrap(async (req, res) => { const row = await prisma.media.findUnique({ where: { id: req.params.id } }); if (!row) throw fail(404, 'Media tidak ditemukan.'); if (row.object_key && s3) await s3.send(new DeleteObjectCommand({ Bucket: s3Bucket, Key: row.object_key })); await prisma.media.update({ where: { id: row.id }, data: { status: 'Hapus', dihapus_pada: new Date() } }); return ok(res, { id: req.params.id }, 'Media dihapus.') }))
 
+const buildDir = path.resolve(cwd, '../../build')
+const hasBuild = fs.existsSync(path.join(buildDir, 'index.html'))
+
 app.use('/uploads', express.static(uploadDir, { fallthrough: false, dotfiles: 'deny', index: false }))
+if (hasBuild) app.use(express.static(buildDir, { index: false, dotfiles: 'deny' }))
 app.use('/api', (_req, _res, next) => next(fail(404, 'Endpoint API tidak ditemukan.')))
+if (hasBuild) app.use((req, res, next) => {
+  if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) return next()
+  return res.sendFile(path.join(buildDir, 'index.html'))
+})
 app.use((error, _req, res, _next) => {
   const status = error.status || (error.code === 'LIMIT_FILE_SIZE' ? 413 : error.code === 'P2002' ? 409 : error.code === 'P2025' ? 404 : 500)
   const message = status >= 500 ? (production ? 'Terjadi kesalahan pada server.' : error.message) : error.message

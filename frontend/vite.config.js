@@ -33,8 +33,8 @@ export default defineConfig({
     },
   },
   build: {
-    // Keep one project-level dist folder for integrated self-hosted deployments.
-    outDir: '../dist',
+    // Keep one project-level build folder for integrated self-hosted deployments.
+    outDir: '../build',
     emptyOutDir: true,
     chunkSizeWarningLimit: 600,
     rollupOptions: {

@@ -18,6 +18,7 @@ backend/.transfer-*.json
 backend/prisma/generated/
 dist
 dist-ssr
+build
 *.local
 
 # Backend Gameku.store
