@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Gameku Store — Desktop Control Center (Windows GUI)
-Aplikasi desktop untuk mengelola frontend (Vite) dan backend (PHP)
+Aplikasi desktop untuk mengelola frontend (Vite) dan backend (Node.js/Express)
 secara bersamaan dengan live shell, deteksi error, dan pemantauan
 perubahan file. Tidak memerlukan terminal sebagai antarmuka utama.eteksi error, dan pemantauan
 perubahan file. Tidak memerlukan terminal sebagai antarmuka utama.
@@ -12,15 +12,6 @@ konfigurasi project asli.
 """
 
 from __future__ import annotations
-
-# Redirect old desktop shortcuts to the single canonical launcher. The
-# duplicated folder is kept only as a compatibility entry point.
-if __name__ == "__main__":
-    from pathlib import Path as _Path
-    import runpy as _runpy
-    _canonical = _Path(__file__).resolve().parent.parent / "jalan.py"
-    _runpy.run_path(str(_canonical), run_name="__main__")
-    raise SystemExit(0)
 
 import atexit
 import ctypes
@@ -48,15 +39,16 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 import webbrowser
 
-# Import runtime PHP lokal (tidak mengubah php.ini global)
-try:
-    from php_runtime import perintah_php, php_executable
-except Exception:  # pragma: no cover - fallback jika php_runtime tidak ada
-    def php_executable():
-        return shutil.which("php")
+# Runtime Node.js (tidak mengubah konfigurasi global)
+def node_executable():
+    """Kembalikan path executable Node.js yang tersedia."""
+    return shutil.which("node")
 
-    def perintah_php():
-        return ["php"]
+def perintah_node():
+    node = node_executable()
+    if not node:
+        raise RuntimeError("Node.js belum tersedia. Pasang Node.js dan coba lagi.")
+    return [node]
 
 # ============================================================
 # Konfigurasi (diverifikasi dari repository)
@@ -115,7 +107,12 @@ BACKEND_URL_HOTSPOT = ("http://%s:%d" % (HOTSPOT_IP, BACKEND_PORT)) if HOTSPOT_I
 HOTSPOT_SUBNET = ("%s.0/24" % ".".join(HOTSPOT_IP.split(".")[:3])) if HOTSPOT_IP else None
 
 NPM_CMD = shutil.which("npm")
-PHP_CMD = php_executable() or (r"C:\Users\maizar\php84\php.exe" if os.path.isfile(r"C:\Users\maizar\php84\php.exe") else None)
+NODE_CMD = node_executable() or (r"C:\Program Files\nodejs\node.exe" if os.path.isfile(r"C:\Program Files\nodejs\node.exe") else None)
+
+# Konfigurasi Prisma
+PRISMA_SCHEMA_PATH = os.path.join(BACKEND_DIR, "prisma", "schema.prisma")
+PRISMA_GENERATE_CMD = [NPM_CMD or "npm", "run", "build"]  # package.json build = prisma generate
+PRISMA_VALIDATE_CMD = [NPM_CMD or "npm", "run", "db:validate"]  # prisma validate
 
 # ============================================================
 # Warna tema premium dark (ALVIN JMBOD)
@@ -244,7 +241,7 @@ STATUS_STARTING = "STARTING"
 STATUS_RUNNING = "RUNNING"
 STATUS_ERROR = "ERROR"
 FRONTEND_CMD = [NPM_CMD or "npm", "run", "dev", "--", "--host", "0.0.0.0", "--strictPort"]
-BACKEND_CMD = (perintah_php() + ["-S", f"0.0.0.0:{BACKEND_PORT}", "-t", ".", "api/index.php"]) if PHP_CMD else []
+BACKEND_CMD = [NODE_CMD or "node", "src/server.js"] if NODE_CMD else []
 FLAG_POPEN = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)} if os.name == "nt" else {"start_new_session": True}
 WAKTU_TUNGGU_FRONTEND = 90
 WAKTU_TUNGGU_BACKEND = 30
@@ -371,19 +368,80 @@ class ProcessManager:
         # Tunggu health endpoint atau timeout
         self._tunggu_awal_frontend()
 
+    def _jalankan_prisma_generate(self):
+        """Menghasilkan Prisma Client sebelum backend dimulai."""
+        if not os.path.isfile(PRISMA_SCHEMA_PATH):
+            self._tampilkan_error("Prisma schema tidak ditemukan di %s" % PRISMA_SCHEMA_PATH)
+            return False
+        if not NODE_CMD:
+            self._tampilkan_error("Node.js tidak tersedia — tidak bisa menjalankan Prisma.")
+            return False
+        self._tampilkan_status("Menghasilkan Prisma Client...")
+        try:
+            result = subprocess.run(
+                PRISMA_GENERATE_CMD,
+                cwd=BACKEND_DIR,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+            )
+            if result.returncode != 0:
+                self._tampilkan_error("Prisma generate gagal: %s" % (result.stderr or result.stdout))
+                return False
+            self._tampilkan_status("Prisma Client siap.")
+            return True
+        except Exception as e:
+            self._tampilkan_error("Gagal menjalankan Prisma generate: %s" % e)
+            return False
+
+    def _validasi_prisma(self):
+        """Validasi skema Prisma tanpa mengubah database."""
+        if not NODE_CMD:
+            self._tampilkan_error("Node.js tidak tersedia — tidak bisa memvalidasi Prisma.")
+            return False
+        try:
+            result = subprocess.run(
+                PRISMA_VALIDATE_CMD,
+                cwd=BACKEND_DIR,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+            )
+            if result.returncode != 0:
+                self._tampilkan_error("Prisma validate gagal: %s" % (result.stderr or result.stdout))
+                return False
+            self._tampilkan_status("Skema Prisma valid.")
+            return True
+        except Exception as e:
+            self._tampilkan_error("Gagal memvalidasi Prisma: %s" % e)
+            return False
+
     def start_backend(self):
-        """Menjalankan PHP built-in server."""
+        """Menjalankan Express API server (Node.js) dengan Prisma."""
         if self.backend and self.backend.proc and self.backend.proc.poll() is None:
             self._tampilkan_status("Backend sudah berjalan.")
             return
 
         self.backend = ProcessEntry("backend", BACKEND_CMD, cwd=BACKEND_DIR)
 
-        if PHP_CMD is None:
-            self._tampilkan_error("PHP tidak terinstal — backend tidak bisa dijalankan.")
-            self.backend.status = STATUS_ERROR
+        if not NODE_CMD:
+            self._tampilkan_error("Node.js tidak terinstal — backend Express tidak bisa dijalankan.")
             self.backend = None
             return
+
+        # Pastikan Prisma Client tersedia sebelum menghidupkan server
+        if not self._jalankan_prisma_generate():
+            self.backend = None
+            return
+
+        # Validasi skema Prisma (non-destruktif)
+        self._validasi_prisma()
+
+        self.backend = ProcessEntry("backend", BACKEND_CMD, cwd=BACKEND_DIR)
 
         try:
             self.backend.proc = subprocess.Popen(
@@ -400,10 +458,9 @@ class ProcessManager:
             threading.Thread(target=self._read_output, args=("backend", self.backend.proc), daemon=True).start()
             self.backend.start_time = time.time()
             self.backend.status = STATUS_STARTING
-            self._tampilkan_status("Backend dimulai (proses anak PID %d)..." % self.backend.proc.pid)
+            self._tampilkan_status("Backend Express dimulai (proses anak PID %d)..." % self.backend.proc.pid)
         except Exception as e:
             self._tampilkan_error("Gagal memulai backend: %s" % e)
-            self.backend.status = STATUS_ERROR
             self.backend = None
             return
 
@@ -428,7 +485,7 @@ class ProcessManager:
         self._tampilkan_error("Frontend timeout — tidak respons dalam %d detik." % WAKTU_TUNGGU_FRONTEND)
         self._hentikan_frontend(False)
     def _tunggu_awal_backend(self):
-        """Menunggu PHP server siap."""
+        """Menunggu Express server siap."""
         dari = time.time()
         while time.time() - dari < WAKTU_TUNGGU_BACKEND:
             # Cek proses masih hidup
@@ -497,14 +554,21 @@ class ProcessManager:
         if self.app_gui:
             self.app_gui.events.put(("process", "frontend", STATUS_STOPPED))
     def _hentikan_backend(self, force=False):
-        """ menghentikan backend."""
+        """Menghentikan backend Express (beserta child process di Windows)."""
         if self.backend and self.backend.proc:
             self._tampilkan_status("Menghentikan backend...")
-            self.backend.proc.terminate()
-            try:
-                self.backend.proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.backend.proc.kill()
+            if os.name == "nt":
+                subprocess.run(
+                    ["taskkill", "/PID", str(self.backend.proc.pid), "/T", "/F"],
+                    capture_output=True,
+                    **FLAG_POPEN,
+                )
+            else:
+                self.backend.proc.terminate()
+                try:
+                    self.backend.proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.backend.proc.kill()
             self.backend.proc = None
             self.backend.status = STATUS_STOPPED
             self._tampilkan_status("Backend dihentikan.")
@@ -661,6 +725,8 @@ class ControlCenterApp(tk.Tk):
         self.btn_frontend = self._action_button(controls, "Start Frontend", self._on_frontend_toggle)
         self.btn_backend = self._action_button(controls, "Start Backend", self._on_backend_toggle)
         self.btn_stop_all = self._action_button(controls, "Stop All", self._on_stop_all, danger=True)
+        self.btn_start_all = self._action_button(controls, "Start All", self._on_start_all)
+        self.btn_restart_backend = self._action_button(controls, "Restart Backend", self._on_restart_backend)
         self.lbl_status = tk.Label(controls, text="Semua layanan berhenti", bg=COLOR_BG2,
                                    fg=COLOR_SUBTLE, font=FONT_SMALL, wraplength=185)
         self.lbl_status.pack(anchor="w", pady=(12, 0))
@@ -709,7 +775,7 @@ class ControlCenterApp(tk.Tk):
         cards.pack(fill="x")
         cards.grid_columnconfigure((0, 1), weight=1, uniform="cards")
         self.frontend_card, self.frontend_value = self._service_card(cards, 0, "FRONTEND", "Vite development server", FRONTEND_URL)
-        self.backend_card, self.backend_value = self._service_card(cards, 1, "BACKEND", "PHP API server", BACKEND_URL)
+        self.backend_card, self.backend_value = self._service_card(cards, 1, "BACKEND", "Express API server (Node.js)", BACKEND_URL)
 
         quick = tk.Frame(content, bg=COLOR_BG3, padx=20, pady=18)
         quick.pack(fill="x", pady=(20, 0))
@@ -741,7 +807,7 @@ class ControlCenterApp(tk.Tk):
 
         for page, title, detail in (
             ("services", "Services", "Gunakan Quick Control di kiri untuk mengelola server."),
-            ("console", "Live Shell", "Output Vite/PHP tampil langsung. Tiap perintah dijalankan dari folder yang dipilih di bawah."),
+            ("console", "Live Shell", "Output Vite/Express tampil langsung. Tiap perintah dijalankan dari folder yang dipilih di bawah."),
             ("files", "File Activity", "File baru, perubahan, dan penghapusan dalam frontend/src dan backend."),
             ("errors", "Diagnostics", "Error dari server dan perintah shell terdeteksi otomatis."),
             ("about", "About", "Gameku Store · Desktop Control Center"),
@@ -1014,7 +1080,7 @@ class ControlCenterApp(tk.Tk):
 
     def _scan_source_files(self):
         snapshot = {}
-        for relative in ("frontend/vite.config.js", "frontend/package.json", "backend/composer.json"):
+        for relative in ("frontend/vite.config.js", "frontend/package.json", "backend/package.json"):
             path = os.path.join(APP_DIR, relative)
             try:
                 info = os.stat(path)
@@ -1116,6 +1182,25 @@ class ControlCenterApp(tk.Tk):
     def _on_stop_all(self):
         """Stop all running services."""
         self._stop_all_services()
+
+    def _on_start_all(self):
+        """Start frontend and backend if not already running."""
+        self._set_status_bar("Menjalankan semua layanan...")
+        if not self.manager.frontend or self.manager.frontend.status != STATUS_RUNNING:
+            self._start_frontend()
+        if not self.manager.backend or self.manager.backend.status != STATUS_RUNNING:
+            self._start_backend()
+
+    def _on_restart_backend(self):
+        """Restart backend Express server."""
+        self._stop_backend()
+        self.after(800, self._start_backend)
+
+    def _restart_frontend(self):
+        """Restart frontend Vite server."""
+        self._stop_frontend()
+        self.after(800, self._start_frontend)
+
     def _start_frontend(self):
         """Start the frontend (Vite) development server."""
         self._set_status_bar("Menjalankan frontend...")
