@@ -8,8 +8,17 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.env
+.env.*
+!.env.example
+!**/.env.example
+backend/uploads/**
+!backend/uploads/.gitkeep
+backend/.transfer-*.json
+backend/prisma/generated/
 dist
 dist-ssr
+build
 *.local
 
 # Backend Gameku.store
@@ -49,6 +58,7 @@ cline/artifacts/
 .credentials.json
 .env
 .env.*
+!**/.env.example
 *.pem
 *.key
 secrets/
